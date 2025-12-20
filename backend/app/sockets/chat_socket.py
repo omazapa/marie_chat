@@ -1,6 +1,6 @@
 """WebSocket handlers for chat."""
 from flask import request
-from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+from flask_jwt_extended import decode_token
 from app.extensions import socketio
 from app.services.conversation_service import ConversationService
 from app.services.message_service import MessageService
@@ -31,16 +31,27 @@ def get_services():
 def handle_connect(auth):
     """Handle WebSocket connection."""
     try:
-        # Verify JWT token
-        if not auth or 'token' not in auth:
+        # Get token from auth or query string
+        token = None
+        if auth and 'token' in auth:
+            token = auth['token']
+        elif request.args.get('token'):
+            token = request.args.get('token')
+        
+        if not token:
+            print("No token provided")
             return False
         
-        token = auth['token']
-        # Set token in request context for jwt verification
-        request.headers = {'Authorization': f'Bearer {token}'}
-        verify_jwt_in_request()
+        # Decode and verify JWT token
+        decoded_token = decode_token(token)
+        user_id = decoded_token.get('sub')
         
-        user_id = get_jwt_identity()
+        if not user_id:
+            print("Invalid token: no user_id")
+            return False
+        
+        # Store user_id in session
+        request.sid_user_id = user_id
         print(f"Client connected: {user_id}")
         return True
     except Exception as e:
@@ -58,7 +69,11 @@ def handle_disconnect():
 async def handle_send_message(data):
     """Handle incoming chat message."""
     try:
-        user_id = get_jwt_identity()
+        # Get user_id from session (set during connect)
+        user_id = getattr(request, 'sid_user_id', None)
+        if not user_id:
+            socketio.emit('error', {'message': 'Not authenticated'}, room=request.sid)
+            return
         conversation_id = data.get('conversation_id')
         content = data.get('content', '').strip()
         model = data.get('model', 'llama3.2')
