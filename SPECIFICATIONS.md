@@ -4570,12 +4570,12 @@ NEXT_PUBLIC_WS_URL=ws://localhost:5000
 
 ---
 
-## 👥 Equipo
+## 👥 Team
 
-**Desarrollado por:** CoLaV - Universidad de Antioquia  
-**Contacto:** grupocolav@udea.edu.co
+**Developed by:** CoLaV - University of Antioquia  
+**Contact:** grupocolav@udea.edu.co
 
 ---
 
-*Última actualización: Diciembre 2025*
+*Last updated: December 2025*
 
