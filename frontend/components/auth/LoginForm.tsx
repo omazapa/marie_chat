@@ -23,7 +23,7 @@ export default function LoginForm() {
   };
 
   return (
-    <Card style={{ maxWidth: 400, margin: '100px auto', padding: '24px' }}>
+    <Card style={{ maxWidth: 400, margin: '100px auto' }} styles={{ body: { padding: '24px' } }}>
       <Title level={2} style={{ textAlign: 'center', marginBottom: '24px' }}>
         Login
       </Title>
