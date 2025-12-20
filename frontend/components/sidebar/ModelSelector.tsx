@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Select, Card, Typography, Space } from 'antd';
 import { apiClient } from '@/lib/api';
+import { useAuthStore } from '@/stores/authStore';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -23,10 +24,16 @@ export default function ModelSelector({
   const [selectedProvider, setSelectedProvider] = useState<string>(defaultProvider);
   const [selectedModel, setSelectedModel] = useState<string>(defaultModel);
   const [loading, setLoading] = useState(true);
+  const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    loadModels();
-  }, []);
+    // Only load models if user is authenticated
+    if (isAuthenticated) {
+      loadModels();
+    } else {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
 
   const loadModels = async () => {
     try {
