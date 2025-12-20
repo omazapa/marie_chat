@@ -1,0 +1,40 @@
+# Flask Core
+Flask==3.1.2
+Flask-SocketIO==5.5.1
+Flask-CORS==6.0.2
+Flask-JWT-Extended==4.7.1
+
+# Database
+opensearch-py==3.1.0
+opensearch-dsl==2.1.0
+
+# Data Validation
+pydantic==2.12.5
+
+# Environment & Security
+python-dotenv==1.2.1
+bcrypt==5.0.0
+
+# LLM & AI (will be added later)
+# langchain==0.3.x
+# langchain-ollama==latest
+# langchain-huggingface==latest
+# ollama==latest
+# huggingface-hub==latest
+
+# Speech (will be added later)
+# faster-whisper==latest
+# edge-tts==latest
+
+# Embeddings (will be added later)
+# sentence-transformers==latest
+# langdetect==latest
+
+# File Processing (will be added later)
+# PyPDF2==latest
+# python-docx==latest
+# openpyxl==latest
+# pandas==latest
+# Pillow==latest
+# pytesseract==latest
+
