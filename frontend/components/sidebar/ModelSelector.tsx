@@ -31,11 +31,7 @@ export default function ModelSelector({
   const loadModels = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.request<{
-        providers: Record<string, { models: string[]; default: string }>;
-        available_providers: string[];
-        default_provider: string;
-      }>('/api/models');
+      const response = await apiClient.getModels();
 
       if (response.data) {
         setProviders(response.data.providers);
