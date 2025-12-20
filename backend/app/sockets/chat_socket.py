@@ -28,14 +28,14 @@ def get_services():
 
 
 @socketio.on('connect')
-def handle_connect(auth):
+def handle_connect(auth=None):
     """Handle WebSocket connection."""
     try:
-        # Get token from auth or query string
+        # Get token from auth dict or query string
         token = None
-        if auth and 'token' in auth:
+        if auth and isinstance(auth, dict) and 'token' in auth:
             token = auth['token']
-        elif request.args.get('token'):
+        elif hasattr(request, 'args') and request.args.get('token'):
             token = request.args.get('token')
         
         if not token:
@@ -43,8 +43,12 @@ def handle_connect(auth):
             return False
         
         # Decode and verify JWT token
-        decoded_token = decode_token(token)
-        user_id = decoded_token.get('sub')
+        try:
+            decoded_token = decode_token(token)
+            user_id = decoded_token.get('sub')
+        except Exception as jwt_error:
+            print(f"JWT decode error: {jwt_error}")
+            return False
         
         if not user_id:
             print("Invalid token: no user_id")
