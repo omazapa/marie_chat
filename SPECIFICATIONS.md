@@ -500,7 +500,8 @@ marie_chat/
 │   │   │   ├── MarkdownRenderer.tsx # Renderizador MD
 │   │   │   ├── CodeBlock.tsx        # Bloque de código
 │   │   │   ├── MermaidDiagram.tsx   # Diagramas
-│   │   │   └── LatexRenderer.tsx    # Fórmulas LaTeX
+│   │   │   ├── LatexRenderer.tsx    # Fórmulas LaTeX
+│   │   │   └── HTMLArtifact.tsx     # HTML artifacts (plots, charts)
 │   │   ├── 📁 auth/
 │   │   │   ├── LoginForm.tsx
 │   │   │   ├── RegisterForm.tsx
@@ -4316,6 +4317,9 @@ for await (const chunk of client.chatStream("Explica Python")) {
   - [ ] Copy code button
   - [ ] LaTeX rendering
   - [ ] Mermaid diagrams
+  - [ ] HTML artifacts rendering (plots, charts, visualizations)
+  - [ ] Plotly integration for interactive charts
+  - [ ] Safe HTML sanitization with DOMPurify
   - [ ] HTML artifacts rendering (plots, charts, visualizations)
   - [ ] Plotly integration for interactive charts
   - [ ] Safe HTML sanitization with DOMPurify
