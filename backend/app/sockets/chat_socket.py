@@ -4,7 +4,7 @@ from flask_jwt_extended import decode_token
 from app.extensions import socketio
 from app.services.conversation_service import ConversationService
 from app.services.message_service import MessageService
-from app.services.ollama_provider import OllamaProvider
+from app.services.llm_service import LLMService
 from app.services.opensearch_service import OpenSearchService
 from app.config import Config
 from datetime import datetime
@@ -22,9 +22,9 @@ def get_services():
     )
     conversation_service = ConversationService(opensearch_service)
     message_service = MessageService(opensearch_service)
-    ollama_provider = OllamaProvider()
+    llm_service = LLMService()
     
-    return conversation_service, message_service, ollama_provider
+    return conversation_service, message_service, llm_service
 
 
 @socketio.on('connect')
@@ -88,7 +88,7 @@ async def handle_send_message(data):
             return
         
         # Get services
-        conversation_service, message_service, ollama_provider = get_services()
+        conversation_service, message_service, llm_service = get_services()
         
         # Verify conversation exists and belongs to user
         if conversation_id:
@@ -130,16 +130,31 @@ async def handle_send_message(data):
                 'content': msg['content']
             })
         
+        # Get LLM provider
+        provider_instance = llm_service.get_provider(provider)
+        if not provider_instance:
+            socketio.emit('error', {
+                'message': f'Provider {provider} not available'
+            }, room=request.sid)
+            return
+        
         # Stream response from LLM
         full_response = ""
         socketio.emit('typing_start', {}, room=request.sid)
         
-        async for chunk in ollama_provider.stream_chat(model, llm_messages):
-            full_response += chunk
-            socketio.emit('message_chunk', {
-                'chunk': chunk,
-                'conversation_id': conversation_id
-            }, room=request.sid)
+        try:
+            async for chunk in provider_instance.stream_chat(model, llm_messages):
+                full_response += chunk
+                socketio.emit('message_chunk', {
+                    'chunk': chunk,
+                    'conversation_id': conversation_id
+                }, room=request.sid)
+        except Exception as e:
+            error_msg = f"Error generating response: {str(e)}"
+            print(error_msg)
+            socketio.emit('error', {'message': error_msg}, room=request.sid)
+            socketio.emit('typing_stop', {}, room=request.sid)
+            return
         
         socketio.emit('typing_stop', {}, room=request.sid)
         

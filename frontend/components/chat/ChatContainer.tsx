@@ -5,8 +5,9 @@ import { Layout, Input, Button, Typography, Space } from 'antd';
 import { SendOutlined } from '@ant-design/icons';
 import { useChat } from '@/hooks/useChat';
 import MessageList from './MessageList';
+import ModelSelector from '@/components/sidebar/ModelSelector';
 
-const { Content } = Layout;
+const { Content, Sider } = Layout;
 const { TextArea } = Input;
 const { Title } = Typography;
 
@@ -16,12 +17,19 @@ interface ChatContainerProps {
 
 export default function ChatContainer({ conversationId }: ChatContainerProps) {
   const [inputValue, setInputValue] = useState('');
+  const [selectedProvider, setSelectedProvider] = useState('ollama');
+  const [selectedModel, setSelectedModel] = useState('llama3.2');
   const { messages, isTyping, error, sendMessage } = useChat(conversationId);
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
-    sendMessage(inputValue.trim(), conversationId);
+    sendMessage(inputValue.trim(), conversationId, selectedProvider, selectedModel);
     setInputValue('');
+  };
+
+  const handleModelChange = (provider: string, model: string) => {
+    setSelectedProvider(provider);
+    setSelectedModel(model);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -32,7 +40,17 @@ export default function ChatContainer({ conversationId }: ChatContainerProps) {
   };
 
   return (
-    <Layout style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Layout style={{ height: '100vh' }}>
+      <Sider width={250} style={{ background: '#fff', padding: '16px' }}>
+        <Title level={4} style={{ marginBottom: '16px' }}>
+          Configuration
+        </Title>
+        <ModelSelector
+          onModelChange={handleModelChange}
+          defaultProvider={selectedProvider}
+          defaultModel={selectedModel}
+        />
+      </Sider>
       <Content
         style={{
           flex: 1,

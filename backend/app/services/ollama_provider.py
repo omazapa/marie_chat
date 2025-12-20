@@ -2,9 +2,10 @@
 from typing import AsyncGenerator, List, Dict, Any
 import os
 import httpx
+from app.services.llm_provider import LLMProvider
 
 
-class OllamaProvider:
+class OllamaProvider(LLMProvider):
     """Ollama provider for LLM interactions."""
     
     def __init__(self, base_url: str = None):
@@ -85,4 +86,8 @@ class OllamaProvider:
         except Exception as e:
             print(f"Error listing Ollama models: {e}")
             return []
+    
+    def get_provider_name(self) -> str:
+        """Get provider name."""
+        return "ollama"
 

@@ -11,7 +11,7 @@ interface UseChatReturn {
   conversation: Conversation | null;
   isTyping: boolean;
   error: string | null;
-  sendMessage: (content: string, conversationId?: string) => void;
+  sendMessage: (content: string, conversationId?: string, provider?: string, model?: string) => void;
   loadConversation: (conversationId: string) => Promise<void>;
   createConversation: () => Promise<string | null>;
 }
@@ -67,7 +67,7 @@ export function useChat(conversationId?: string): UseChatReturn {
 
   // Send message
   const sendMessage = useCallback(
-    async (content: string, convId?: string) => {
+    async (content: string, convId?: string, provider = 'ollama', model = 'llama3.2') => {
       if (!isAuthenticated) {
         setError('Not authenticated');
         return;
@@ -107,8 +107,8 @@ export function useChat(conversationId?: string): UseChatReturn {
       socket.emit('send_message', {
         conversation_id: targetConvId,
         content: content,
-        model: conversation?.model || 'llama3.2',
-        provider: conversation?.provider || 'ollama',
+        model: model || conversation?.model || 'llama3.2',
+        provider: provider || conversation?.provider || 'ollama',
       });
     },
     [isAuthenticated, conversation, createConversation]
