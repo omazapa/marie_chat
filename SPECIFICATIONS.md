@@ -30,7 +30,7 @@
 
 - ✅ Real-time conversational chat with streaming via WebSockets
 - ✅ Multi-provider LLM support (Ollama, HuggingFace, custom pipelines)
-- ✅ Advanced Markdown, code, LaTeX, and diagram rendering
+- ✅ Advanced Markdown, code, LaTeX, diagram, and HTML artifacts rendering (plots, charts)
 - ✅ Conversation persistence in OpenSearch
 - ✅ Hybrid search (text + vectorial) over history
 - ✅ **Speech-to-Text (STT)**: Microphone input with Whisper
@@ -56,7 +56,11 @@
 | **react-markdown** | latest | Markdown rendering |
 | **react-syntax-highlighter** | latest | Code highlighting |
 | **rehype-katex** | latest | LaTeX rendering |
+| **rehype-raw** | latest | HTML rendering in Markdown |
 | **mermaid** | latest | Diagrams |
+| **react-plotly.js** | latest | Plotly charts rendering |
+| **plotly.js** | latest | Plotly core library |
+| **dompurify** | latest | HTML sanitization for security |
 | **zustand** | latest | Global state |
 
 #### Voice (TTS/STT)
@@ -275,6 +279,7 @@
 | RF03.4 | Render LaTeX formulas | Medium |
 | RF03.5 | Render Mermaid diagrams | Medium |
 | RF03.6 | Render interactive tables | Medium |
+| RF03.7 | Render HTML artifacts (plots, charts, visualizations) | High |
 
 ### RF04 - Authentication
 
