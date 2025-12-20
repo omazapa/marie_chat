@@ -61,10 +61,11 @@ class AuthService:
     
     def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
         """Get user by email."""
+        # Use match query instead of term for case-insensitive search
         query = {
             "query": {
-                "term": {
-                    "email": email
+                "match": {
+                    "email": email.lower()
                 }
             }
         }
@@ -78,11 +79,11 @@ class AuthService:
     
     def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
         """Authenticate a user with email and password."""
-        # Get user with password hash
+        # Get user with password hash - use match for case-insensitive search
         query = {
             "query": {
-                "term": {
-                    "email": email
+                "match": {
+                    "email": email.lower()
                 }
             }
         }

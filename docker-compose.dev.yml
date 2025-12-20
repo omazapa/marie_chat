@@ -27,11 +27,11 @@ services:
     environment:
       - FLASK_ENV=development
       - FLASK_DEBUG=true
-      - OPENSEARCH_HOSTS=https://opensearch:9200
-      - OPENSEARCH_USER=admin
+      - OPENSEARCH_HOSTS=${OPENSEARCH_HOSTS:-https://opensearch:9200}
+      - OPENSEARCH_USER=${OPENSEARCH_USER:-admin}
       - OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD:-Marie_Chat_2024!}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-secret-key-change-in-production}
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
     depends_on:
       opensearch:
         condition: service_healthy
