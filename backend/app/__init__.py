@@ -14,10 +14,9 @@ def create_app(config_name='default'):
     jwt.init_app(app)
     socketio.init_app(app, cors_allowed_origins=app.config['CORS_ORIGINS'])
     
-    # Register blueprints (will be added later)
-    # from app.routes import auth_bp, chat_bp
-    # app.register_blueprint(auth_bp)
-    # app.register_blueprint(chat_bp)
+    # Register blueprints
+    from app.routes import auth
+    app.register_blueprint(auth.auth_bp)
     
     @app.route('/api/health')
     def health():
