@@ -77,7 +77,7 @@ export default function ModelSelector({
 
   return (
     <Card size="small" style={{ marginBottom: '16px' }}>
-      <Space direction="vertical" style={{ width: '100%' }} size="small">
+      <Space orientation="vertical" style={{ width: '100%' }} size="small">
         <div>
           <Text strong>Provider:</Text>
           <Select
