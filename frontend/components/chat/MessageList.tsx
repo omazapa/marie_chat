@@ -52,8 +52,10 @@ export default function MessageList({ messages, isTyping }: MessageListProps) {
               maxWidth: '70%',
               backgroundColor: message.role === 'user' ? '#1890ff' : '#f0f0f0',
             }}
-            bodyStyle={{
-              padding: '12px 16px',
+            styles={{
+              body: {
+                padding: '12px 16px',
+              },
             }}
           >
             <Space>
