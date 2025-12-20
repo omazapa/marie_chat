@@ -15,8 +15,12 @@ def create_app(config_name='default'):
     socketio.init_app(app, cors_allowed_origins=app.config['CORS_ORIGINS'])
     
     # Register blueprints
-    from app.routes import auth
+    from app.routes import auth, conversations
     app.register_blueprint(auth.auth_bp)
+    app.register_blueprint(conversations.conversations_bp)
+    
+    # Register socket handlers
+    from app.sockets import chat_socket  # noqa: F401
     
     @app.route('/api/health')
     def health():
