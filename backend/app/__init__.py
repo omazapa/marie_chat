@@ -15,9 +15,10 @@ def create_app(config_name='default'):
     socketio.init_app(app, cors_allowed_origins=app.config['CORS_ORIGINS'])
     
     # Register blueprints
-    from app.routes import auth, conversations
+    from app.routes import auth, conversations, models
     app.register_blueprint(auth.auth_bp)
     app.register_blueprint(conversations.conversations_bp)
+    app.register_blueprint(models.models_bp)
     
     # Register socket handlers
     from app.sockets import chat_socket  # noqa: F401
