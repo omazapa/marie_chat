@@ -45,30 +45,37 @@ Marie Chat is a modern conversational chat interface designed to interact with l
 
 ### Prerequisites
 
-- Node.js 20+
-- Python 3.12+
-- Docker & Docker Compose
+- Docker & Docker Compose (recommended)
+- Node.js 20+ (for local development)
+- Python 3.12+ (for local development)
 
-### Installation
+### Quick Start with Docker
 
-1. Clone the repository:
+1. **Clone and setup:**
 ```bash
 git clone <repository-url>
 cd marie_chat
-```
-
-2. Copy environment variables:
-```bash
 cp .env.example .env
 # Edit .env with your configuration
 ```
 
-3. Start services with Docker Compose:
+2. **Start all services:**
 ```bash
-docker-compose -f docker-compose.dev.yml up
+docker-compose -f docker-compose.dev.yml up -d
 ```
 
-Or run locally:
+3. **Initialize OpenSearch indices:**
+```bash
+docker-compose exec backend python scripts/init_opensearch.py
+```
+
+4. **Access the application:**
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:5000
+- OpenSearch: https://localhost:9200
+- OpenSearch Dashboards: http://localhost:5601
+
+### Local Development
 
 **Backend:**
 ```bash
@@ -85,6 +92,16 @@ cd frontend
 npm install
 npm run dev
 ```
+
+**Note:** For local development, you'll need to run OpenSearch and Ollama separately, or use Docker Compose.
+
+### First Steps
+
+1. Register a new user at http://localhost:3000/register
+2. Login and start chatting
+3. The first message will create a new conversation automatically
+
+For production deployment, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ## Documentation
 
