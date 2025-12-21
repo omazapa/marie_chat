@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { Conversations, Sender, Bubble } from '@ant-design/x';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
-import { Spin, Empty, Button, Space, Typography, Dropdown } from 'antd';
-import { SendOutlined, UserOutlined, RobotOutlined, PlusOutlined, MessageOutlined, MoreOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Spin, Empty, Button, Space, Typography, Dropdown, Modal, Tag, Tooltip } from 'antd';
+import { SendOutlined, UserOutlined, RobotOutlined, PlusOutlined, MessageOutlined, MoreOutlined, EditOutlined, DeleteOutlined, ThunderboltOutlined, SettingOutlined } from '@ant-design/icons';
 import type { ConversationsProps } from '@ant-design/x';
+import ModelSelector from './ModelSelector';
 
 const { Title, Text } = Typography;
 
@@ -20,11 +21,16 @@ interface Message {
 interface Conversation {
   id: string;
   title: string;
+  model: string;
+  provider: string;
   updated_at: string;
 }
 
 export default function ChatContainer() {
   const [inputValue, setInputValue] = useState('');
+  const [showModelSelector, setShowModelSelector] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState('ollama');
+  const [selectedModel, setSelectedModel] = useState('llama3.2');
   const { accessToken } = useAuthStore();
   const {
     conversations,
@@ -58,11 +64,34 @@ export default function ChatContainer() {
     }] : []),
   ];
 
-  const handleNewConversation = async () => {
-    const conv = await createConversation('New Conversation', 'llama3.2', 'ollama');
+  const handleNewConversation = () => {
+    setShowModelSelector(true);
+  };
+
+  const handleCreateWithModel = async () => {
+    setShowModelSelector(false);
+    const conv = await createConversation('New Conversation', selectedModel, selectedProvider);
     if (conv) {
       selectConversation(conv);
     }
+  };
+
+  const handleChangeModel = async () => {
+    if (!currentConversation) return;
+    
+    setSelectedProvider(currentConversation.provider);
+    setSelectedModel(currentConversation.model);
+    setShowModelSelector(true);
+  };
+
+  const handleUpdateModel = async () => {
+    if (!currentConversation) return;
+    
+    setShowModelSelector(false);
+    await updateConversation(currentConversation.id, {
+      model: selectedModel,
+      provider: selectedProvider,
+    });
   };
 
   const handleDeleteConversation = async (id: string) => {
@@ -89,7 +118,7 @@ export default function ChatContainer() {
     
     // Create new conversation if none selected
     if (!currentConversation) {
-      const conv = await createConversation('New Chat', 'llama3.2', 'ollama');
+      const conv = await createConversation('New Chat', selectedModel, selectedProvider);
       if (conv) {
         await selectConversation(conv);
         setTimeout(() => sendMessage(content), 500);
@@ -267,6 +296,41 @@ export default function ChatContainer() {
           </div>
         ) : (
           <>
+            {/* Chat Header with Model Info */}
+            <div style={{
+              padding: '16px 24px',
+              borderBottom: '1px solid #E2E8F0',
+              background: '#ffffff',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <Space size="middle">
+                <RobotOutlined style={{ fontSize: '20px', color: '#1B4B73' }} />
+                <div>
+                  <Text strong style={{ fontSize: '16px', display: 'block' }}>
+                    {currentConversation.title}
+                  </Text>
+                  <Space size="small">
+                    <Tag icon={<ThunderboltOutlined />} color="blue">
+                      {currentConversation.provider}
+                    </Tag>
+                    <Tag color="cyan">{currentConversation.model}</Tag>
+                  </Space>
+                </div>
+              </Space>
+              <Tooltip title="Change model">
+                <Button
+                  icon={<SettingOutlined />}
+                  onClick={handleChangeModel}
+                  size="small"
+                  type="text"
+                >
+                  Change Model
+                </Button>
+              </Tooltip>
+            </div>
+
             {/* Messages Area */}
             <div style={{ 
               flex: 1, 
@@ -379,6 +443,27 @@ export default function ChatContainer() {
           </>
         )}
       </div>
+
+      {/* Model Selector Modal */}
+      <Modal
+        title={currentConversation ? 'Change Model' : 'Select Model for New Conversation'}
+        open={showModelSelector}
+        onOk={currentConversation ? handleUpdateModel : handleCreateWithModel}
+        onCancel={() => setShowModelSelector(false)}
+        width={600}
+        okText={currentConversation ? 'Update Model' : 'Create Conversation'}
+      >
+        <ModelSelector
+          token={accessToken}
+          selectedProvider={selectedProvider}
+          selectedModel={selectedModel}
+          onSelect={(provider, model) => {
+            setSelectedProvider(provider);
+            setSelectedModel(model);
+          }}
+          showDetails={true}
+        />
+      </Modal>
     </div>
   );
 }
