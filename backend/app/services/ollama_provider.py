@@ -380,5 +380,5 @@ class OllamaProvider(LLMProvider):
         await self.client.aclose()
 
 
-# Global instance
-ollama_provider = OllamaProvider()
+# Legacy compatibility - will be removed in future versions
+# Use provider_factory.get_provider('ollama') instead
