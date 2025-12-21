@@ -49,7 +49,7 @@ def handle_connect():
 
 
 @socketio.on('disconnect')
-def handle_disconnect():
+def handle_disconnect(*args, **kwargs):
     """Handle client disconnection"""
     if request.sid in active_connections:
         user_id = active_connections[request.sid]['user_id']
@@ -145,13 +145,16 @@ def process_chat_message(
                 }, room=sid)
                 
                 # Run async generator in the loop
+                full_content = ""
                 async def stream_messages():
+                    nonlocal full_content
                     async for chunk in await llm_service.chat_completion(
                         conversation_id=conversation_id,
                         user_id=user_id,
                         user_message=message,
                         stream=True
                     ):
+                        full_content += chunk['content']
                         # Emit each chunk to the client
                         socketio.emit('stream_chunk', {
                             'conversation_id': conversation_id,
@@ -161,8 +164,25 @@ def process_chat_message(
                 
                 loop.run_until_complete(stream_messages())
                 
+                # Fetch the saved message from DB to get complete message object
+                messages = loop.run_until_complete(
+                    llm_service.get_messages(conversation_id, user_id, limit=1, offset=0)
+                )
+                # Get the last message (should be the assistant's response)
+                last_message = None
+                if messages:
+                    # Get all messages and find the last assistant message
+                    all_messages = loop.run_until_complete(
+                        llm_service.get_messages(conversation_id, user_id, limit=100)
+                    )
+                    for msg in reversed(all_messages):
+                        if msg['role'] == 'assistant':
+                            last_message = msg
+                            break
+                
                 socketio.emit('stream_end', {
-                    'conversation_id': conversation_id
+                    'conversation_id': conversation_id,
+                    'message': last_message
                 }, room=sid)
             else:
                 # Non-streaming response

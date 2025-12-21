@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useWebSocket, Message, StreamChunk } from './useWebSocket';
 
@@ -26,6 +26,15 @@ export function useChat(token: string | null) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [updateTrigger, setUpdateTrigger] = useState(0);
+  
+  // Use ref to keep track of current conversation for callbacks
+  const currentConversationRef = useRef<Conversation | null>(null);
+  
+  // Update ref when state changes
+  useEffect(() => {
+    currentConversationRef.current = currentConversation;
+  }, [currentConversation]);
 
   // WebSocket handlers
   const handleStreamStart = useCallback(() => {
@@ -38,24 +47,33 @@ export function useChat(token: string | null) {
   }, []);
 
   const handleStreamEnd = useCallback(
-    async (data: { conversation_id: string }) => {
+    async (data: { conversation_id: string; message?: Message }) => {
       setIsStreaming(false);
-      // Refresh messages to get the saved assistant message
-      if (currentConversation?.id === data.conversation_id) {
-        await fetchMessages(data.conversation_id);
-      }
       setStreamingMessage('');
+      
+      // Add the complete assistant message if provided
+      if (data.message && currentConversationRef.current?.id === data.conversation_id) {
+        const newMessage = { ...data.message };
+        setMessages((prev) => {
+          // Check if message already exists
+          const exists = prev.some(m => m.id === newMessage.id);
+          if (exists) {
+            return prev;
+          }
+          return [...prev, newMessage];
+        });
+      }
     },
-    [currentConversation]
+    []
   );
 
   const handleMessageResponse = useCallback(
     (data: { conversation_id: string; message: Message }) => {
-      if (currentConversation?.id === data.conversation_id) {
+      if (currentConversationRef.current?.id === data.conversation_id) {
         setMessages((prev) => [...prev, data.message]);
       }
     },
-    [currentConversation]
+    []
   );
 
   // Initialize WebSocket
@@ -96,31 +114,25 @@ export function useChat(token: string | null) {
   // Create conversation
   const createConversation = useCallback(
     async (title: string = 'New Conversation', model: string = 'llama3.2', provider: string = 'ollama') => {
-      console.log('[useChat] createConversation called with:', { title, model, provider, hasToken: !!token });
-      
       if (!token) {
-        console.error('[useChat] No token available!');
         return null;
       }
 
       try {
         setLoading(true);
-        console.log('[useChat] Making API request to create conversation...');
         const response = await axios.post(
           `${API_BASE}/conversations`,
           { title, model, provider },
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const newConversation = response.data;
-        console.log('[useChat] Conversation created successfully:', newConversation);
         setConversations((prev) => [newConversation, ...prev]);
         setError(null);
         return newConversation;
       } catch (err: any) {
         const errorMsg = err.response?.data?.error || 'Failed to create conversation';
         setError(errorMsg);
-        console.error('[useChat] Error creating conversation:', err);
-        console.error('[useChat] Error response:', err.response?.data);
+        console.error('Error creating conversation:', err);
         return null;
       } finally {
         setLoading(false);

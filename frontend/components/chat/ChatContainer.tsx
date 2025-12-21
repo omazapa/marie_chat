@@ -1,10 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { Conversations, Sender, Bubble } from '@ant-design/x';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
-import { Spin, Empty, Button, Space, Typography } from 'antd';
-import { SendOutlined, UserOutlined, RobotOutlined, PlusOutlined, MessageOutlined } from '@ant-design/icons';
+import { Spin, Empty, Button, Space, Typography, Dropdown } from 'antd';
+import { SendOutlined, UserOutlined, RobotOutlined, PlusOutlined, MessageOutlined, MoreOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ConversationsProps } from '@ant-design/x';
 
 const { Title, Text } = Typography;
@@ -23,6 +24,7 @@ interface Conversation {
 }
 
 export default function ChatContainer() {
+  const [inputValue, setInputValue] = useState('');
   const { accessToken } = useAuthStore();
   const {
     conversations,
@@ -57,14 +59,9 @@ export default function ChatContainer() {
   ];
 
   const handleNewConversation = async () => {
-    console.log('[ChatContainer] handleNewConversation called');
     const conv = await createConversation('New Conversation', 'llama3.2', 'ollama');
-    console.log('[ChatContainer] createConversation returned:', conv);
     if (conv) {
-      console.log('[ChatContainer] Selecting conversation:', conv.id);
       selectConversation(conv);
-    } else {
-      console.error('[ChatContainer] Failed to create conversation');
     }
   };
 
@@ -82,14 +79,13 @@ export default function ChatContainer() {
   };
 
   const handleRenameConversation = async (id: string, title: string) => {
-    const newTitle = prompt('New title:', title);
-    if (newTitle && newTitle !== title) {
-      await updateConversation(id, { title: newTitle });
-    }
+    await updateConversation(id, { title });
   };
 
   const handleSend = async (content: string) => {
     if (!content.trim()) return;
+    
+    setInputValue('');
     
     // Create new conversation if none selected
     if (!currentConversation) {
@@ -159,19 +155,20 @@ export default function ChatContainer() {
         {/* Conversations List */}
         <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
           {conversations.length > 0 ? (
-            <div style={{ height: '100%', overflow: 'auto' }}>
-              <Conversations
-                items={conversations.map((conv: Conversation) => ({
-                  key: conv.id,
-                  label: conv.title,
-                  timestamp: new Date(conv.updated_at).getTime(),
-                }))}
-                activeKey={currentConversation?.id}
-                onActiveChange={handleSelectConversation}
-                menu={(info: any) => [
+            <Conversations
+              items={conversations.map((conv: Conversation) => ({
+                key: conv.id,
+                label: conv.title,
+                timestamp: new Date(conv.updated_at).getTime(),
+              }))}
+              activeKey={currentConversation?.id}
+              onActiveChange={handleSelectConversation}
+              menu={(info: any) => ({
+                items: [
                   {
-                    label: 'Rename',
                     key: 'rename',
+                    label: 'Rename',
+                    icon: <EditOutlined />,
                     onClick: () => {
                       const newTitle = prompt('New title:', info.label);
                       if (newTitle) {
@@ -180,15 +177,16 @@ export default function ChatContainer() {
                     },
                   },
                   {
-                    label: 'Delete',
                     key: 'delete',
+                    label: 'Delete',
+                    icon: <DeleteOutlined />,
                     danger: true,
                     onClick: () => handleDeleteConversation(info.key),
                   },
-                ]}
-                style={{ height: '100%' }}
-              />
-            </div>
+                ],
+              })}
+              style={{ height: '100%', overflow: 'auto' }}
+            />
           ) : (
             <div style={{ 
               padding: '40px 20px', 
@@ -283,7 +281,7 @@ export default function ChatContainer() {
                   alignItems: 'center',
                   height: '100%'
                 }}>
-                  <Spin size="large" tip="Loading messages..." />
+                  <Spin size="large" />
                 </div>
               ) : chatMessages.length === 0 ? (
                 <div style={{ 
@@ -365,6 +363,8 @@ export default function ChatContainer() {
             }}>
               <div style={{ maxWidth: '900px', margin: '0 auto' }}>
                 <Sender
+                  value={inputValue}
+                  onChange={setInputValue}
                   placeholder="Type your message here..."
                   onSubmit={handleSend}
                   loading={isStreaming}
