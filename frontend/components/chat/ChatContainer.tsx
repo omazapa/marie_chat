@@ -299,56 +299,60 @@ export default function ChatContainer() {
                 </div>
               ) : (
                 <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-                  {chatMessages.map((msg) => (
-                    <div key={msg.id} style={{ marginBottom: '24px' }}>
-                      <Bubble
-                        content={msg.content}
-                        avatar={
-                          msg.role === 'user' ? (
-                            <div style={{
-                              width: '36px',
-                              height: '36px',
-                              borderRadius: '50%',
-                              background: '#1B4B73',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#ffffff',
-                              fontSize: '16px'
-                            }}>
-                              <UserOutlined />
-                            </div>
-                          ) : (
-                            <div style={{
-                              width: '36px',
-                              height: '36px',
-                              borderRadius: '50%',
-                              background: '#17A589',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#ffffff',
-                              fontSize: '16px'
-                            }}>
-                              <RobotOutlined />
-                            </div>
-                          )
-                        }
-                        placement={msg.role === 'user' ? 'end' : 'start'}
-                        typing={msg.id === 'streaming'}
-                        styles={{
-                          content: {
-                            background: msg.role === 'user' ? '#1B4B73' : '#f5f5f5',
-                            color: msg.role === 'user' ? '#ffffff' : '#262626',
-                            padding: '12px 16px',
-                            borderRadius: '12px',
-                            fontSize: '15px',
-                            lineHeight: '1.6'
-                          }
-                        }}
-                      />
-                    </div>
-                  ))}
+                  {chatMessages.map((msg) => {
+                    const UserAvatar = () => (
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '50%',
+                        background: '#1B4B73',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        fontSize: '16px'
+                      }}>
+                        <UserOutlined />
+                      </div>
+                    );
+
+                    const AssistantAvatar = () => (
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '50%',
+                        background: '#17A589',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        fontSize: '16px'
+                      }}>
+                        <RobotOutlined />
+                      </div>
+                    );
+
+                    return (
+                      <div key={msg.id} style={{ marginBottom: '24px' }}>
+                        <Bubble
+                          content={msg.content}
+                          avatar={msg.role === 'user' ? <UserAvatar /> : <AssistantAvatar />}
+                          placement={msg.role === 'user' ? 'end' : 'start'}
+                          typing={msg.id === 'streaming'}
+                          styles={{
+                            content: {
+                              background: msg.role === 'user' ? '#1B4B73' : '#f5f5f5',
+                              color: msg.role === 'user' ? '#ffffff' : '#262626',
+                              padding: '12px 16px',
+                              borderRadius: '12px',
+                              fontSize: '15px',
+                              lineHeight: '1.6'
+                            }
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

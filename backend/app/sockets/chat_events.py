@@ -113,63 +113,77 @@ def handle_send_message(data):
         'message': message
     })
     
-    # Process message asynchronously
-    asyncio.run(process_chat_message(
+    # Process message in background task
+    socketio.start_background_task(
+        process_chat_message,
         user_id=user_id,
         conversation_id=conversation_id,
         message=message,
         stream=stream,
         sid=request.sid
-    ))
+    )
 
 
-async def process_chat_message(
+def process_chat_message(
     user_id: str,
     conversation_id: str,
     message: str,
     stream: bool,
     sid: str
 ):
-    """Process chat message and emit responses"""
+    """Process chat message and emit responses (runs in background task)"""
     try:
-        if stream:
-            # Streaming response
-            socketio.emit('stream_start', {
-                'conversation_id': conversation_id
-            }, room=sid)
-            
-            async for chunk in await llm_service.chat_completion(
-                conversation_id=conversation_id,
-                user_id=user_id,
-                user_message=message,
-                stream=True
-            ):
-                # Emit each chunk to the client
-                socketio.emit('stream_chunk', {
-                    'conversation_id': conversation_id,
-                    'content': chunk['content'],
-                    'done': chunk.get('done', False)
+        # Create a new event loop for this background task
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            if stream:
+                # Streaming response
+                socketio.emit('stream_start', {
+                    'conversation_id': conversation_id
                 }, room=sid)
-            
-            socketio.emit('stream_end', {
-                'conversation_id': conversation_id
-            }, room=sid)
-        else:
-            # Non-streaming response
-            result = await llm_service.chat_completion(
-                conversation_id=conversation_id,
-                user_id=user_id,
-                user_message=message,
-                stream=False
-            )
-            
-            socketio.emit('message_response', {
-                'conversation_id': conversation_id,
-                'message': result
-            }, room=sid)
+                
+                # Run async generator in the loop
+                async def stream_messages():
+                    async for chunk in await llm_service.chat_completion(
+                        conversation_id=conversation_id,
+                        user_id=user_id,
+                        user_message=message,
+                        stream=True
+                    ):
+                        # Emit each chunk to the client
+                        socketio.emit('stream_chunk', {
+                            'conversation_id': conversation_id,
+                            'content': chunk['content'],
+                            'done': chunk.get('done', False)
+                        }, room=sid)
+                
+                loop.run_until_complete(stream_messages())
+                
+                socketio.emit('stream_end', {
+                    'conversation_id': conversation_id
+                }, room=sid)
+            else:
+                # Non-streaming response
+                result = loop.run_until_complete(llm_service.chat_completion(
+                    conversation_id=conversation_id,
+                    user_id=user_id,
+                    user_message=message,
+                    stream=False
+                ))
+                
+                socketio.emit('message_response', {
+                    'conversation_id': conversation_id,
+                    'message': result
+                }, room=sid)
+        finally:
+            loop.close()
     
     except Exception as e:
         print(f"❌ Error processing message: {e}")
+        import traceback
+        traceback.print_exc()
         socketio.emit('error', {
             'message': f'Error processing message: {str(e)}'
         }, room=sid)

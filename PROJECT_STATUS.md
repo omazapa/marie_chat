@@ -93,7 +93,7 @@
 
 ```
 Phase 1: Fundamentals               [████████████████████] 100% ✅
-Phase 2: Chat Core                  [░░░░░░░░░░░░░░░░░░░░]   0% ⏳
+Phase 2: Chat Core                  [████████████████░░░░]  85% 🚧
 Phase 3: Model Integration          [░░░░░░░░░░░░░░░░░░░░]   0% ⏳
 Phase 4: Model Management           [░░░░░░░░░░░░░░░░░░░░]   0% ⏳
 Phase 5: Voice Features             [░░░░░░░░░░░░░░░░░░░░]   0% ⏳
@@ -103,7 +103,7 @@ Phase 8: Production Features        [░░░░░░░░░░░░░░�
 Phase 9: Testing & Quality          [░░░░░░░░░░░░░░░░░░░░]   0% ⏳
 Phase 10: Deployment & Monitoring   [░░░░░░░░░░░░░░░░░░░░]   0% ⏳
 
-TOTAL PROGRESS: [██░░░░░░░░░░░░░░░░░░] 10%
+TOTAL PROGRESS: [████░░░░░░░░░░░░░░░░] 18.5%
 ```
 
 ---
@@ -121,7 +121,31 @@ Current Phase:           1/10
 
 ---
 
-## �� Next Phase: Phase 2 - Chat Core
+## 🔄 Phase 2: Chat Core - IN PROGRESS (85%)
+
+### ✅ Completed:
+- [x] WebSocket bidireccional con Socket.IO
+- [x] Integración básica con Ollama
+- [x] UI del chat con Ant Design X (Conversations, Sender, Bubble)
+- [x] Hooks personalizados (useChat, useWebSocket)
+- [x] Autenticación por token en WebSocket
+- [x] Creación y gestión de conversaciones
+- [x] Envío de mensajes
+- [x] Eventos de streaming (stream_start, stream_chunk, stream_end)
+- [x] Guardado de mensajes en OpenSearch
+- [x] Traducciones completas a inglés
+- [x] Fix de autenticación (token → accessToken)
+- [x] Modelo por defecto (llama3.2)
+
+### 🚧 Pending:
+- [ ] Fix Bubble component (React.Children.only error)
+- [ ] Verify Ollama streaming response display
+- [ ] Test complete chat flow with actual LLM response
+- [ ] Remove debug console.log statements
+
+---
+
+## 📊 Next Steps: Complete Phase 2
 
 ### Main Objectives:
 - [ ] Implement bidirectional WebSocket
