@@ -7,7 +7,8 @@ from typing import Dict, Any, Optional, AsyncGenerator
 import uuid
 from opensearchpy import OpenSearch
 from app.db import opensearch_client
-from app.services.ollama_provider import ollama_provider
+from app.services.provider_factory import provider_factory
+from app.services.llm_provider import ChatMessage
 
 
 class LLMService:
@@ -15,7 +16,7 @@ class LLMService:
     
     def __init__(self):
         self.client: OpenSearch = opensearch_client.client
-        self.ollama = ollama_provider
+        self.provider_factory = provider_factory
     
     # ==================== Conversation Management ====================
     
@@ -353,22 +354,36 @@ class LLMService:
         max_tokens: int
     ) -> Dict[str, Any]:
         """Non-streaming chat completion"""
-        result = await self.ollama.chat(
+        # Get conversation to determine provider
+        conversation = await self.get_conversation(conversation_id, user_id)
+        provider_name = conversation.get('provider', 'ollama') if conversation else 'ollama'
+        
+        # Get provider
+        provider = self.provider_factory.get_provider(provider_name)
+        if not provider:
+            raise ValueError(f"Provider {provider_name} not found")
+        
+        # Convert messages to ChatMessage objects
+        chat_messages = [ChatMessage(role=m['role'], content=m['content']) for m in messages]
+        
+        # Get completion (non-streaming yields single chunk)
+        async for chunk in provider.chat_completion(
             model=model,
-            messages=messages,
+            messages=chat_messages,
+            stream=False,
             temperature=temperature,
-            max_tokens=max_tokens,
-            stream=False
-        )
+            max_tokens=max_tokens
+        ):
+            result = chunk
         
         # Save assistant message
         assistant_message = await self.save_message(
             conversation_id=conversation_id,
             user_id=user_id,
             role="assistant",
-            content=result["content"],
-            tokens_used=result.get("tokens_used", 0),
-            metadata={"model": model}
+            content=result.content,
+            tokens_used=result.tokens_used or 0,
+            metadata={"model": model, "provider": provider_name}
         )
         
         return assistant_message
@@ -383,31 +398,48 @@ class LLMService:
         max_tokens: int
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """Streaming chat completion"""
+        # Get conversation to determine provider
+        conversation = await self.get_conversation(conversation_id, user_id)
+        provider_name = conversation.get('provider', 'ollama') if conversation else 'ollama'
+        
+        # Get provider
+        provider = self.provider_factory.get_provider(provider_name)
+        if not provider:
+            raise ValueError(f"Provider {provider_name} not found")
+        
+        # Convert messages to ChatMessage objects
+        chat_messages = [ChatMessage(role=m['role'], content=m['content']) for m in messages]
+        
         full_content = ""
         total_tokens = 0
         
-        async for chunk in await self.ollama.chat(
+        async for chunk in provider.chat_completion(
             model=model,
-            messages=messages,
+            messages=chat_messages,
+            stream=True,
             temperature=temperature,
-            max_tokens=max_tokens,
-            stream=True
+            max_tokens=max_tokens
         ):
-            full_content += chunk["content"]
-            total_tokens = chunk.get("tokens_used", total_tokens)
+            full_content += chunk.content
+            total_tokens = chunk.tokens_used or total_tokens
             
-            # Yield chunk to client
-            yield chunk
+            # Yield chunk to client (convert to legacy format)
+            yield {
+                "content": chunk.content,
+                "done": chunk.done,
+                "model": chunk.model,
+                "tokens_used": chunk.tokens_used
+            }
             
             # Save complete message when done
-            if chunk.get("done", False):
+            if chunk.done:
                 await self.save_message(
                     conversation_id=conversation_id,
                     user_id=user_id,
                     role="assistant",
                     content=full_content,
                     tokens_used=total_tokens,
-                    metadata={"model": model}
+                    metadata={"model": model, "provider": provider_name}
                 )
 
 
