@@ -1,23 +1,13 @@
+"""
+Conversation Routes
+REST API endpoints for conversation management
+"""
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.services.opensearch_service import OpenSearchService
+from app.services.llm_service import llm_service
 
 
 conversations_bp = Blueprint('conversations', __name__)
-opensearch_service = OpenSearchService()
-
-
-@conversations_bp.route('', methods=['GET'])
-@jwt_required()
-async def get_conversations():
-    """Get user's conversations"""
-    user_id = get_jwt_identity()
-    
-    try:
-        conversations = await opensearch_service.get_user_conversations(user_id)
-        return jsonify(conversations), 200
-    except Exception as e:
-        return jsonify({'error': 'Failed to fetch conversations', 'details': str(e)}), 500
 
 
 @conversations_bp.route('', methods=['POST'])
@@ -27,17 +17,40 @@ async def create_conversation():
     user_id = get_jwt_identity()
     data = request.get_json()
     
-    try:
-        conversation = await opensearch_service.create_conversation(
-            user_id=user_id,
-            model=data.get('model', 'llama3.2'),
-            provider=data.get('provider', 'ollama'),
-            title=data.get('title', 'Nueva conversación'),
-            system_prompt=data.get('system_prompt')
-        )
-        return jsonify(conversation), 201
-    except Exception as e:
-        return jsonify({'error': 'Failed to create conversation', 'details': str(e)}), 500
+    title = data.get('title', 'New Conversation')
+    model = data.get('model', 'llama3.2')
+    provider = data.get('provider', 'ollama')
+    system_prompt = data.get('system_prompt')
+    settings = data.get('settings', {})
+    
+    conversation = await llm_service.create_conversation(
+        user_id=user_id,
+        title=title,
+        model=model,
+        provider=provider,
+        system_prompt=system_prompt,
+        settings=settings
+    )
+    
+    return jsonify(conversation), 201
+
+
+@conversations_bp.route('', methods=['GET'])
+@jwt_required()
+async def get_conversations():
+    """List user's conversations"""
+    user_id = get_jwt_identity()
+    
+    limit = request.args.get('limit', 50, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    
+    conversations = await llm_service.list_conversations(
+        user_id=user_id,
+        limit=limit,
+        offset=offset
+    )
+    
+    return jsonify({'conversations': conversations}), 200
 
 
 @conversations_bp.route('/<conversation_id>', methods=['GET'])
@@ -46,47 +59,38 @@ async def get_conversation(conversation_id: str):
     """Get a specific conversation"""
     user_id = get_jwt_identity()
     
-    try:
-        conversation = await opensearch_service.get_conversation(conversation_id)
-        
-        if not conversation:
-            return jsonify({'error': 'Conversation not found'}), 404
-        
-        # Verify ownership
-        if conversation['user_id'] != user_id:
-            return jsonify({'error': 'Forbidden'}), 403
-        
-        return jsonify(conversation), 200
-    except Exception as e:
-        return jsonify({'error': 'Failed to fetch conversation', 'details': str(e)}), 500
+    conversation = await llm_service.get_conversation(
+        conversation_id=conversation_id,
+        user_id=user_id
+    )
+    
+    if not conversation:
+        return jsonify({'error': 'Conversation not found'}), 404
+    
+    return jsonify(conversation), 200
 
 
-@conversations_bp.route('/<conversation_id>', methods=['PUT'])
+@conversations_bp.route('/<conversation_id>', methods=['PATCH'])
 @jwt_required()
 async def update_conversation(conversation_id: str):
     """Update a conversation"""
     user_id = get_jwt_identity()
     data = request.get_json()
     
-    try:
-        conversation = await opensearch_service.get_conversation(conversation_id)
-        
-        if not conversation:
-            return jsonify({'error': 'Conversation not found'}), 404
-        
-        # Verify ownership
-        if conversation['user_id'] != user_id:
-            return jsonify({'error': 'Forbidden'}), 403
-        
-        # Update
-        await opensearch_service.update_conversation(conversation_id, data)
-        
-        # Get updated conversation
-        updated = await opensearch_service.get_conversation(conversation_id)
-        return jsonify(updated), 200
-        
-    except Exception as e:
-        return jsonify({'error': 'Failed to update conversation', 'details': str(e)}), 500
+    # Only allow updating certain fields
+    allowed_fields = ['title', 'model', 'provider', 'system_prompt', 'settings']
+    updates = {k: v for k, v in data.items() if k in allowed_fields}
+    
+    success = await llm_service.update_conversation(
+        conversation_id=conversation_id,
+        user_id=user_id,
+        **updates
+    )
+    
+    if not success:
+        return jsonify({'error': 'Conversation not found or update failed'}), 404
+    
+    return jsonify({'message': 'Conversation updated'}), 200
 
 
 @conversations_bp.route('/<conversation_id>', methods=['DELETE'])
@@ -95,45 +99,32 @@ async def delete_conversation(conversation_id: str):
     """Delete a conversation"""
     user_id = get_jwt_identity()
     
-    try:
-        conversation = await opensearch_service.get_conversation(conversation_id)
-        
-        if not conversation:
-            return jsonify({'error': 'Conversation not found'}), 404
-        
-        # Verify ownership
-        if conversation['user_id'] != user_id:
-            return jsonify({'error': 'Forbidden'}), 403
-        
-        # Delete
-        await opensearch_service.delete_conversation(conversation_id)
-        
-        return jsonify({'message': 'Conversation deleted'}), 200
-        
-    except Exception as e:
-        return jsonify({'error': 'Failed to delete conversation', 'details': str(e)}), 500
+    success = await llm_service.delete_conversation(
+        conversation_id=conversation_id,
+        user_id=user_id
+    )
+    
+    if not success:
+        return jsonify({'error': 'Conversation not found or delete failed'}), 404
+    
+    return jsonify({'message': 'Conversation deleted'}), 200
 
 
 @conversations_bp.route('/<conversation_id>/messages', methods=['GET'])
 @jwt_required()
 async def get_conversation_messages(conversation_id: str):
-    """Get messages from a conversation"""
+    """Get messages for a conversation"""
     user_id = get_jwt_identity()
     
-    try:
-        conversation = await opensearch_service.get_conversation(conversation_id)
-        
-        if not conversation:
-            return jsonify({'error': 'Conversation not found'}), 404
-        
-        # Verify ownership
-        if conversation['user_id'] != user_id:
-            return jsonify({'error': 'Forbidden'}), 403
-        
-        # Get messages
-        messages = await opensearch_service.get_conversation_messages(conversation_id)
-        
-        return jsonify(messages), 200
-        
-    except Exception as e:
-        return jsonify({'error': 'Failed to fetch messages', 'details': str(e)}), 500
+    limit = request.args.get('limit', 100, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    
+    messages = await llm_service.get_messages(
+        conversation_id=conversation_id,
+        user_id=user_id,
+        limit=limit,
+        offset=offset
+    )
+    
+    return jsonify({'messages': messages}), 200
+

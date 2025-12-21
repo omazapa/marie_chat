@@ -2,18 +2,20 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Form, Input, Button, Card, Typography, message, Space } from 'antd';
+import { Form, Input, Button, Card, Typography, Space, App } from 'antd';
 import { MailOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
 import apiClient from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import type { LoginResponse } from '@/types';
 
 const { Title, Text, Link } = Typography;
+const { useApp } = App;
 
 export function RegisterForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const { setAuth } = useAuthStore();
+  const { message } = useApp();
 
   const onFinish = async (values: any) => {
     setLoading(true);
@@ -45,7 +47,7 @@ export function RegisterForm() {
       background: 'linear-gradient(135deg, #1B4B73 0%, #17A589 100%)'
     }}>
       <Card style={{ width: 400, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <div style={{ textAlign: 'center' }}>
             <Title level={2} style={{ marginBottom: 8, color: '#1B4B73' }}>
               Marie Chat
