@@ -131,6 +131,8 @@ def handle_send_message(data):
         'message': message
     })
     
+    print(f"[TASK] Starting background task for conversation {conversation_id}")
+    
     # Process message in background task
     socketio.start_background_task(
         process_chat_message_wrapper,
@@ -140,6 +142,8 @@ def handle_send_message(data):
         stream=stream,
         sid=request.sid
     )
+    
+    print(f"[STARTED] Background task started for conversation {conversation_id}")
 
 
 def process_chat_message_wrapper(
@@ -150,19 +154,26 @@ def process_chat_message_wrapper(
     sid: str
 ):
     """Wrapper to run async function in dedicated event loop"""
-    loop = get_async_loop()
-    # Schedule coroutine in the dedicated loop
-    future = asyncio.run_coroutine_threadsafe(
-        process_chat_message_async(user_id, conversation_id, message, stream, sid),
-        loop
-    )
-    # Wait for completion
+    print(f"[WRAPPER] Started for conversation {conversation_id}")
     try:
-        future.result(timeout=300)  # 5 minute timeout
+        loop = get_async_loop()
+        print(f"[LOOP] Got event loop for conversation {conversation_id}")
+        # Schedule coroutine in the dedicated loop
+        future = asyncio.run_coroutine_threadsafe(
+            process_chat_message_async(user_id, conversation_id, message, stream, sid),
+            loop
+        )
+        print(f"[WAIT] Waiting for coroutine completion for conversation {conversation_id}")
+        # Wait for completion
+        result = future.result(timeout=300)  # 5 minute timeout
+        print(f"[COMPLETE] Wrapper completed for conversation {conversation_id}")
     except Exception as e:
-        print(f"❌ Background task error: {e}")
+        print(f"❌ Background task error in wrapper: {e}")
         import traceback
         traceback.print_exc()
+        socketio.emit('error', {
+            'message': f'Error processing message: {str(e)}'
+        }, room=sid)
 
 
 async def process_chat_message_async(
@@ -173,28 +184,40 @@ async def process_chat_message_async(
     sid: str
 ):
     """Process chat message and emit responses (async version)"""
+    print(f"[ASYNC] Function started for conversation {conversation_id}")
     try:
         if stream:
             # Streaming response
+            print(f"[STREAM] Starting stream for conversation {conversation_id}")
             socketio.emit('stream_start', {
                 'conversation_id': conversation_id
             }, room=sid)
+            print(f"[EMIT] stream_start emitted to room {sid}")
             
+            print(f"[LLM] Calling LLM service for conversation {conversation_id}")
             # Stream messages
             full_content = ""
-            async for chunk in await llm_service.chat_completion(
+            print(f"[ITER] Starting iteration over LLM chunks")
+            # Get the generator first (chat_completion is async and returns a generator)
+            generator = await llm_service.chat_completion(
                 conversation_id=conversation_id,
                 user_id=user_id,
                 user_message=message,
                 stream=True
-            ):
+            )
+            print(f"[ITER] Got generator, starting iteration")
+            # Now iterate over the generator
+            async for chunk in generator:
+                print(f"[CHUNK] Got chunk: {chunk.get('content', '')[:50]}...")
                 full_content += chunk['content']
                 # Emit each chunk to the client
+                print(f"[EMIT] Emitting stream_chunk to room {sid}")
                 socketio.emit('stream_chunk', {
                     'conversation_id': conversation_id,
                     'content': chunk['content'],
                     'done': chunk.get('done', False)
                 }, room=sid)
+                print(f"[EMIT] stream_chunk emitted")
             
             # Fetch the saved message from DB to get complete message object
             messages = await llm_service.get_messages(

@@ -285,12 +285,15 @@ class LLMService:
         Returns:
             AsyncGenerator if stream=True, Dict otherwise
         """
+        print(f"[SERVICE] chat_completion ENTRY: conv={conversation_id[:8]}, stream={stream}")
         # Get conversation
         conversation = await self.get_conversation(conversation_id, user_id)
+        print(f"[SERVICE] Got conversation")
         if not conversation:
             raise ValueError("Conversation not found or access denied")
         
         # Save user message
+        print(f"[SERVICE] Saving user message")
         await self.save_message(
             conversation_id=conversation_id,
             user_id=user_id,
@@ -324,17 +327,11 @@ class LLMService:
         temperature = settings.get("temperature", 0.7)
         max_tokens = settings.get("max_tokens", 2048)
         
+        print(f"[SERVICE] chat_completion called: model={model}, stream={stream}, temp={temperature}")
+        
         # Call LLM
-        if stream:
-            return self._stream_completion(
-                conversation_id=conversation_id,
-                user_id=user_id,
-                model=model,
-                messages=llm_messages,
-                temperature=temperature,
-                max_tokens=max_tokens
-            )
-        else:
+        if not stream:
+            # Non-streaming: call method directly and await it
             return await self._non_stream_completion(
                 conversation_id=conversation_id,
                 user_id=user_id,
@@ -343,16 +340,17 @@ class LLMService:
                 temperature=temperature,
                 max_tokens=max_tokens
             )
-    
-    async def _non_stream_completion(
-        self,
-        conversation_id: str,
-        user_id: str,
-        model: str,
-        messages: list[Dict[str, str]],
-        temperature: float,
-        max_tokens: int
-    ) -> Dict[str, Any]:
+        
+        # Streaming: return the generator
+        print(f"[SERVICE] Returning stream completion generator")
+        return self._stream_completion(
+            conversation_id=conversation_id,
+            user_id=user_id,
+            model=model,
+            messages=llm_messages,
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
         """Non-streaming chat completion"""
         # Get conversation to determine provider
         conversation = await self.get_conversation(conversation_id, user_id)
@@ -398,21 +396,26 @@ class LLMService:
         max_tokens: int
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """Streaming chat completion"""
+        print(f"[SERVICE] _stream_completion called for conversation {conversation_id}")
         # Get conversation to determine provider
         conversation = await self.get_conversation(conversation_id, user_id)
         provider_name = conversation.get('provider', 'ollama') if conversation else 'ollama'
+        print(f"[SERVICE] Using provider: {provider_name}")
         
         # Get provider
         provider = self.provider_factory.get_provider(provider_name)
         if not provider:
             raise ValueError(f"Provider {provider_name} not found")
+        print(f"[SERVICE] Got provider instance")
         
         # Convert messages to ChatMessage objects
         chat_messages = [ChatMessage(role=m['role'], content=m['content']) for m in messages]
+        print(f"[SERVICE] Converted {len(chat_messages)} messages")
         
         full_content = ""
         total_tokens = 0
         
+        print(f"[SERVICE] Starting provider.chat_completion iteration")
         async for chunk in provider.chat_completion(
             model=model,
             messages=chat_messages,
