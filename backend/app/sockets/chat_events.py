@@ -8,10 +8,28 @@ from flask_jwt_extended import decode_token
 from app import socketio
 from app.services.llm_service import llm_service
 import asyncio
+import threading
 
 
 # Store active connections
 active_connections = {}
+
+# Global event loop for async operations (runs in dedicated thread)
+_async_loop = None
+_loop_thread = None
+
+def get_async_loop():
+    """Get or create the global async event loop"""
+    global _async_loop, _loop_thread
+    if _async_loop is None or not _async_loop.is_running():
+        def run_loop(loop):
+            asyncio.set_event_loop(loop)
+            loop.run_forever()
+        
+        _async_loop = asyncio.new_event_loop()
+        _loop_thread = threading.Thread(target=run_loop, args=(_async_loop,), daemon=True)
+        _loop_thread.start()
+    return _async_loop
 
 
 @socketio.on('connect')
@@ -115,7 +133,7 @@ def handle_send_message(data):
     
     # Process message in background task
     socketio.start_background_task(
-        process_chat_message,
+        process_chat_message_wrapper,
         user_id=user_id,
         conversation_id=conversation_id,
         message=message,
@@ -124,81 +142,93 @@ def handle_send_message(data):
     )
 
 
-def process_chat_message(
+def process_chat_message_wrapper(
     user_id: str,
     conversation_id: str,
     message: str,
     stream: bool,
     sid: str
 ):
-    """Process chat message and emit responses (runs in background task)"""
+    """Wrapper to run async function in dedicated event loop"""
+    loop = get_async_loop()
+    # Schedule coroutine in the dedicated loop
+    future = asyncio.run_coroutine_threadsafe(
+        process_chat_message_async(user_id, conversation_id, message, stream, sid),
+        loop
+    )
+    # Wait for completion
     try:
-        # Create a new event loop for this background task
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        try:
-            if stream:
-                # Streaming response
-                socketio.emit('stream_start', {
-                    'conversation_id': conversation_id
+        future.result(timeout=300)  # 5 minute timeout
+    except Exception as e:
+        print(f"❌ Background task error: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+async def process_chat_message_async(
+    user_id: str,
+    conversation_id: str,
+    message: str,
+    stream: bool,
+    sid: str
+):
+    """Process chat message and emit responses (async version)"""
+    try:
+        if stream:
+            # Streaming response
+            socketio.emit('stream_start', {
+                'conversation_id': conversation_id
+            }, room=sid)
+            
+            # Stream messages
+            full_content = ""
+            async for chunk in await llm_service.chat_completion(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                user_message=message,
+                stream=True
+            ):
+                full_content += chunk['content']
+                # Emit each chunk to the client
+                socketio.emit('stream_chunk', {
+                    'conversation_id': conversation_id,
+                    'content': chunk['content'],
+                    'done': chunk.get('done', False)
                 }, room=sid)
-                
-                # Run async generator in the loop
-                full_content = ""
-                async def stream_messages():
-                    nonlocal full_content
-                    async for chunk in await llm_service.chat_completion(
-                        conversation_id=conversation_id,
-                        user_id=user_id,
-                        user_message=message,
-                        stream=True
-                    ):
-                        full_content += chunk['content']
-                        # Emit each chunk to the client
-                        socketio.emit('stream_chunk', {
-                            'conversation_id': conversation_id,
-                            'content': chunk['content'],
-                            'done': chunk.get('done', False)
-                        }, room=sid)
-                
-                loop.run_until_complete(stream_messages())
-                
-                # Fetch the saved message from DB to get complete message object
-                messages = loop.run_until_complete(
-                    llm_service.get_messages(conversation_id, user_id, limit=1, offset=0)
+            
+            # Fetch the saved message from DB to get complete message object
+            messages = await llm_service.get_messages(
+                conversation_id, user_id, limit=1, offset=0
+            )
+            # Get the last message (should be the assistant's response)
+            last_message = None
+            if messages:
+                # Get all messages and find the last assistant message
+                all_messages = await llm_service.get_messages(
+                    conversation_id, user_id, limit=100
                 )
-                # Get the last message (should be the assistant's response)
-                last_message = None
-                if messages:
-                    # Get all messages and find the last assistant message
-                    all_messages = loop.run_until_complete(
-                        llm_service.get_messages(conversation_id, user_id, limit=100)
-                    )
-                    for msg in reversed(all_messages):
-                        if msg['role'] == 'assistant':
-                            last_message = msg
-                            break
-                
-                socketio.emit('stream_end', {
-                    'conversation_id': conversation_id,
-                    'message': last_message
-                }, room=sid)
-            else:
-                # Non-streaming response
-                result = loop.run_until_complete(llm_service.chat_completion(
-                    conversation_id=conversation_id,
-                    user_id=user_id,
-                    user_message=message,
-                    stream=False
-                ))
-                
-                socketio.emit('message_response', {
-                    'conversation_id': conversation_id,
-                    'message': result
-                }, room=sid)
-        finally:
-            loop.close()
+                for msg in reversed(all_messages):
+                    if msg['role'] == 'assistant':
+                        last_message = msg
+                        break
+            
+            socketio.emit('stream_end', {
+                'conversation_id': conversation_id,
+                'message': last_message
+            }, room=sid)
+        else:
+            # Non-streaming response
+            result = await llm_service.chat_completion(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                user_message=message,
+                stream=False
+            )
+            
+            socketio.emit('message_response', {
+                'conversation_id': conversation_id,
+                'message': result
+            }, room=sid)
     
     except Exception as e:
         print(f"❌ Error processing message: {e}")

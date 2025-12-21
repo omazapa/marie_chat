@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Conversations, Sender, Bubble } from '@ant-design/x';
+import { useState, useEffect, useRef } from 'react';
+import { Conversations, Sender, Bubble, Think } from '@ant-design/x';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
 import { Spin, Empty, Button, Space, Typography, Dropdown, Modal, Tag, Tooltip } from 'antd';
@@ -31,6 +31,7 @@ export default function ChatContainer() {
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState('ollama');
   const [selectedModel, setSelectedModel] = useState('llama3.2');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { accessToken } = useAuthStore();
   const {
     conversations,
@@ -47,6 +48,15 @@ export default function ChatContainer() {
     selectConversation,
     sendMessage,
   } = useChat(accessToken);
+
+  // Auto-scroll to bottom when messages change or streaming
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, streamingMessage, isStreaming]);
 
   // Format messages for Ant Design X
   const chatMessages = [
@@ -396,6 +406,23 @@ export default function ChatContainer() {
 
                     return (
                       <div key={msg.id} style={{ marginBottom: '24px' }}>
+                        {/* Show thinking component BEFORE message for assistant streaming */}
+                        {msg.role === 'assistant' && msg.id === 'streaming' && isStreaming && msg.content.length < 50 && (
+                          <div style={{ marginBottom: '12px', marginLeft: '52px' }}>
+                            <Think
+                              title="Thinking..."
+                              loading={true}
+                              defaultExpanded={true}
+                              blink={true}
+                            >
+                              <div style={{ fontSize: '13px', color: '#8c8c8c', lineHeight: '1.8' }}>
+                                <div>• Processing your query</div>
+                                <div>• Searching knowledge base</div>
+                                <div>• Generating contextual response</div>
+                              </div>
+                            </Think>
+                          </div>
+                        )}
                         <Bubble
                           content={msg.content}
                           avatar={msg.role === 'user' ? <UserAvatar /> : <AssistantAvatar />}
@@ -415,6 +442,8 @@ export default function ChatContainer() {
                       </div>
                     );
                   })}
+                  {/* Invisible div for auto-scroll */}
+                  <div ref={messagesEndRef} />
                 </div>
               )}
             </div>

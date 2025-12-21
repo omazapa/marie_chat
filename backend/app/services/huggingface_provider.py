@@ -18,7 +18,7 @@ class HuggingFaceProvider(LLMProvider):
         self.api_key = self.api_key or os.getenv('HUGGINGFACE_API_KEY')
         self.base_url = config.get('base_url') if config else None
         self.base_url = self.base_url or 'https://api-inference.huggingface.co/models'
-        self.client = httpx.AsyncClient(timeout=300.0)
+        self._client = None  # Lazy init
         self.provider_name = 'huggingface'
         
         # Popular models for quick listing
@@ -54,6 +54,13 @@ class HuggingFaceProvider(LLMProvider):
                 'description': 'HuggingFace\'s Zephyr 7B chat model'
             }
         ]
+    
+    @property
+    def client(self):
+        """Lazy-initialize httpx client to ensure it's created in the correct event loop"""
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(timeout=300.0)
+        return self._client
     
     async def list_models(self) -> List[ModelInfo]:
         """List available models from HuggingFace"""

@@ -16,9 +16,15 @@ class OllamaProvider(LLMProvider):
         super().__init__(config)
         self.base_url = config.get('base_url') if config else None
         self.base_url = self.base_url or os.getenv('OLLAMA_BASE_URL', 'http://ollama:11434')
-        self.client = httpx.AsyncClient(timeout=300.0)
+        self._client = None  # Lazy init
         self.provider_name = 'ollama'
-        self.provider_name = 'ollama'
+    
+    @property
+    def client(self):
+        """Lazy-initialize httpx client to ensure it's created in the correct event loop"""
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(timeout=300.0)
+        return self._client
     
     async def list_models(self) -> List[ModelInfo]:
         """List available models from Ollama"""

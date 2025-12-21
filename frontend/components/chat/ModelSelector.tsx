@@ -75,7 +75,7 @@ export default function ModelSelector({
   if (loading && Object.keys(models).length === 0) {
     return (
       <Card>
-        <Space direction="vertical" align="center" style={{ width: '100%', padding: '20px' }}>
+        <Space orientation="vertical" align="center" style={{ width: '100%', padding: '20px' }}>
           <Spin size="large" />
           <Text type="secondary">Loading models...</Text>
         </Space>
@@ -102,7 +102,7 @@ export default function ModelSelector({
   const providerHealthInfo = providersHealth[currentProvider];
 
   return (
-    <Space direction="vertical" style={{ width: '100%' }} size="middle">
+    <Space orientation="vertical" style={{ width: '100%' }} size="middle">
       {/* Provider Selector */}
       <div>
         <Text strong style={{ display: 'block', marginBottom: '8px' }}>
@@ -150,7 +150,7 @@ export default function ModelSelector({
             providerHealthInfo?.available ? (
               'No models available'
             ) : (
-              <Space direction="vertical" align="center" style={{ padding: '20px' }}>
+              <Space orientation="vertical" align="center" style={{ padding: '20px' }}>
                 <CloseCircleOutlined style={{ fontSize: '24px', color: '#ff4d4f' }} />
                 <Text type="secondary">Provider unavailable</Text>
                 {providerHealthInfo?.error && (
@@ -164,7 +164,7 @@ export default function ModelSelector({
         >
           {availableModels.map((model) => (
             <Option key={model.id} value={model.id}>
-              <Space direction="vertical" size={0}>
+              <Space orientation="vertical" size={0}>
                 <Text strong>{model.name}</Text>
                 {model.description && (
                   <Text type="secondary" style={{ fontSize: '12px' }}>
@@ -192,7 +192,7 @@ export default function ModelSelector({
             border: '1px solid #e8e8e8',
           }}
         >
-          <Space direction="vertical" size="small" style={{ width: '100%' }}>
+          <Space orientation="vertical" size="small" style={{ width: '100%' }}>
             <Space>
               <RobotOutlined style={{ color: '#1B4B73' }} />
               <Text strong>{modelInfo.name}</Text>
