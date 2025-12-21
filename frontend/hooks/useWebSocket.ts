@@ -42,6 +42,12 @@ export function useWebSocket({
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [currentConversation, setCurrentConversation] = useState<string | null>(null);
+  const currentConversationRef = useRef<string | null>(null);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    currentConversationRef.current = currentConversation;
+  }, [currentConversation]);
 
   // Initialize socket connection
   useEffect(() => {
@@ -66,6 +72,12 @@ export function useWebSocket({
     socket.on('connect', () => {
       console.log('✅ WebSocket connected');
       setIsConnected(true);
+      
+      // Re-join current conversation on reconnect
+      if (currentConversationRef.current) {
+        console.log(`🔄 Re-joining conversation: ${currentConversationRef.current}`);
+        socket.emit('join_conversation', { conversation_id: currentConversationRef.current });
+      }
     });
 
     socket.on('connected', (data) => {
@@ -95,6 +107,7 @@ export function useWebSocket({
     });
 
     socket.on('stream_chunk', (chunk: StreamChunk) => {
+      console.log('📦 Stream chunk received:', chunk);
       onStreamChunk?.(chunk);
     });
 

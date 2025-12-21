@@ -189,10 +189,11 @@ async def process_chat_message_async(
         if stream:
             # Streaming response
             print(f"[STREAM] Starting stream for conversation {conversation_id}")
+            # Emit to conversation room instead of individual sid
             socketio.emit('stream_start', {
                 'conversation_id': conversation_id
-            }, room=sid)
-            print(f"[EMIT] stream_start emitted to room {sid}")
+            }, room=conversation_id)
+            print(f"[EMIT] stream_start emitted to conversation room {conversation_id}")
             
             print(f"[LLM] Calling LLM service for conversation {conversation_id}")
             # Stream messages
@@ -211,12 +212,12 @@ async def process_chat_message_async(
                 print(f"[CHUNK] Got chunk: {chunk.get('content', '')[:50]}...")
                 full_content += chunk['content']
                 # Emit each chunk to the client
-                print(f"[EMIT] Emitting stream_chunk to room {sid}")
+                print(f"[EMIT] Emitting stream_chunk to conversation room {conversation_id}")
                 socketio.emit('stream_chunk', {
                     'conversation_id': conversation_id,
                     'content': chunk['content'],
                     'done': chunk.get('done', False)
-                }, room=sid)
+                }, room=conversation_id)
                 print(f"[EMIT] stream_chunk emitted")
             
             # Fetch the saved message from DB to get complete message object
@@ -238,7 +239,7 @@ async def process_chat_message_async(
             socketio.emit('stream_end', {
                 'conversation_id': conversation_id,
                 'message': last_message
-            }, room=sid)
+            }, room=conversation_id)
         else:
             # Non-streaming response
             result = await llm_service.chat_completion(
@@ -251,7 +252,7 @@ async def process_chat_message_async(
             socketio.emit('message_response', {
                 'conversation_id': conversation_id,
                 'message': result
-            }, room=sid)
+            }, room=conversation_id)
     
     except Exception as e:
         print(f"❌ Error processing message: {e}")
@@ -259,7 +260,7 @@ async def process_chat_message_async(
         traceback.print_exc()
         socketio.emit('error', {
             'message': f'Error processing message: {str(e)}'
-        }, room=sid)
+        }, room=conversation_id)
 
 
 @socketio.on('typing')
