@@ -1,80 +1,118 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
-import { Button, Form, Input, Card, Typography, message } from 'antd';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Form, Input, Button, Card, Typography, message, Space, Checkbox } from 'antd';
+import { MailOutlined, LockOutlined } from '@ant-design/icons';
+import apiClient from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import type { LoginResponse } from '@/types';
 
-const { Title } = Typography;
+const { Title, Text, Link } = Typography;
 
-export default function LoginForm() {
+export function LoginForm() {
   const router = useRouter();
-  const { login, isLoading, error } = useAuthStore();
-  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const { setAuth } = useAuthStore();
 
-  const handleSubmit = async (values: { email: string; password: string }) => {
+  const onFinish = async (values: any) => {
+    setLoading(true);
     try {
-      await login(values.email, values.password);
-      message.success('Login successful');
-      router.push('/');
-    } catch (err) {
-      message.error(error || 'Login failed');
+      const response = await apiClient.post<LoginResponse>('/auth/login', {
+        email: values.email,
+        password: values.password,
+      });
+
+      setAuth(response.data);
+      message.success('¡Bienvenido de vuelta!');
+      router.push('/chat');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      const errorMessage = error.response?.data?.error || 'Error al iniciar sesión';
+      message.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Card style={{ maxWidth: 400, margin: '100px auto' }} styles={{ body: { padding: '24px' } }}>
-      <Title level={2} style={{ textAlign: 'center', marginBottom: '24px' }}>
-        Login
-      </Title>
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1B4B73 0%, #17A589 100%)'
+    }}>
+      <Card style={{ width: 400, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
+        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+          <div style={{ textAlign: 'center' }}>
+            <Title level={2} style={{ marginBottom: 8, color: '#1B4B73' }}>
+              Marie Chat
+            </Title>
+            <Text type="secondary">Inicia sesión en tu cuenta</Text>
+          </div>
 
-      {error && (
-        <div style={{ color: 'red', marginBottom: '16px' }}>{error}</div>
-      )}
-
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={handleSubmit}
-        autoComplete="off"
-      >
-        <Form.Item
-          label="Email"
-          name="email"
-          rules={[
-            { required: true, message: 'Please input your email' },
-            { type: 'email', message: 'Please enter a valid email' },
-          ]}
-        >
-          <Input placeholder="your@email.com" />
-        </Form.Item>
-
-        <Form.Item
-          label="Password"
-          name="password"
-          rules={[{ required: true, message: 'Please input your password' }]}
-        >
-          <Input.Password placeholder="Password" />
-        </Form.Item>
-
-        <Form.Item>
-          <Button
-            type="primary"
-            htmlType="submit"
-            block
-            loading={isLoading}
-            size="large"
+          <Form
+            name="login"
+            onFinish={onFinish}
+            layout="vertical"
+            requiredMark={false}
           >
-            Login
-          </Button>
-        </Form.Item>
+            <Form.Item
+              name="email"
+              label="Correo electrónico"
+              rules={[
+                { required: true, message: 'Por favor ingresa tu correo' },
+                { type: 'email', message: 'Ingresa un correo válido' }
+              ]}
+            >
+              <Input
+                prefix={<MailOutlined />}
+                placeholder="tu@email.com"
+                size="large"
+              />
+            </Form.Item>
 
-        <div style={{ textAlign: 'center', marginTop: '16px' }}>
-          Don't have an account?{' '}
-          <a href="/register">Register here</a>
-        </div>
-      </Form>
-    </Card>
+            <Form.Item
+              name="password"
+              label="Contraseña"
+              rules={[{ required: true, message: 'Por favor ingresa tu contraseña' }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="Tu contraseña"
+                size="large"
+              />
+            </Form.Item>
+
+            <Form.Item>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Checkbox>Recordarme</Checkbox>
+                <Link href="#">¿Olvidaste tu contraseña?</Link>
+              </div>
+            </Form.Item>
+
+            <Form.Item style={{ marginBottom: 0 }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                size="large"
+                block
+                loading={loading}
+              >
+                Iniciar sesión
+              </Button>
+            </Form.Item>
+          </Form>
+
+          <div style={{ textAlign: 'center' }}>
+            <Text type="secondary">
+              ¿No tienes cuenta?{' '}
+              <Link href="/register">Regístrate</Link>
+            </Text>
+          </div>
+        </Space>
+      </Card>
+    </div>
   );
 }
-

@@ -1,122 +1,195 @@
-# Marie Chat
+# Marie Chat - Development Quick Start
 
-**Intelligent Conversational Chat Web UI**  
-Developed by CoLaV - University of Antioquia
+## Prerequisites
+- Docker and Docker Compose installed
+- At least 4GB RAM available for containers
+- Ports 3000, 5000, 9200, 5601, 11434 available
 
-## Overview
+## Quick Start
 
-Marie Chat is a modern conversational chat interface designed to interact with language models through multiple providers (Ollama, HuggingFace) and intelligent pipelines built with LangGraph/LangChain.
-
-## Features
-
-- ✅ Real-time conversational chat with streaming via WebSockets
-- ✅ Multi-provider LLM support (Ollama, HuggingFace, custom pipelines)
-- ✅ Advanced Markdown, code, LaTeX, diagram, and HTML artifacts rendering (plots, charts)
-- ✅ Conversation persistence in OpenSearch
-- ✅ Hybrid search (text + vectorial) over history
-- ✅ Speech-to-Text (STT) and Text-to-Speech (TTS)
-- ✅ User authentication with JWT
-- ✅ Modern interface based on Ant Design X
-- ✅ File upload and processing
-- ✅ Conversation referencing
-- ✅ Multilingual conversational memory
-- ✅ Follow-up questions
-- ✅ Admin panel
-
-## Technology Stack
-
-### Frontend
-- Next.js 15.1 (React 19)
-- TypeScript
-- Ant Design X & Ant Design 5
-- Tailwind CSS 4
-- Socket.io Client
-- Zustand
-
-### Backend
-- Python 3.12+
-- Flask 3.x
-- Flask-SocketIO
-- Flask-JWT-Extended
-- OpenSearch
-- Pydantic
-
-## Getting Started
-
-### Prerequisites
-
-- Docker & Docker Compose (recommended)
-- Node.js 20+ (for local development)
-- Python 3.12+ (for local development)
-
-### Quick Start with Docker
-
-1. **Clone and setup:**
+1. **Clone and navigate to the project**
 ```bash
-git clone <repository-url>
 cd marie_chat
-cp .env.example .env
-# Edit .env with your configuration
 ```
 
-2. **Start all services:**
+2. **Start all services**
 ```bash
-docker-compose -f docker-compose.dev.yml up -d
+docker-compose up -d
 ```
 
-3. **Initialize OpenSearch indices:**
+This will start:
+- Frontend (Next.js) on http://localhost:3000
+- Backend (Flask) on http://localhost:5000
+- OpenSearch on https://localhost:9200
+- OpenSearch Dashboards on http://localhost:5601
+- Ollama on http://localhost:11434
+
+3. **Wait for services to be ready**
 ```bash
-docker-compose exec backend python scripts/init_opensearch.py
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs -f
 ```
 
-4. **Access the application:**
+4. **Initialize Ollama models (optional)**
+```bash
+docker exec -it marie-ollama ollama pull llama3.2
+docker exec -it marie-ollama ollama pull codellama
+docker exec -it marie-ollama ollama pull mistral
+```
+
+5. **Access the application**
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:5000
-- OpenSearch: https://localhost:9200
 - OpenSearch Dashboards: http://localhost:5601
 
-### Local Development
+## Development Without Docker
 
-**Backend:**
+### Backend Setup
 ```bash
 cd backend
+
+# Create virtual environment
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Copy environment file
+cp .env.example .env
+
+# Edit .env with your settings
+nano .env
+
+# Run backend
 python run.py
 ```
 
-**Frontend:**
+### Frontend Setup
 ```bash
 cd frontend
+
+# Install dependencies
 npm install
+
+# Copy environment file
+cp .env.local.example .env.local
+
+# Edit .env.local with your settings
+nano .env.local
+
+# Run frontend
 npm run dev
 ```
 
-**Note:** For local development, you'll need to run OpenSearch and Ollama separately, or use Docker Compose.
+### OpenSearch Setup (Manual)
+You still need OpenSearch running. Either:
+- Use Docker: `docker-compose up -d opensearch opensearch-dashboards`
+- Or install OpenSearch locally from https://opensearch.org/downloads.html
 
-### First Steps
+## Environment Variables
 
-1. Register a new user at http://localhost:3000/register
-2. Login and start chatting
-3. The first message will create a new conversation automatically
+### Backend (.env)
+```
+FLASK_ENV=development
+OPENSEARCH_HOSTS=https://localhost:9200
+OPENSEARCH_USER=admin
+OPENSEARCH_PASSWORD=Marie_Chat_2024!
+JWT_SECRET_KEY=your-secret-key
+OLLAMA_BASE_URL=http://localhost:11434
+```
 
-For production deployment, see [DEPLOYMENT.md](./DEPLOYMENT.md).
+### Frontend (.env.local)
+```
+NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_WS_URL=ws://localhost:5000
+```
 
-## Documentation
+## Testing Authentication
 
-See [SPECIFICATIONS.md](./SPECIFICATIONS.md) for complete technical specifications.
+1. **Register a new user**
+   - Go to http://localhost:3000/register
+   - Fill in the form
+   - Submit
 
-## Development
+2. **Login**
+   - Go to http://localhost:3000/login
+   - Use your credentials
+   - You'll be redirected to /chat
 
-This project follows the development plan outlined in SPECIFICATIONS.md. Current phase: **Phase 1 - Fundamentals**.
+## Troubleshooting
 
-## License
+### OpenSearch connection issues
+```bash
+# Check if OpenSearch is running
+curl -k -u admin:Marie_Chat_2024! https://localhost:9200
 
-[Your License Here]
+# Check OpenSearch logs
+docker-compose logs opensearch
+```
 
-## Contact
+### Port conflicts
+If ports are already in use, edit `docker-compose.yml`:
+```yaml
+ports:
+  - "3001:3000"  # Change frontend port
+  - "5001:5000"  # Change backend port
+```
 
-CoLaV - University of Antioquia  
-Contact: grupocolav@udea.edu.co
+### Reset everything
+```bash
+# Stop and remove containers, volumes
+docker-compose down -v
 
+# Start fresh
+docker-compose up -d
+```
+
+## Next Steps
+
+- ✅ Phase 1 Complete: Authentication working
+- 🔄 Phase 2: Implement chat functionality with WebSocket streaming
+- 🔄 Phase 3: Add LLM providers (Ollama, HuggingFace)
+- 🔄 Phase 4: Advanced rendering (Markdown, code, LaTeX, diagrams)
+
+## Useful Commands
+
+```bash
+# View all logs
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+
+# Restart a service
+docker-compose restart backend
+
+# Stop all services
+docker-compose down
+
+# Rebuild and restart
+docker-compose up -d --build
+```
+
+## API Testing
+
+Test the API with curl:
+
+```bash
+# Health check
+curl http://localhost:5000/health
+
+# Register user
+curl -X POST http://localhost:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"test1234","full_name":"Test User"}'
+
+# Login
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"test1234"}'
+```

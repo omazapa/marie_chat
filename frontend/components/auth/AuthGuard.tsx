@@ -1,54 +1,22 @@
 'use client';
 
-import { useEffect, ReactNode } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 
-interface AuthGuardProps {
-  children: ReactNode;
-  requireAuth?: boolean;
-}
-
-export default function AuthGuard({
-  children,
-  requireAuth = true,
-}: AuthGuardProps) {
+export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-
-  useEffect(() => {
-    if (!isLoading) {
-      if (requireAuth && !isAuthenticated) {
-        router.push('/login');
-      } else if (!requireAuth && isAuthenticated) {
-        router.push('/');
-      }
+    if (!isAuthenticated || !user) {
+      router.push('/login');
     }
-  }, [isAuthenticated, isLoading, requireAuth, router]);
+  }, [isAuthenticated, user, router]);
 
-  if (isLoading) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh',
-        }}
-      >
-        Loading...
-      </div>
-    );
-  }
-
-  if (requireAuth && !isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return null;
   }
 
   return <>{children}</>;
 }
-

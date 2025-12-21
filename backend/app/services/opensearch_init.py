@@ -1,10 +1,9 @@
-"""OpenSearch indices initialization."""
-from typing import Dict, Any
-from app.services.opensearch_service import OpenSearchService
+from opensearchpy import OpenSearch
+from app.db import opensearch_client
 
 
-# Index definitions
-INDICES: Dict[str, Dict[str, Any]] = {
+# Index mappings
+INDICES = {
     "marie_users": {
         "mappings": {
             "properties": {
@@ -15,19 +14,23 @@ INDICES: Dict[str, Dict[str, Any]] = {
                     "type": "text",
                     "fields": {"keyword": {"type": "keyword"}}
                 },
-                "avatar_url": {"type": "keyword", "index": False},
-                "role": {"type": "keyword"},  # user, admin
-                "permissions": {"type": "keyword"},  # Array of permissions
+                "role": {"type": "keyword"},
+                "roles": {"type": "keyword"},
+                "permissions": {"type": "object", "enabled": True},
                 "is_active": {"type": "boolean"},
+                "is_email_verified": {"type": "boolean"},
+                "avatar_url": {"type": "keyword", "index": False},
+                "last_login_at": {"type": "date"},
                 "created_at": {"type": "date"},
-                "updated_at": {"type": "date"}
+                "updated_at": {"type": "date"},
             }
         },
         "settings": {
             "number_of_shards": 1,
-            "number_of_replicas": 0
+            "number_of_replicas": 1
         }
     },
+    
     "marie_conversations": {
         "mappings": {
             "properties": {
@@ -45,27 +48,26 @@ INDICES: Dict[str, Dict[str, Any]] = {
                 "message_count": {"type": "integer"},
                 "last_message_at": {"type": "date"},
                 "created_at": {"type": "date"},
-                "updated_at": {"type": "date"}
+                "updated_at": {"type": "date"},
             }
         },
         "settings": {
             "number_of_shards": 2,
-            "number_of_replicas": 0
+            "number_of_replicas": 1
         }
     },
+    
     "marie_messages": {
         "mappings": {
             "properties": {
                 "id": {"type": "keyword"},
                 "conversation_id": {"type": "keyword"},
                 "user_id": {"type": "keyword"},
-                "role": {"type": "keyword"},  # user, assistant, system
+                "role": {"type": "keyword"},
                 "content": {
                     "type": "text",
                     "analyzer": "standard",
-                    "fields": {
-                        "keyword": {"type": "keyword", "ignore_above": 256}
-                    }
+                    "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}
                 },
                 "content_vector": {
                     "type": "knn_vector",
@@ -82,21 +84,21 @@ INDICES: Dict[str, Dict[str, Any]] = {
                 },
                 "tokens_used": {"type": "integer"},
                 "metadata": {"type": "object", "enabled": True},
-                "created_at": {"type": "date"}
+                "created_at": {"type": "date"},
             }
         },
         "settings": {
             "number_of_shards": 3,
-            "number_of_replicas": 0,
+            "number_of_replicas": 1,
             "index.knn": True
         }
     },
+    
     "marie_api_keys": {
         "mappings": {
             "properties": {
                 "id": {"type": "keyword"},
                 "user_id": {"type": "keyword"},
-                "key_type": {"type": "keyword"},  # user, developer
                 "name": {
                     "type": "text",
                     "fields": {"keyword": {"type": "keyword"}}
@@ -107,55 +109,33 @@ INDICES: Dict[str, Dict[str, Any]] = {
                 "usage_count": {"type": "integer"},
                 "expires_at": {"type": "date"},
                 "rate_limit": {"type": "integer"},
-                "created_at": {"type": "date"}
+                "created_at": {"type": "date"},
             }
         },
         "settings": {
             "number_of_shards": 1,
-            "number_of_replicas": 0
+            "number_of_replicas": 1
         }
-    }
+    },
 }
 
 
-def init_opensearch_indices(opensearch_service: OpenSearchService, recreate: bool = False) -> Dict[str, bool]:
-    """Initialize all OpenSearch indices.
+def init_opensearch_indices():
+    """Initialize OpenSearch indices"""
+    client: OpenSearch = opensearch_client.client
     
-    Args:
-        opensearch_service: OpenSearchService instance
-        recreate: If True, delete existing indices before creating
-    
-    Returns:
-        Dictionary mapping index names to success status
-    """
-    results = {}
-    
-    for index_name, index_config in INDICES.items():
+    for index_name, config in INDICES.items():
         try:
-            # Delete existing index if recreate is True
-            if recreate and opensearch_service.index_exists(index_name):
-                print(f"Deleting existing index: {index_name}")
-                opensearch_service.delete_index(index_name)
-            
-            # Create index if it doesn't exist
-            if not opensearch_service.index_exists(index_name):
-                print(f"Creating index: {index_name}")
-                success = opensearch_service.create_index(
-                    index_name=index_name,
-                    mapping=index_config["mappings"],
-                    settings=index_config.get("settings")
-                )
-                results[index_name] = success
-                if success:
-                    print(f"✓ Successfully created index: {index_name}")
-                else:
-                    print(f"✗ Failed to create index: {index_name}")
+            if not client.indices.exists(index=index_name):
+                client.indices.create(index=index_name, body=config)
+                print(f"✅ Index '{index_name}' created")
             else:
-                print(f"✓ Index already exists: {index_name}")
-                results[index_name] = True
+                print(f"ℹ️  Index '{index_name}' already exists")
         except Exception as e:
-            print(f"✗ Error initializing index {index_name}: {e}")
-            results[index_name] = False
+            print(f"❌ Error creating index '{index_name}': {e}")
     
-    return results
+    print("✅ OpenSearch indices initialized")
 
+
+if __name__ == "__main__":
+    init_opensearch_indices()

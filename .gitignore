@@ -159,6 +159,9 @@ tramp
 # Project Specific
 # ===========================================
 
+# AI Assistant Profile (context file, not for repo)
+AI_ASSISTANT_PROFILE.md
+
 # Media files (uploaded by users)
 media/
 !media/.gitkeep
@@ -251,4 +254,23 @@ Desktop.ini
 # Linux
 *~
 .directory
+
+# ===========================================
+# Playwright Test Results
+# ===========================================
+
+# Test output directories
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Test screenshots
+tests/screenshots/
+*.png
+*.jpg
+*.jpeg
+
+# Test result files
+tests/RESULTADOS.md
+tests/TEST_RESULTS.md
 

@@ -1,144 +1,131 @@
-"""Authentication routes."""
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
-from datetime import datetime
-from app.services.auth_service import AuthService
+from flask_jwt_extended import (
+    create_access_token, 
+    create_refresh_token,
+    jwt_required,
+    get_jwt_identity,
+    get_jwt
+)
+from pydantic import ValidationError
+from app.schemas.auth import RegisterRequest, LoginRequest, RefreshTokenRequest, UserResponse, LoginResponse
 from app.services.opensearch_service import OpenSearchService
-from app.config import Config
-
-auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 
-def get_auth_service() -> AuthService:
-    """Get AuthService instance."""
-    config = Config()
-    opensearch_service = OpenSearchService(
-        hosts=config.OPENSEARCH_HOSTS,
-        auth=(config.OPENSEARCH_USER, config.OPENSEARCH_PASSWORD),
-        use_ssl=config.OPENSEARCH_USE_SSL,
-        verify_certs=config.OPENSEARCH_VERIFY_CERTS
-    )
-    return AuthService(opensearch_service)
+auth_bp = Blueprint('auth', __name__)
+opensearch_service = OpenSearchService()
 
 
 @auth_bp.route('/register', methods=['POST'])
-def register():
-    """Register a new user."""
+async def register():
+    """Register a new user"""
     try:
-        data = request.get_json()
-        
-        # Validate input
-        if not data or not data.get('email') or not data.get('password'):
-            return jsonify({"error": "Email and password are required"}), 400
-        
-        email = data.get('email').strip().lower()
-        password = data.get('password')
-        full_name = data.get('full_name', '').strip()
-        
-        # Validate email format
-        if '@' not in email:
-            return jsonify({"error": "Invalid email format"}), 400
-        
-        # Validate password length
-        if len(password) < 6:
-            return jsonify({"error": "Password must be at least 6 characters"}), 400
-        
-        # Create user
-        auth_service = get_auth_service()
-        user_id = auth_service.create_user(email, password, full_name)
-        
-        if not user_id:
-            return jsonify({"error": "User already exists"}), 409
-        
-        # Get created user
-        user = auth_service.get_user_by_id(user_id)
-        
-        # Create tokens
-        access_token = create_access_token(identity=user_id)
-        refresh_token = create_refresh_token(identity=user_id)
-        
-        return jsonify({
-            "message": "User created successfully",
-            "user": user,
-            "access_token": access_token,
-            "refresh_token": refresh_token
-        }), 201
+        data = RegisterRequest(**request.get_json())
+    except ValidationError as e:
+        return jsonify({'error': 'Invalid request', 'details': e.errors()}), 400
     
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@auth_bp.route('/login', methods=['POST'])
-def login():
-    """Login user."""
+    # Check if user already exists
+    existing_user = await opensearch_service.get_user_by_email(data.email)
+    if existing_user:
+        return jsonify({'error': 'User already exists'}), 409
+    
+    # Create user
     try:
-        data = request.get_json()
-        
-        if not data or not data.get('email') or not data.get('password'):
-            return jsonify({"error": "Email and password are required"}), 400
-        
-        email = data.get('email').strip().lower()
-        password = data.get('password')
-        
-        # Authenticate user
-        auth_service = get_auth_service()
-        user = auth_service.authenticate_user(email, password)
-        
-        if not user:
-            return jsonify({"error": "Invalid email or password"}), 401
+        user = await opensearch_service.create_user(
+            email=data.email,
+            password=data.password,
+            full_name=data.full_name
+        )
         
         # Create tokens
         access_token = create_access_token(identity=user['id'])
         refresh_token = create_refresh_token(identity=user['id'])
         
+        # Update last login
+        await opensearch_service.update_last_login(user['id'])
+        
         return jsonify({
-            "message": "Login successful",
-            "user": user,
-            "access_token": access_token,
-            "refresh_token": refresh_token
-        }), 200
-    
+            'access_token': access_token,
+            'refresh_token': refresh_token,
+            'user': UserResponse(**user).model_dump()
+        }), 201
+        
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': 'Failed to create user', 'details': str(e)}), 500
+
+
+@auth_bp.route('/login', methods=['POST'])
+async def login():
+    """Login user"""
+    try:
+        data = LoginRequest(**request.get_json())
+    except ValidationError as e:
+        return jsonify({'error': 'Invalid request', 'details': e.errors()}), 400
+    
+    # Get user
+    user = await opensearch_service.get_user_by_email(data.email)
+    if not user:
+        return jsonify({'error': 'Invalid credentials'}), 401
+    
+    # Verify password
+    password_hash = user.get('password_hash')
+    if not await opensearch_service.verify_password(data.password, password_hash):
+        return jsonify({'error': 'Invalid credentials'}), 401
+    
+    # Check if user is active
+    if not user.get('is_active', True):
+        return jsonify({'error': 'Account is inactive'}), 403
+    
+    # Create tokens
+    access_token = create_access_token(identity=user['id'])
+    refresh_token = create_refresh_token(identity=user['id'])
+    
+    # Update last login
+    await opensearch_service.update_last_login(user['id'])
+    
+    # Remove password_hash from response
+    user.pop('password_hash', None)
+    
+    return jsonify({
+        'access_token': access_token,
+        'refresh_token': refresh_token,
+        'user': UserResponse(**user).model_dump()
+    }), 200
 
 
 @auth_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
-def refresh():
-    """Refresh access token."""
-    try:
-        user_id = get_jwt_identity()
-        access_token = create_access_token(identity=user_id)
-        
-        return jsonify({
-            "access_token": access_token
-        }), 200
+async def refresh():
+    """Refresh access token"""
+    identity = get_jwt_identity()
     
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@auth_bp.route('/me', methods=['GET'])
-@jwt_required()
-def get_current_user():
-    """Get current authenticated user."""
-    try:
-        user_id = get_jwt_identity()
-        auth_service = get_auth_service()
-        user = auth_service.get_user_by_id(user_id)
-        
-        if not user:
-            return jsonify({"error": "User not found"}), 404
-        
-        return jsonify({"user": user}), 200
+    # Create new access token
+    access_token = create_access_token(identity=identity)
     
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return jsonify({
+        'access_token': access_token
+    }), 200
 
 
 @auth_bp.route('/logout', methods=['POST'])
 @jwt_required()
-def logout():
-    """Logout user (client should discard tokens)."""
-    return jsonify({"message": "Logged out successfully"}), 200
+async def logout():
+    """Logout user"""
+    # In a stateless JWT setup, logout is handled on the client side
+    # For a more secure implementation, you could maintain a blocklist
+    return jsonify({'message': 'Logged out successfully'}), 200
 
+
+@auth_bp.route('/me', methods=['GET'])
+@jwt_required()
+async def get_current_user():
+    """Get current user info"""
+    user_id = get_jwt_identity()
+    
+    user = await opensearch_service.get_user_by_id(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Remove password_hash
+    user.pop('password_hash', None)
+    
+    return jsonify(UserResponse(**user).model_dump()), 200

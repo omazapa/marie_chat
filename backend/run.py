@@ -1,16 +1,39 @@
-"""Run the Flask application."""
+#!/usr/bin/env python3
+"""
+Marie Chat Backend Server
+"""
 import os
-from app import create_app
-from app.extensions import socketio
+from app import create_app, socketio
+from app.services.opensearch_init import init_opensearch_indices
 
-app = create_app(os.environ.get('FLASK_ENV', 'development'))
+
+# Create Flask app
+app = create_app()
+
+
+def init_app():
+    """Initialize application"""
+    print("🚀 Initializing Marie Chat Backend...")
+    
+    # Initialize OpenSearch indices
+    try:
+        init_opensearch_indices()
+    except Exception as e:
+        print(f"⚠️  Warning: Could not initialize OpenSearch indices: {e}")
+        print("   Make sure OpenSearch is running and accessible")
+    
+    print("✅ Initialization complete")
+
 
 if __name__ == '__main__':
+    init_app()
+    
+    # Run with SocketIO
+    port = int(os.getenv('PORT', 5000))
     socketio.run(
         app,
-        host=os.environ.get('FLASK_HOST', '0.0.0.0'),
-        port=int(os.environ.get('FLASK_PORT', 5000)),
-        debug=os.environ.get('FLASK_DEBUG', 'false').lower() == 'true',
+        host='0.0.0.0',
+        port=port,
+        debug=True,
         allow_unsafe_werkzeug=True
     )
-

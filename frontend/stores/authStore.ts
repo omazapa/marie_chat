@@ -1,116 +1,65 @@
-/** Authentication store using Zustand. */
 import { create } from 'zustand';
-import { User } from '@/lib/types';
-import { apiClient } from '@/lib/api';
+import { persist } from 'zustand/middleware';
+import type { User, LoginResponse } from '@/types';
 
 interface AuthState {
   user: User | null;
+  accessToken: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName?: string) => Promise<void>;
+  
+  // Actions
+  setAuth: (data: LoginResponse) => void;
+  setUser: (user: User) => void;
   logout: () => void;
-  checkAuth: () => Promise<void>;
+  updateTokens: (accessToken: string, refreshToken?: string) => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
-  error: null,
-
-  login: async (email: string, password: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      const response = await apiClient.login(email, password);
-      if (response.error) {
-        set({ error: response.error, isLoading: false });
-        return;
-      }
-
-      if (response.data) {
-        localStorage.setItem('access_token', response.data.access_token);
-        localStorage.setItem('refresh_token', response.data.refresh_token);
-        set({
-          user: response.data.user,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null,
-        });
-      }
-    } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : 'Login failed',
-        isLoading: false,
-      });
-    }
-  },
-
-  register: async (email: string, password: string, fullName?: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      const response = await apiClient.register(email, password, fullName);
-      if (response.error) {
-        set({ error: response.error, isLoading: false });
-        return;
-      }
-
-      if (response.data) {
-        localStorage.setItem('access_token', response.data.access_token);
-        localStorage.setItem('refresh_token', response.data.refresh_token);
-        set({
-          user: response.data.user,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null,
-        });
-      }
-    } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : 'Registration failed',
-        isLoading: false,
-      });
-    }
-  },
-
-  logout: () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    set({
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
       user: null,
+      accessToken: null,
+      refreshToken: null,
       isAuthenticated: false,
-      error: null,
-    });
-  },
 
-  checkAuth: async () => {
-    set({ isLoading: true });
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      set({ isAuthenticated: false, isLoading: false });
-      return;
-    }
-
-    try {
-      const response = await apiClient.getCurrentUser();
-      if (response.error) {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        set({ isAuthenticated: false, isLoading: false });
-        return;
-      }
-
-      if (response.data?.user) {
+      setAuth: (data: LoginResponse) => {
         set({
-          user: response.data.user,
+          user: data.user,
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token,
           isAuthenticated: true,
-          isLoading: false,
         });
-      }
-    } catch (error) {
-      set({ isAuthenticated: false, isLoading: false });
-    }
-  },
-}));
+      },
 
+      setUser: (user: User) => {
+        set({ user });
+      },
+
+      logout: () => {
+        set({
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
+        });
+      },
+
+      updateTokens: (accessToken: string, refreshToken?: string) => {
+        set((state) => ({
+          accessToken,
+          refreshToken: refreshToken || state.refreshToken,
+        }));
+      },
+    }),
+    {
+      name: 'marie-auth-storage',
+      partialize: (state) => ({
+        user: state.user,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    }
+  )
+);

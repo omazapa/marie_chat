@@ -1,0 +1,28 @@
+{
+  "name": "marie_chat",
+  "version": "1.0.0",
+  "description": "- Docker and Docker Compose installed - At least 4GB RAM available for containers - Ports 3000, 5000, 9200, 5601, 11434 available",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:report": "playwright show-report"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/omazapa/marie_chat.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/omazapa/marie_chat/issues"
+  },
+  "homepage": "https://github.com/omazapa/marie_chat#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "playwright": "^1.57.0"
+  }
+}

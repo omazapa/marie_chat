@@ -1,64 +1,63 @@
-"""Configuration for Flask application."""
 import os
 from datetime import timedelta
-from pathlib import Path
-from dotenv import load_dotenv
-
-# Load environment variables
-env_path = Path(__file__).parent.parent / '.env'
-load_dotenv(dotenv_path=env_path)
+from pydantic_settings import BaseSettings
 
 
-class Config:
-    """Base configuration."""
-    SECRET_KEY = os.environ.get('FLASK_SECRET_KEY') or os.environ.get('JWT_SECRET_KEY') or 'dev-secret-key-change-in-production'
+class Settings(BaseSettings):
+    """Application settings"""
     
-    # JWT Configuration
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or SECRET_KEY
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES', 1)))
-    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=int(os.environ.get('JWT_REFRESH_TOKEN_EXPIRES', 30)))
-    JWT_TOKEN_LOCATION = ['headers']
-    JWT_HEADER_NAME = 'Authorization'
-    JWT_HEADER_TYPE = 'Bearer'
+    # Flask
+    FLASK_ENV: str = os.getenv('FLASK_ENV', 'development')
+    SECRET_KEY: str = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+    DEBUG: bool = FLASK_ENV == 'development'
+    PORT: int = int(os.getenv('PORT', '5000'))
     
-    # CORS Configuration
-    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:3000').split(',')
+    # JWT
+    JWT_SECRET_KEY: str = os.getenv('JWT_SECRET_KEY', 'jwt-secret-key-change-in-production')
+    JWT_ACCESS_TOKEN_EXPIRES: timedelta = timedelta(hours=1)
+    JWT_REFRESH_TOKEN_EXPIRES: timedelta = timedelta(days=30)
+    JWT_TOKEN_LOCATION: list = ['headers']
+    JWT_HEADER_NAME: str = 'Authorization'
+    JWT_HEADER_TYPE: str = 'Bearer'
     
-    # OpenSearch Configuration
-    OPENSEARCH_HOSTS = os.environ.get('OPENSEARCH_HOSTS', 'https://localhost:9200').split(',')
-    OPENSEARCH_USER = os.environ.get('OPENSEARCH_USER', 'admin')
-    OPENSEARCH_PASSWORD = os.environ.get('OPENSEARCH_PASSWORD', 'admin')
-    OPENSEARCH_USE_SSL = os.environ.get('OPENSEARCH_USE_SSL', 'true').lower() == 'true'
-    OPENSEARCH_VERIFY_CERTS = os.environ.get('OPENSEARCH_VERIFY_CERTS', 'false').lower() == 'true'
-    OPENSEARCH_TIMEOUT = int(os.environ.get('OPENSEARCH_TIMEOUT', 30))
+    # OpenSearch
+    OPENSEARCH_HOSTS: str = os.getenv('OPENSEARCH_HOSTS', 'https://localhost:9200')
+    OPENSEARCH_USER: str = os.getenv('OPENSEARCH_USER', 'admin')
+    OPENSEARCH_PASSWORD: str = os.getenv('OPENSEARCH_PASSWORD', 'Marie_Chat_2024!')
+    OPENSEARCH_USE_SSL: bool = os.getenv('OPENSEARCH_USE_SSL', 'true').lower() == 'true'
+    OPENSEARCH_VERIFY_CERTS: bool = os.getenv('OPENSEARCH_VERIFY_CERTS', 'false').lower() == 'true'
     
-    # Flask Configuration
-    DEBUG = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
-    TESTING = False
+    @property
+    def opensearch_hosts_list(self) -> list:
+        """Convert OPENSEARCH_HOSTS string to list"""
+        if isinstance(self.OPENSEARCH_HOSTS, list):
+            return self.OPENSEARCH_HOSTS
+        return [self.OPENSEARCH_HOSTS]
+    
+    # Ollama
+    OLLAMA_BASE_URL: str = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
+    
+    # HuggingFace
+    HUGGINGFACE_API_KEY: str = os.getenv('HUGGINGFACE_API_KEY', '')
+    
+    # Embeddings
+    EMBEDDING_MODEL: str = os.getenv('EMBEDDING_MODEL', 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
+    EMBEDDING_DIMENSION: int = int(os.getenv('EMBEDDING_DIMENSION', '384'))
+    
+    # CORS
+    CORS_ORIGINS: list = [
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'http://127.0.0.1:3000',
+    ]
+    
+    # File Upload
+    UPLOAD_FOLDER: str = os.getenv('UPLOAD_FOLDER', './uploads')
+    MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 50MB
+    
+    class Config:
+        case_sensitive = True
+        env_file = '.env'
 
 
-class DevelopmentConfig(Config):
-    """Development configuration."""
-    DEBUG = True
-    TESTING = False
-
-
-class ProductionConfig(Config):
-    """Production configuration."""
-    DEBUG = False
-    TESTING = False
-
-
-class TestingConfig(Config):
-    """Testing configuration."""
-    TESTING = True
-    DEBUG = True
-
-
-config = {
-    'development': DevelopmentConfig,
-    'production': ProductionConfig,
-    'testing': TestingConfig,
-    'default': DevelopmentConfig
-}
-
+settings = Settings()

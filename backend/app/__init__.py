@@ -1,32 +1,49 @@
-"""Flask application factory."""
 from flask import Flask
-from app.config import config
-from app.extensions import cors, jwt, socketio
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager
+from flask_socketio import SocketIO
+from app.config import settings
 
 
-def create_app(config_name='default'):
-    """Create and configure Flask application."""
+# Initialize extensions
+jwt = JWTManager()
+socketio = SocketIO(cors_allowed_origins=settings.CORS_ORIGINS, async_mode='eventlet')
+
+
+def create_app():
+    """Application factory"""
     app = Flask(__name__)
-    app.config.from_object(config[config_name])
+    
+    # Load configuration
+    app.config['SECRET_KEY'] = settings.SECRET_KEY
+    app.config['JWT_SECRET_KEY'] = settings.JWT_SECRET_KEY
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = settings.JWT_ACCESS_TOKEN_EXPIRES
+    app.config['JWT_REFRESH_TOKEN_EXPIRES'] = settings.JWT_REFRESH_TOKEN_EXPIRES
+    app.config['JWT_TOKEN_LOCATION'] = settings.JWT_TOKEN_LOCATION
+    app.config['JWT_HEADER_NAME'] = settings.JWT_HEADER_NAME
+    app.config['JWT_HEADER_TYPE'] = settings.JWT_HEADER_TYPE
     
     # Initialize extensions
-    cors.init_app(app)
+    CORS(app, origins=settings.CORS_ORIGINS, supports_credentials=True)
     jwt.init_app(app)
-    socketio.init_app(app, cors_allowed_origins=app.config['CORS_ORIGINS'])
+    socketio.init_app(app)
     
     # Register blueprints
-    from app.routes import auth, conversations, models
-    app.register_blueprint(auth.auth_bp)
-    app.register_blueprint(conversations.conversations_bp)
-    app.register_blueprint(models.models_bp)
+    from app.routes import auth_bp, conversations_bp, models_bp
     
-    # Register socket handlers
-    from app.sockets import chat_socket  # noqa: F401
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(conversations_bp, url_prefix='/api/conversations')
+    app.register_blueprint(models_bp, url_prefix='/api/models')
     
-    @app.route('/api/health')
+    # Register socket events
+    from app.sockets import chat_events
+    
+    @app.route('/')
+    def index():
+        return {'message': 'Marie Chat API', 'version': '1.0.0', 'status': 'running'}
+    
+    @app.route('/health')
     def health():
-        """Health check endpoint."""
-        return {'status': 'ok', 'message': 'Marie Chat API is running'}
+        return {'status': 'healthy'}
     
     return app
-
