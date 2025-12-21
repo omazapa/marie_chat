@@ -95,23 +95,32 @@ export function useChat(token: string | null) {
 
   // Create conversation
   const createConversation = useCallback(
-    async (title: string = 'New Conversation', model: string = 'llama3.2') => {
-      if (!token) return null;
+    async (title: string = 'New Conversation', model: string = 'llama3.2', provider: string = 'ollama') => {
+      console.log('[useChat] createConversation called with:', { title, model, provider, hasToken: !!token });
+      
+      if (!token) {
+        console.error('[useChat] No token available!');
+        return null;
+      }
 
       try {
         setLoading(true);
+        console.log('[useChat] Making API request to create conversation...');
         const response = await axios.post(
           `${API_BASE}/conversations`,
-          { title, model, provider: 'ollama' },
+          { title, model, provider },
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const newConversation = response.data;
+        console.log('[useChat] Conversation created successfully:', newConversation);
         setConversations((prev) => [newConversation, ...prev]);
         setError(null);
         return newConversation;
       } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to create conversation');
-        console.error('Error creating conversation:', err);
+        const errorMsg = err.response?.data?.error || 'Failed to create conversation';
+        setError(errorMsg);
+        console.error('[useChat] Error creating conversation:', err);
+        console.error('[useChat] Error response:', err.response?.data);
         return null;
       } finally {
         setLoading(false);

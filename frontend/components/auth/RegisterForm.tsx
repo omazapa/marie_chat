@@ -27,11 +27,11 @@ export function RegisterForm() {
       });
 
       setAuth(response.data);
-      message.success('¡Registro exitoso! Bienvenido a Marie Chat');
+      message.success('Registration successful! Welcome to Marie Chat');
       router.push('/chat');
     } catch (error: any) {
       console.error('Register error:', error);
-      const errorMessage = error.response?.data?.error || 'Error al registrarse';
+      const errorMessage = error.response?.data?.error || 'Registration error';
       message.error(errorMessage);
     } finally {
       setLoading(false);
@@ -52,7 +52,7 @@ export function RegisterForm() {
             <Title level={2} style={{ marginBottom: 8, color: '#1B4B73' }}>
               Marie Chat
             </Title>
-            <Text type="secondary">Crea tu cuenta</Text>
+            <Text type="secondary">Create your account</Text>
           </div>
 
           <Form
@@ -63,65 +63,65 @@ export function RegisterForm() {
           >
             <Form.Item
               name="full_name"
-              label="Nombre completo"
-              rules={[{ required: true, message: 'Por favor ingresa tu nombre' }]}
+              label="Full Name"
+              rules={[{ required: true, message: 'Please enter your name' }]}
             >
               <Input
                 prefix={<UserOutlined />}
-                placeholder="Tu nombre"
+                placeholder="Your name"
                 size="large"
               />
             </Form.Item>
 
             <Form.Item
               name="email"
-              label="Correo electrónico"
+              label="Email"
               rules={[
-                { required: true, message: 'Por favor ingresa tu correo' },
-                { type: 'email', message: 'Ingresa un correo válido' }
+                { required: true, message: 'Please enter your email' },
+                { type: 'email', message: 'Please enter a valid email' }
               ]}
             >
               <Input
                 prefix={<MailOutlined />}
-                placeholder="tu@email.com"
+                placeholder="your@email.com"
                 size="large"
               />
             </Form.Item>
 
             <Form.Item
               name="password"
-              label="Contraseña"
+              label="Password"
               rules={[
-                { required: true, message: 'Por favor ingresa tu contraseña' },
-                { min: 8, message: 'La contraseña debe tener al menos 8 caracteres' }
+                { required: true, message: 'Please enter your password' },
+                { min: 8, message: 'Password must be at least 8 characters' }
               ]}
             >
               <Input.Password
                 prefix={<LockOutlined />}
-                placeholder="Mínimo 8 caracteres"
+                placeholder="Minimum 8 characters"
                 size="large"
               />
             </Form.Item>
 
             <Form.Item
               name="confirm"
-              label="Confirmar contraseña"
+              label="Confirm Password"
               dependencies={['password']}
               rules={[
-                { required: true, message: 'Por favor confirma tu contraseña' },
+                { required: true, message: 'Please confirm your password' },
                 ({ getFieldValue }) => ({
                   validator(_, value) {
                     if (!value || getFieldValue('password') === value) {
                       return Promise.resolve();
                     }
-                    return Promise.reject(new Error('Las contraseñas no coinciden'));
+                    return Promise.reject(new Error('Passwords do not match'));
                   },
                 }),
               ]}
             >
               <Input.Password
                 prefix={<LockOutlined />}
-                placeholder="Repite tu contraseña"
+                placeholder="Repeat your password"
                 size="large"
               />
             </Form.Item>
@@ -134,15 +134,15 @@ export function RegisterForm() {
                 block
                 loading={loading}
               >
-                Registrarse
+                Sign up
               </Button>
             </Form.Item>
           </Form>
 
           <div style={{ textAlign: 'center' }}>
             <Text type="secondary">
-              ¿Ya tienes cuenta?{' '}
-              <Link href="/login">Inicia sesión</Link>
+              Already have an account?{' '}
+              <Link href="/login">Sign in</Link>
             </Text>
           </div>
         </Space>

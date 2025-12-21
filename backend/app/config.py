@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     
     # Ollama
     OLLAMA_BASE_URL: str = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
+    DEFAULT_LLM_MODEL: str = os.getenv('DEFAULT_LLM_MODEL', 'llama3.2')
+    DEFAULT_LLM_PROVIDER: str = os.getenv('DEFAULT_LLM_PROVIDER', 'ollama')
     
     # HuggingFace
     HUGGINGFACE_API_KEY: str = os.getenv('HUGGINGFACE_API_KEY', '')

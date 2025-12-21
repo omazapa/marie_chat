@@ -23,7 +23,7 @@ interface Conversation {
 }
 
 export default function ChatContainer() {
-  const { token } = useAuthStore();
+  const { accessToken } = useAuthStore();
   const {
     conversations,
     currentConversation,
@@ -38,7 +38,7 @@ export default function ChatContainer() {
     updateConversation,
     selectConversation,
     sendMessage,
-  } = useChat(token);
+  } = useChat(accessToken);
 
   // Format messages for Ant Design X
   const chatMessages = [
@@ -57,9 +57,14 @@ export default function ChatContainer() {
   ];
 
   const handleNewConversation = async () => {
-    const conv = await createConversation();
+    console.log('[ChatContainer] handleNewConversation called');
+    const conv = await createConversation('New Conversation', 'llama3.2', 'ollama');
+    console.log('[ChatContainer] createConversation returned:', conv);
     if (conv) {
+      console.log('[ChatContainer] Selecting conversation:', conv.id);
       selectConversation(conv);
+    } else {
+      console.error('[ChatContainer] Failed to create conversation');
     }
   };
 
@@ -88,7 +93,7 @@ export default function ChatContainer() {
     
     // Create new conversation if none selected
     if (!currentConversation) {
-      const conv = await createConversation('New Chat');
+      const conv = await createConversation('New Chat', 'llama3.2', 'ollama');
       if (conv) {
         await selectConversation(conv);
         setTimeout(() => sendMessage(content), 500);

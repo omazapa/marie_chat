@@ -26,11 +26,11 @@ export function LoginForm() {
       });
 
       setAuth(response.data);
-      message.success('¡Bienvenido de vuelta!');
+      message.success('Welcome back!');
       router.push('/chat');
     } catch (error: any) {
       console.error('Login error:', error);
-      const errorMessage = error.response?.data?.error || 'Error al iniciar sesión';
+      const errorMessage = error.response?.data?.error || 'Login error';
       message.error(errorMessage);
     } finally {
       setLoading(false);
@@ -51,7 +51,7 @@ export function LoginForm() {
             <Title level={2} style={{ marginBottom: 8, color: '#1B4B73' }}>
               Marie Chat
             </Title>
-            <Text type="secondary">Inicia sesión en tu cuenta</Text>
+            <Text type="secondary">Sign in to your account</Text>
           </div>
 
           <Form
@@ -62,35 +62,35 @@ export function LoginForm() {
           >
             <Form.Item
               name="email"
-              label="Correo electrónico"
+              label="Email"
               rules={[
-                { required: true, message: 'Por favor ingresa tu correo' },
-                { type: 'email', message: 'Ingresa un correo válido' }
+                { required: true, message: 'Please enter your email' },
+                { type: 'email', message: 'Please enter a valid email' }
               ]}
             >
               <Input
                 prefix={<MailOutlined />}
-                placeholder="tu@email.com"
+                placeholder="your@email.com"
                 size="large"
               />
             </Form.Item>
 
             <Form.Item
               name="password"
-              label="Contraseña"
-              rules={[{ required: true, message: 'Por favor ingresa tu contraseña' }]}
+              label="Password"
+              rules={[{ required: true, message: 'Please enter your password' }]}
             >
               <Input.Password
                 prefix={<LockOutlined />}
-                placeholder="Tu contraseña"
+                placeholder="Your password"
                 size="large"
               />
             </Form.Item>
 
             <Form.Item>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Checkbox>Recordarme</Checkbox>
-                <Link href="#">¿Olvidaste tu contraseña?</Link>
+                <Checkbox>Remember me</Checkbox>
+                <Link href="#">Forgot password?</Link>
               </div>
             </Form.Item>
 
@@ -102,15 +102,15 @@ export function LoginForm() {
                 block
                 loading={loading}
               >
-                Iniciar sesión
+                Sign in
               </Button>
             </Form.Item>
           </Form>
 
           <div style={{ textAlign: 'center' }}>
             <Text type="secondary">
-              ¿No tienes cuenta?{' '}
-              <Link href="/register">Regístrate</Link>
+              Don't have an account?{' '}
+              <Link href="/register">Sign up</Link>
             </Text>
           </div>
         </Space>
