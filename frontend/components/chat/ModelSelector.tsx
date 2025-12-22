@@ -119,7 +119,7 @@ export default function ModelSelector({
             const status = getProviderStatus(provider);
             return (
               <Option key={provider} value={provider}>
-                <Space>
+                <Space orientation="horizontal">
                   <RobotOutlined />
                   {provider}
                   <Tag color={status.color} icon={status.icon}>
@@ -172,7 +172,7 @@ export default function ModelSelector({
                     {model.description.length > 60 ? '...' : ''}
                   </Text>
                 )}
-                <Space size="small">
+                <Space orientation="horizontal" size="small">
                   {model.parameters && <Tag color="blue">{model.parameters}</Tag>}
                   {model.quantization && <Tag color="purple">{model.quantization}</Tag>}
                   {model.size && <Tag color="green">{model.size}</Tag>}
@@ -188,14 +188,15 @@ export default function ModelSelector({
         <Card
           size="small"
           style={{
-            background: '#f5f5f5',
-            border: '1px solid #e8e8e8',
+            background: '#f0f5ff',
+            border: '1px solid #adc6ff',
+            borderRadius: '8px'
           }}
         >
           <Space orientation="vertical" size="small" style={{ width: '100%' }}>
-            <Space>
-              <RobotOutlined style={{ color: '#1B4B73' }} />
-              <Text strong>{modelInfo.name}</Text>
+            <Space orientation="horizontal">
+              <RobotOutlined style={{ color: '#1B4B73', fontSize: '18px' }} />
+              <Text strong style={{ color: '#1B4B73', fontSize: '15px' }}>{modelInfo.name}</Text>
             </Space>
             
             {modelInfo.description && (
@@ -204,7 +205,7 @@ export default function ModelSelector({
               </Text>
             )}
 
-            <Space wrap>
+            <Space orientation="horizontal" wrap>
               {modelInfo.parameters && (
                 <Tooltip title="Model parameters">
                   <Tag color="blue" icon={<InfoCircleOutlined />}>
@@ -234,7 +235,7 @@ export default function ModelSelector({
                 <Text type="secondary" style={{ fontSize: '12px' }}>
                   Capabilities:
                 </Text>
-                <Space size="small" style={{ marginTop: '4px' }}>
+                <Space orientation="horizontal" size="small" style={{ marginTop: '4px' }}>
                   {modelInfo.capabilities.map((cap) => (
                     <Tag key={cap} style={{ fontSize: '11px' }}>
                       {cap}

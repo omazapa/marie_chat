@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { ConfigProvider, App } from 'antd';
+import { impactUTheme } from '@/lib/theme';
 import './globals.css';
 
 const inter = Inter({
@@ -37,37 +38,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${plusJakarta.variable} ${jetbrainsMono.variable}`}>
       <body suppressHydrationWarning>
         <AntdRegistry>
-          <ConfigProvider
-            theme={{
-              token: {
-                colorPrimary: '#1B4B73',      // Azul institucional ImpactU
-                colorSuccess: '#17A589',      // Verde/Teal CoLaV
-                colorInfo: '#2D6A9F',         // Azul primario light
-                colorWarning: '#F39C12',      // Naranja/Dorado para highlights
-                colorError: '#E74C3C',        // Rojo para alertas
-                fontFamily: 'var(--font-inter)',
-                fontSize: 16,
-                borderRadius: 8,
-              },
-              components: {
-                Layout: {
-                  headerBg: '#1B4B73',
-                  headerColor: '#ffffff',
-                  bodyBg: '#F8FAFC',
-                },
-                Button: {
-                  primaryColor: '#ffffff',
-                  colorPrimary: '#1B4B73',
-                  colorPrimaryHover: '#2D6A9F',
-                  colorPrimaryActive: '#0F2D47',
-                },
-                Input: {
-                  colorBorder: '#E2E8F0',
-                  colorPrimary: '#1B4B73',
-                },
-              },
-            }}
-          >
+          <ConfigProvider theme={impactUTheme}>
             <App>
               {children}
             </App>

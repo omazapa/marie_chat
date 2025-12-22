@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Form, Input, Button, Card, Typography, Space, Checkbox, App } from 'antd';
+import { Form, Input, Button, Card, Typography, Space, Checkbox, App, Image } from 'antd';
 import { MailOutlined, LockOutlined } from '@ant-design/icons';
 import apiClient from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -43,15 +43,17 @@ export function LoginForm() {
       justifyContent: 'center', 
       alignItems: 'center', 
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1B4B73 0%, #17A589 100%)'
+      background: '#f5f7f9',
+      backgroundImage: 'radial-gradient(#1B4B73 0.5px, transparent 0.5px)',
+      backgroundSize: '20px 20px'
     }}>
-      <Card style={{ width: 400, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
+      <Card style={{ width: 450, padding: '24px 12px' }}>
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-          <div style={{ textAlign: 'center' }}>
-            <Title level={2} style={{ marginBottom: 8, color: '#1B4B73' }}>
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+            <Title level={3} style={{ margin: 0, color: '#1B4B73' }}>
               Marie Chat
             </Title>
-            <Text type="secondary">Sign in to your account</Text>
+            <Text type="secondary">Intelligent Research Assistant</Text>
           </div>
 
           <Form

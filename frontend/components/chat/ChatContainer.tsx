@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Conversations, Sender, Bubble, Think } from '@ant-design/x';
+import { Conversations, Sender, Bubble, Think, Welcome, Prompts } from '@ant-design/x';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
-import { Spin, Empty, Button, Space, Typography, Dropdown, Modal, Tag, Tooltip } from 'antd';
+import { Spin, Empty, Button, Space, Typography, Dropdown, Modal, Tag, Tooltip, Layout, Image, Menu, App, Input } from 'antd';
 import { 
   SendOutlined, 
   UserOutlined, 
@@ -25,7 +25,9 @@ import type { Message as WebSocketMessage } from '@/hooks/useWebSocket';
 import ModelSelector from './ModelSelector';
 import { MarkdownContent } from '../markdown/MarkdownContent';
 
-const { Title, Text } = Typography;
+const { Title, Text, Link } = Typography;
+const { Sider, Content } = Layout;
+const { useApp } = App;
 
 interface Conversation {
   id: string;
@@ -46,6 +48,7 @@ export default function ChatContainer() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { accessToken } = useAuthStore();
+  const { modal } = useApp();
   const {
     conversations,
     currentConversation,
@@ -129,9 +132,16 @@ export default function ChatContainer() {
   };
 
   const handleDeleteConversation = async (id: string) => {
-    if (confirm('Delete this conversation?')) {
-      await deleteConversation(id);
-    }
+    modal.confirm({
+      title: 'Delete Conversation',
+      content: 'Are you sure you want to delete this conversation? This action cannot be undone.',
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        await deleteConversation(id);
+      },
+    });
   };
 
   const handleSelectConversation = async (id: string) => {
@@ -207,34 +217,37 @@ export default function ChatContainer() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: '#F8FAFC' }}>
+    <Layout style={{ height: '100vh', overflow: 'hidden' }}>
       {/* Sidebar */}
-      <div style={{ 
-        width: '320px', 
-        background: '#ffffff',
-        borderRight: '1px solid #E2E8F0',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
+      <Sider
+        width={320}
+        theme="light"
+        style={{ 
+          borderRight: '1px solid #f0f0f0',
+          height: '100vh'
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Header */}
         <div style={{ 
-          padding: '20px',
-          background: 'linear-gradient(135deg, #1B4B73 0%, #2D6A9F 100%)',
-          borderBottom: '1px solid rgba(255,255,255,0.1)'
+          padding: '24px 20px',
+          background: '#ffffff',
+          borderBottom: '1px solid #f0f0f0'
         }}>
-          <Title level={3} style={{ margin: 0, color: '#ffffff', fontWeight: 600 }}>
-            Marie Chat
-          </Title>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <Title level={4} style={{ margin: 0, color: '#1B4B73', fontWeight: 700 }}>
+              Marie Chat
+            </Title>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ 
               width: '8px', 
               height: '8px', 
               borderRadius: '50%',
               background: isConnected ? '#52c41a' : '#ff4d4f',
-              boxShadow: isConnected ? '0 0 8px rgba(82,196,26,0.5)' : '0 0 8px rgba(255,77,79,0.5)'
             }} />
-            <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: '13px' }}>
-              {isConnected ? 'Connected' : 'Disconnected'}
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              {isConnected ? 'System Online' : 'System Offline'}
             </Text>
           </div>
         </div>
@@ -249,10 +262,8 @@ export default function ChatContainer() {
             block
             size="large"
             style={{
-              background: '#17A589',
-              borderColor: '#17A589',
               height: '44px',
-              fontWeight: 500
+              fontWeight: 600
             }}
           >
             New Conversation
@@ -262,9 +273,9 @@ export default function ChatContainer() {
             icon={<SettingOutlined />}
             onClick={handleOpenModelSelector}
             block
-            style={{ marginTop: 8 }}
+            style={{ marginTop: 8, color: '#1B4B73' }}
           >
-            Choose Model
+            Configure Model
           </Button>
         </div>
 
@@ -286,10 +297,23 @@ export default function ChatContainer() {
                     label: 'Rename',
                     icon: <EditOutlined />,
                     onClick: () => {
-                      const newTitle = prompt('New title:', info.label);
-                      if (newTitle) {
-                        handleRenameConversation(info.key, newTitle);
-                      }
+                      let newTitle = info.label;
+                      modal.confirm({
+                        title: 'Rename Conversation',
+                        content: (
+                          <Input 
+                            defaultValue={info.label} 
+                            onChange={(e) => newTitle = e.target.value}
+                            placeholder="Enter new title"
+                            style={{ marginTop: 16 }}
+                          />
+                        ),
+                        onOk: async () => {
+                          if (newTitle && newTitle.trim()) {
+                            await handleRenameConversation(info.key, newTitle);
+                          }
+                        },
+                      });
                     },
                   },
                   {
@@ -316,70 +340,71 @@ export default function ChatContainer() {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Main Chat Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {error && (
-          <div style={{ 
-            background: '#fff2f0',
-            borderLeft: '4px solid #ff4d4f',
-            padding: '16px',
-            margin: '16px'
-          }}>
-            <Text style={{ color: '#cf1322' }}>{error}</Text>
-          </div>
-        )}
+        {/* Sidebar Footer */}
+        <div style={{ 
+          padding: '16px 20px', 
+          borderTop: '1px solid #f0f0f0',
+          background: '#fafafa'
+        }}>
+          <Space orientation="vertical" size={4} style={{ width: '100%' }}>
+            <Text type="secondary" style={{ fontSize: '10px' }}>© 2025 ImpactU</Text>
+          </Space>
+        </div>
+        </div>
+      </Sider>
+
+      <Layout style={{ height: '100vh' }}>
+        <Content style={{ display: 'flex', flexDirection: 'column', background: '#ffffff', minWidth: 0, height: '100%' }}>
+          {error && (
+            <div style={{ 
+              background: '#fff2f0',
+              borderLeft: '4px solid #ff4d4f',
+              padding: '16px',
+              margin: '16px'
+            }}>
+              <Text style={{ color: '#cf1322' }}>{error}</Text>
+            </div>
+          )}
 
         {!currentConversation ? (
           <div style={{ 
-            flex: 1,
-            display: 'flex',
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column',
+            justifyContent: 'center', 
             alignItems: 'center',
-            justifyContent: 'center',
-            padding: '40px'
+            padding: '40px',
+            background: '#ffffff'
           }}>
-            <Space orientation="vertical" align="center" size="large" style={{ maxWidth: '600px' }}>
-              <div style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #1B4B73 0%, #17A589 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '40px',
-                boxShadow: '0 8px 24px rgba(27,75,115,0.2)'
-              }}>
-                🤖
-              </div>
-              <Title level={2} style={{ margin: 0, color: '#1B4B73', fontWeight: 600 }}>
-                Welcome to Marie Chat
-              </Title>
-              <Text type="secondary" style={{ 
-                fontSize: '16px', 
-                textAlign: 'center',
-                display: 'block',
-                lineHeight: '1.6'
-              }}>
-                Your intelligent research assistant powered by AI. Create a new conversation to get started.
-              </Text>
-              <Button
-                type="primary"
-                size="large"
-                icon={<PlusOutlined />}
-                onClick={handleNewConversation}
-                style={{
-                  height: '48px',
-                  padding: '0 32px',
-                  fontSize: '16px',
-                  background: '#1B4B73',
-                  borderColor: '#1B4B73'
-                }}
-              >
-                Start New Chat
-              </Button>
-            </Space>
+            <Welcome
+              variant="borderless"
+              icon={<RobotOutlined style={{ fontSize: '64px', color: '#1B4B73' }} />}
+              title="Marie Chat"
+              description="Your intelligent research assistant. How can I help you today?"
+              extra={
+                <Space orientation="vertical" size="large" style={{ width: '100%', marginTop: 24, alignItems: 'center' }}>
+                  <Prompts
+                    title="Suggested Topics"
+                    items={[
+                      { key: '1', label: 'What is ImpactU?', icon: <ThunderboltOutlined /> },
+                      { key: '2', label: 'How to analyze research data?', icon: <MessageOutlined /> },
+                      { key: '3', label: 'Explain RAG technology', icon: <RobotOutlined /> },
+                    ]}
+                    onItemClick={(info) => handleSend(info.data.label as string)}
+                  />
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<PlusOutlined />}
+                    onClick={handleNewConversation}
+                    style={{ height: 48, padding: '0 32px' }}
+                  >
+                    Start New Conversation
+                  </Button>
+                </Space>
+              }
+            />
           </div>
         ) : (
           <>
@@ -392,13 +417,13 @@ export default function ChatContainer() {
               justifyContent: 'space-between',
               alignItems: 'center'
             }}>
-              <Space size="middle">
+              <Space orientation="horizontal" size="middle">
                 <RobotOutlined style={{ fontSize: '20px', color: '#1B4B73' }} />
                 <div>
                   <Text strong style={{ fontSize: '16px', display: 'block' }}>
                     {currentConversation.title}
                   </Text>
-                  <Space size="small">
+                  <Space orientation="horizontal" size="small">
                     <Tag icon={<ThunderboltOutlined />} color="blue">
                       {currentConversation.provider}
                     </Tag>
@@ -470,12 +495,14 @@ export default function ChatContainer() {
                         width: '36px',
                         height: '36px',
                         borderRadius: '50%',
-                        background: '#17A589',
+                        background: '#ffffff',
+                        border: '1px solid #f0f0f0',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#ffffff',
-                        fontSize: '16px'
+                        overflow: 'hidden',
+                        color: '#1B4B73',
+                        fontSize: '20px'
                       }}>
                         <RobotOutlined />
                       </div>
@@ -604,12 +631,6 @@ export default function ChatContainer() {
                 />
 
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-                  <Button 
-                    icon={<PaperClipOutlined />} 
-                    onClick={handleFileClick}
-                    loading={isUploading}
-                    style={{ height: '44px', width: '44px', borderRadius: '12px' }}
-                  />
                   <Sender
                     value={inputValue}
                     onChange={setInputValue}
@@ -618,10 +639,20 @@ export default function ChatContainer() {
                     onCancel={stopGeneration}
                     loading={isStreaming}
                     disabled={!isConnected}
+                    prefix={
+                      <Button 
+                        type="text"
+                        icon={<PaperClipOutlined />} 
+                        onClick={handleFileClick}
+                        loading={isUploading}
+                        style={{ color: '#1B4B73' }}
+                      />
+                    }
                     style={{
                       flex: 1,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                      borderRadius: '12px'
+                      boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+                      borderRadius: '12px',
+                      border: '1px solid #e2e8f0'
                     }}
                   />
                 </div>
@@ -629,7 +660,8 @@ export default function ChatContainer() {
             </div>
           </>
         )}
-      </div>
+        </Content>
+      </Layout>
 
       {/* Model Selector Modal */}
       <Modal
@@ -651,6 +683,6 @@ export default function ChatContainer() {
           showDetails={true}
         />
       </Modal>
-    </div>
+    </Layout>
   );
 }

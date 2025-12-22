@@ -1,0 +1,55 @@
+### New console messages
+- [LOG] 👋 WebSocket disconnected @ webpack-internal:///(app-pages-browser)/./hooks/useWebSocket.ts:99
+- [ERROR] WebSocket connection to 'ws://localhost:5000/socket.io/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+- [ERROR] WebSocket connection to 'ws://localhost:5000/socket.io/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+- [ERROR] WebSocket connection to 'ws://localhost:5000/socket.io/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+- [ERROR] WebSocket connection to 'ws://localhost:5000/socket.io/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+- [ERROR] WebSocket connection to 'ws://localhost:5000/socket.io/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+- [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): ...
+- [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/rea...
+
+### Page state
+- Page URL: http://localhost:3000/login
+- Page Title: Marie Chat - Intelligent Conversational Assistant
+- Page Snapshot:
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e6]:
+    - generic [ref=e8]:
+      - heading "Marie Chat" [level=2] [ref=e9]
+      - text: Sign in to your account
+    - generic [ref=e11]:
+      - generic [ref=e13]:
+        - generic "Email" [ref=e15]
+        - generic [ref=e19]:
+          - img "mail" [ref=e21]:
+            - img [ref=e22]
+          - textbox "Email" [ref=e24]:
+            - /placeholder: your@email.com
+            - text: grupocolav@udea.edu.co
+      - generic [ref=e26]:
+        - generic "Password" [ref=e28]
+        - generic [ref=e32]:
+          - img "lock" [ref=e34]:
+            - img [ref=e35]
+          - textbox "Password" [ref=e37]:
+            - /placeholder: Your password
+            - text: poioiulkj
+          - img "eye-invisible" [ref=e39] [cursor=pointer]:
+            - img [ref=e40]
+      - generic [ref=e48]:
+        - generic [ref=e49] [cursor=pointer]:
+          - checkbox "Remember me" [ref=e51]
+          - generic [ref=e53]: Remember me
+        - link "Forgot password?" [ref=e54] [cursor=pointer]:
+          - /url: "#"
+      - button "Sign in" [ref=e60] [cursor=pointer]:
+        - generic [ref=e61]: Sign in
+    - generic [ref=e64]:
+      - text: Don't have an account?
+      - link "Sign up" [ref=e65] [cursor=pointer]:
+        - /url: /register
+  - button "Open Next.js Dev Tools" [ref=e71] [cursor=pointer]:
+    - img [ref=e72]
+  - alert [ref=e75]
+```
