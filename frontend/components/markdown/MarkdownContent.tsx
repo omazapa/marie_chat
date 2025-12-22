@@ -13,9 +13,10 @@ import 'katex/dist/katex.min.css';
 interface MarkdownContentProps {
   content: string;
   className?: string;
+  isStreaming?: boolean;
 }
 
-export function MarkdownContent({ content, className }: MarkdownContentProps) {
+export function MarkdownContent({ content, className, isStreaming }: MarkdownContentProps) {
   return (
     <div className={`markdown-content ${className || ''}`}>
       <ReactMarkdown
@@ -29,7 +30,7 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
 
             // Handle HTML artifacts
             if (language === 'html' || language === 'svg') {
-              return <HTMLArtifact html={codeContent} />;
+              return <HTMLArtifact html={codeContent} isStreaming={isStreaming} />;
             }
 
             return !inline && match ? (

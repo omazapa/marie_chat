@@ -539,7 +539,7 @@ export default function ChatContainer() {
                               </div>
                             )}
                             <Bubble
-                              content={<MarkdownContent content={msg.content} />}
+                              content={<MarkdownContent content={msg.content} isStreaming={msg.id === 'streaming'} />}
                               avatar={msg.role === 'user' ? <UserAvatar /> : <AssistantAvatar />}
                               placement={msg.role === 'user' ? 'end' : 'start'}
                               typing={msg.id === 'streaming'}
@@ -563,7 +563,8 @@ export default function ChatContainer() {
                                   borderRadius: '12px',
                                   fontSize: '15px',
                                   lineHeight: '1.6',
-                                  maxWidth: '100%'
+                                  maxWidth: '100%',
+                                  width: msg.content.includes('```html') || msg.content.includes('```svg') ? '100%' : 'auto'
                                 }
                               }}
                             />

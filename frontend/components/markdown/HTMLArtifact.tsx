@@ -1,68 +1,165 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Card, Button, Tooltip, Space, Typography, App } from 'antd';
+import { 
+  CopyOutlined, 
+  FullscreenOutlined, 
+  FullscreenExitOutlined, 
+  ExportOutlined,
+  CodeOutlined,
+  EyeOutlined
+} from '@ant-design/icons';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+const { Text } = Typography;
 
 interface HTMLArtifactProps {
   html: string;
   className?: string;
+  isStreaming?: boolean;
 }
 
-export function HTMLArtifact({ html, className }: HTMLArtifactProps) {
+export function HTMLArtifact({ html, className, isStreaming }: HTMLArtifactProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [viewMode, setViewMode] = useState<'preview' | 'code'>('preview');
+  const [displayHtml, setDisplayHtml] = useState(html);
+  const { message } = App.useApp();
+
+  // Debounce HTML updates during streaming to reduce flickering
+  useEffect(() => {
+    if (!isStreaming) {
+      setDisplayHtml(html);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setDisplayHtml(html);
+    }, 500); // Update every 500ms during streaming
+
+    return () => clearTimeout(timer);
+  }, [html, isStreaming]);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(html);
+    message.success('Code copied to clipboard');
+  };
+
+  const handleOpenNewTab = () => {
+    const win = window.open();
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    }
+  };
+
+  // Wrap HTML in basic boilerplate if it doesn't have it
+  const getFullHtml = (content: string) => {
+    if (content.includes('<html') || content.includes('<body')) {
+      return content;
+    }
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+            body { 
+              margin: 0; 
+              padding: 16px;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              line-height: 1.5;
+              color: #262626;
+              background-color: #ffffff;
+            }
+            * { box-sizing: border-box; }
+            img { max-width: 100%; height: auto; }
+          </style>
+        </head>
+        <body>
+          ${content}
+        </body>
+      </html>
+    `;
+  };
 
   return (
-    <div className={`html-artifact-container my-6 ${className || ''}`}>
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-100 border border-b-0 border-gray-200 rounded-t-lg">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">HTML Artifact</span>
+    <Card
+      className={`html-artifact-card ${className || ''}`}
+      size="small"
+      style={{ 
+        margin: '16px 0', 
+        borderRadius: '8px',
+        overflow: 'hidden',
+        border: '1px solid #d9d9d9',
+        width: '100%',
+        maxWidth: '100%'
+      }}
+      styles={{
+        header: { background: '#f5f5f5', padding: '8px 12px' },
+        body: { padding: 0, height: isExpanded ? '70vh' : '400px', position: 'relative' }
+      }}
+      title={
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Space size="small">
+            <Text strong style={{ fontSize: '12px', color: '#8c8c8c', textTransform: 'uppercase' }}>
+              HTML Artifact
+            </Text>
+            {isStreaming && <Text type="secondary" style={{ fontSize: '11px' }}>(Rendering...)</Text>}
+          </Space>
+          <Space size="small">
+            <Tooltip title={viewMode === 'preview' ? "Show Code" : "Show Preview"}>
+              <Button 
+                size="small" 
+                type="text" 
+                icon={viewMode === 'preview' ? <CodeOutlined /> : <EyeOutlined />} 
+                onClick={() => setViewMode(viewMode === 'preview' ? 'code' : 'preview')}
+              />
+            </Tooltip>
+            <Tooltip title="Copy Code">
+              <Button size="small" type="text" icon={<CopyOutlined />} onClick={handleCopy} />
+            </Tooltip>
+            <Tooltip title={isExpanded ? "Shrink" : "Expand"}>
+              <Button 
+                size="small" 
+                type="text" 
+                icon={isExpanded ? <FullscreenExitOutlined /> : <FullscreenOutlined />} 
+                onClick={() => setIsExpanded(!isExpanded)} 
+              />
+            </Tooltip>
+            <Tooltip title="Open in New Tab">
+              <Button size="small" type="text" icon={<ExportOutlined />} onClick={handleOpenNewTab} />
+            </Tooltip>
+          </Space>
         </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => {
-              navigator.clipboard.writeText(html);
-            }}
-            className="p-1 hover:bg-gray-200 rounded text-gray-600 transition-colors"
-            title="Copy code"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-          </button>
-          <button 
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1 hover:bg-gray-200 rounded text-gray-600 transition-colors"
-            title={isExpanded ? "Shrink" : "Expand"}
-          >
-            {isExpanded ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"/></svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-            )}
-          </button>
-          <button 
-            onClick={() => {
-              const win = window.open();
-              if (win) {
-                win.document.write(html);
-                win.document.close();
-              }
-            }}
-            className="p-1 hover:bg-gray-200 rounded text-gray-600 transition-colors"
-            title="Open in new tab"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
-          </button>
-        </div>
-      </div>
-      <div 
-        className="bg-white border border-gray-200 rounded-b-lg shadow-sm overflow-hidden transition-all duration-300 ease-in-out"
-        style={{ height: isExpanded ? '800px' : '450px' }}
-      >
+      }
+    >
+      {viewMode === 'preview' ? (
         <iframe
-          srcDoc={html}
-          title="HTML Artifact"
-          className="w-full h-full border-0"
+          srcDoc={getFullHtml(displayHtml)}
+          title="HTML Artifact Preview"
+          style={{ 
+            width: '100%', 
+            height: '100%', 
+            border: 'none',
+            background: '#ffffff'
+          }}
           sandbox="allow-scripts allow-forms allow-popups allow-modals"
         />
-      </div>
-    </div>
+      ) : (
+        <div style={{ height: '100%', overflow: 'auto' }}>
+          <SyntaxHighlighter
+            language="html"
+            style={vscDarkPlus}
+            customStyle={{ margin: 0, borderRadius: 0, height: '100%' }}
+          >
+            {html}
+          </SyntaxHighlighter>
+        </div>
+      )}
+    </Card>
   );
 }
+
