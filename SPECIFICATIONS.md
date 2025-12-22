@@ -1811,7 +1811,7 @@ class ReferenceService:
             
             referenced_convs.append({
                 "id": conv_id,
-                "title": conv.get("title", "Sin título"),
+                "title": conv.get("title", "Untitled"),
                 "created_at": conv.get("created_at"),
                 "messages": messages,
                 "message_count": len(messages)
@@ -1882,7 +1882,7 @@ class ReferenceService:
         
         return {
             "id": conversation_id,
-            "title": conv.get("title", "Sin título"),
+            "title": conv.get("title", "Untitled"),
             "message_count": conv.get("message_count", 0),
             "created_at": conv.get("created_at"),
             "last_message_at": conv.get("last_message_at"),
@@ -3407,7 +3407,7 @@ class OpenSearchService:
         doc = {
             "id": conv_id,
             "user_id": user_id,
-            "title": title or "Nueva conversación",
+            "title": title or "New Conversation",
             "model": model,
             "provider": provider,
             "system_prompt": system_prompt,
@@ -3846,7 +3846,7 @@ Authorization: Bearer {jwt_token}
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
 | GET | `/api/conversations` | Listar conversaciones del usuario |
-| POST | `/api/conversations` | Crear nueva conversación |
+| POST | `/api/conversations` | Create new conversation |
 | GET | `/api/conversations/:id` | Obtener conversación específica |
 | PUT | `/api/conversations/:id` | Actualizar conversación (renombrar, etc.) |
 | DELETE | `/api/conversations/:id` | Eliminar conversación |
@@ -4003,7 +4003,7 @@ data: {"type": "complete", "message_id": "msg_123", "tokens_used": 200}
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
 | GET | `/api/v1/conversations` | Listar conversaciones del usuario |
-| POST | `/api/v1/conversations` | Crear nueva conversación |
+| POST | `/api/v1/conversations` | Create new conversation |
 | GET | `/api/v1/conversations/:id` | Obtener conversación |
 | PUT | `/api/v1/conversations/:id` | Actualizar conversación |
 | DELETE | `/api/v1/conversations/:id` | Eliminar conversación |
