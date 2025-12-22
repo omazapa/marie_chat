@@ -101,14 +101,13 @@ services:
       - ollama_data:/root/.ollama
     networks:
       - marie-network
-    # Uncomment if you have GPU support
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
 volumes:
   opensearch_data:

@@ -113,7 +113,7 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
       }}
       title={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Space size="small">
+          <Space orientation="horizontal" size="small">
             <Text strong style={{ fontSize: '12px', color: '#8c8c8c', textTransform: 'uppercase' }}>
               HTML Artifact
             </Text>
@@ -123,7 +123,7 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
               </Tag>
             )}
           </Space>
-          <Space size="small">
+          <Space orientation="horizontal" size="small">
             <Tooltip title={viewMode === 'preview' ? "Show Code" : "Show Preview"}>
               <Button 
                 size="small" 
@@ -166,7 +166,7 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
               zIndex: 10,
               backdropFilter: 'blur(1px)'
             }}>
-              <Space direction="vertical" align="center">
+              <Space orientation="vertical" align="center">
                 <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
                 <Text type="secondary" style={{ fontSize: '12px' }}>Updating preview...</Text>
               </Space>

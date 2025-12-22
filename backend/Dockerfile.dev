@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     libssl3 \
     libstdc++6 \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy only the installed Python deps and scripts from builder

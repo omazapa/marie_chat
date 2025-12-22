@@ -18,12 +18,15 @@ import {
   SettingOutlined,
   PaperClipOutlined,
   FileOutlined,
-  CloseCircleFilled
+  CloseCircleFilled,
+  AudioOutlined,
+  AudioMutedOutlined
 } from '@ant-design/icons';
 import type { ConversationsProps } from '@ant-design/x';
 import type { Message as WebSocketMessage } from '@/hooks/useWebSocket';
 import ModelSelector from './ModelSelector';
 import { MarkdownContent } from '../markdown/MarkdownContent';
+import { useSpeech } from '@/hooks/useSpeech';
 
 const { Title, Text, Link } = Typography;
 const { Sider, Content } = Layout;
@@ -152,6 +155,10 @@ interface ChatInputProps {
   onFileClick: () => void;
   editingMessageId: string | null;
   onCancelEdit: () => void;
+  isRecording: boolean;
+  isTranscribing: boolean;
+  onStartRecording: () => void;
+  onStopRecording: () => void;
 }
 
 const ChatInput = memo(({ 
@@ -164,7 +171,11 @@ const ChatInput = memo(({
   isUploading, 
   onFileClick,
   editingMessageId,
-  onCancelEdit
+  onCancelEdit,
+  isRecording,
+  isTranscribing,
+  onStartRecording,
+  onStopRecording
 }: ChatInputProps) => {
   const handleSubmit = (val: string) => {
     onSend(val);
@@ -196,19 +207,29 @@ const ChatInput = memo(({
         <Sender
           value={value}
           onChange={onChange}
-          placeholder={editingMessageId ? "Edit your message..." : "Type your message here..."}
+          placeholder={isRecording ? "Listening..." : isTranscribing ? "Transcribing..." : editingMessageId ? "Edit your message..." : "Type your message here..."}
           onSubmit={handleSubmit}
           onCancel={onStop}
-          loading={isStreaming}
+          loading={isStreaming || isTranscribing}
           disabled={!isConnected}
           prefix={
-            <Button 
-              type="text"
-              icon={<PaperClipOutlined />} 
-              onClick={onFileClick}
-              loading={isUploading}
-              style={{ color: '#1B4B73' }}
-            />
+            <Space orientation="horizontal" size={4}>
+              <Button 
+                type="text"
+                icon={<PaperClipOutlined />} 
+                onClick={onFileClick}
+                loading={isUploading}
+                style={{ color: '#1B4B73' }}
+              />
+              <Button 
+                type="text"
+                icon={isRecording ? <AudioMutedOutlined style={{ color: '#ff4d4f' }} /> : <AudioOutlined />} 
+                onClick={isRecording ? onStopRecording : onStartRecording}
+                loading={isTranscribing}
+                style={{ color: isRecording ? '#ff4d4f' : '#1B4B73' }}
+                className={isRecording ? 'recording-pulse' : ''}
+              />
+            </Space>
           }
           style={{
             flex: 1,
@@ -221,6 +242,8 @@ const ChatInput = memo(({
     </div>
   );
 });
+
+ChatInput.displayName = 'ChatInput';
 
 const MessageList = memo(({ messages, isStreaming, onEdit, messagesEndRef }: { messages: any[], isStreaming: boolean, onEdit: (id: string, content: string) => void, messagesEndRef: any }) => {
   return (
@@ -248,10 +271,23 @@ export default function ChatContainer() {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const { accessToken } = useAuthStore();
+
+  const {
+    isRecording,
+    isTranscribing,
+    startRecording,
+    stopRecording,
+  } = useSpeech({
+    accessToken,
+    onTranscription: (text) => {
+      setInputValue(prev => prev ? `${prev} ${text}` : text);
+    },
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { accessToken } = useAuthStore();
   const { modal } = useApp();
   const {
     conversations,
@@ -743,6 +779,10 @@ export default function ChatContainer() {
                   onFileClick={handleFileClick}
                   editingMessageId={editingMessageId}
                   onCancelEdit={handleCancelEdit}
+                  isRecording={isRecording}
+                  isTranscribing={isTranscribing}
+                  onStartRecording={startRecording}
+                  onStopRecording={stopRecording}
                 />
               </div>
             </div>
