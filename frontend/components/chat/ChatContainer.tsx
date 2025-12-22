@@ -81,16 +81,18 @@ const MessageItem = memo(({
   isStreaming, 
   onEdit, 
   onReference, 
-  isReferenced 
+  isReferenced,
+  onNavigate
 }: { 
   msg: any, 
   isStreaming: boolean, 
   onEdit: (msg: any) => void,
   onReference: (id: string) => void,
-  isReferenced: boolean
+  isReferenced: boolean,
+  onNavigate: (ref: any) => void
 }) => {
   return (
-    <div style={{ marginBottom: '24px' }}>
+    <div id={`message-${msg.id}`} style={{ marginBottom: '24px', transition: 'background-color 0.5s' }}>
       {/* Show thinking component BEFORE message for assistant streaming */}
       {msg.role === 'assistant' && msg.id === 'streaming' && isStreaming && msg.content.length < 50 && (
         <div style={{ marginBottom: '12px', marginLeft: '52px' }}>
@@ -122,7 +124,17 @@ const MessageItem = memo(({
           {msg.metadata?.references && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
               {msg.metadata.references.map((ref: any) => (
-                <Tag key={ref.id} icon={<LinkOutlined />} style={{ fontSize: '11px', background: '#e6f7ff', borderColor: '#91d5ff' }}>
+                <Tag 
+                  key={ref.id} 
+                  icon={<LinkOutlined />} 
+                  style={{ 
+                    fontSize: '11px', 
+                    background: '#e6f7ff', 
+                    borderColor: '#91d5ff',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => onNavigate(ref)}
+                >
                   {ref.type === 'message' ? 'Mensaje: ' + ref.content : ref.title}
                 </Tag>
               ))}
@@ -299,6 +311,7 @@ const MessageList = memo(({
   onEdit, 
   onReference,
   referencedMsgIds,
+  onNavigate,
   messagesEndRef 
 }: { 
   messages: any[], 
@@ -306,6 +319,7 @@ const MessageList = memo(({
   onEdit: (msg: any) => void, 
   onReference: (id: string) => void,
   referencedMsgIds: string[],
+  onNavigate: (ref: any) => void,
   messagesEndRef: any 
 }) => {
   return (
@@ -318,6 +332,7 @@ const MessageList = memo(({
           onEdit={onEdit} 
           onReference={onReference}
           isReferenced={referencedMsgIds.includes(msg.id)}
+          onNavigate={onNavigate}
         />
       ))}
       <div ref={messagesEndRef} />
@@ -582,6 +597,51 @@ export default function ChatContainer() {
       setReferencedMsgIds([]);
     }
   }, []);
+
+  const handleNavigate = useCallback(async (ref: any) => {
+    const targetConvId = ref.type === 'message' ? ref.conversation_id : ref.id;
+    if (!targetConvId) return;
+
+    const scrollToMessage = (id: string) => {
+      const element = document.getElementById(`message-${id}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add a temporary highlight effect
+        const originalBg = element.style.backgroundColor;
+        element.style.transition = 'background-color 0.5s';
+        element.style.backgroundColor = '#e6f7ff';
+        setTimeout(() => {
+          element.style.backgroundColor = originalBg || 'transparent';
+        }, 2000);
+        return true;
+      }
+      return false;
+    };
+
+    // If it's the current conversation, just scroll
+    if (currentConversation?.id === targetConvId) {
+      if (ref.type === 'message') {
+        scrollToMessage(ref.id);
+      }
+    } else {
+      // Switch conversation
+      const conv = conversations.find((c: Conversation) => c.id === targetConvId);
+      if (conv) {
+        await selectConversation(conv);
+        
+        if (ref.type === 'message') {
+          // Wait for messages to load and then scroll
+          let attempts = 0;
+          const interval = setInterval(() => {
+            if (scrollToMessage(ref.id) || attempts > 10) {
+              clearInterval(interval);
+            }
+            attempts++;
+          }, 200);
+        }
+      }
+    }
+  }, [currentConversation, conversations, selectConversation]);
 
   const handleCancelEdit = useCallback(() => {
     setEditingMessageId(null);
@@ -883,6 +943,7 @@ export default function ChatContainer() {
                   onEdit={handleEdit} 
                   onReference={toggleMessageReference}
                   referencedMsgIds={referencedMsgIds}
+                  onNavigate={handleNavigate}
                   messagesEndRef={messagesEndRef} 
                 />
               )}

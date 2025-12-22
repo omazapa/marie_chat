@@ -360,7 +360,12 @@ class LLMService:
                     user_id
                 )
                 references_metadata.extend([
-                    {"id": m["id"], "content": m["content"][:50] + "...", "type": "message"} for m in ref_msgs
+                    {
+                        "id": m["id"], 
+                        "content": m["content"][:50] + "...", 
+                        "type": "message",
+                        "conversation_id": m["conversation_id"]
+                    } for m in ref_msgs
                 ])
             
             # Build context string
@@ -454,7 +459,8 @@ class LLMService:
                 model=model,
                 messages=llm_messages,
                 temperature=temperature,
-                max_tokens=max_tokens
+                max_tokens=max_tokens,
+                references_metadata=references_metadata
             )
         
         # Streaming: return the generator
@@ -465,7 +471,8 @@ class LLMService:
             model=model,
             messages=llm_messages,
             temperature=temperature,
-            max_tokens=max_tokens
+            max_tokens=max_tokens,
+            references_metadata=references_metadata
         )
 
     async def _non_stream_completion(
@@ -475,7 +482,8 @@ class LLMService:
         model: str,
         messages: list[Dict[str, str]],
         temperature: float,
-        max_tokens: int
+        max_tokens: int,
+        references_metadata: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """Non-streaming chat completion"""
         # Get conversation to determine provider
@@ -505,13 +513,17 @@ class LLMService:
             raise ValueError("No response from provider")
 
         # Save assistant message
+        metadata = {"model": model, "provider": provider_name}
+        if references_metadata:
+            metadata["references"] = references_metadata
+
         assistant_message = self.save_message(
             conversation_id=conversation_id,
             user_id=user_id,
             role="assistant",
             content=result.content,
             tokens_used=result.tokens_used or 0,
-            metadata={"model": model, "provider": provider_name}
+            metadata=metadata
         )
         
         return assistant_message
@@ -523,7 +535,8 @@ class LLMService:
         model: str,
         messages: list[Dict[str, str]],
         temperature: float,
-        max_tokens: int
+        max_tokens: int,
+        references_metadata: Optional[List[Dict[str, Any]]] = None
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """Streaming chat completion"""
         print(f"[SERVICE] _stream_completion called for conversation {conversation_id}")
@@ -567,26 +580,34 @@ class LLMService:
             
             # Save complete message when done
             if chunk.done:
+                metadata = {"model": model, "provider": provider_name}
+                if references_metadata:
+                    metadata["references"] = references_metadata
+                
                 self.save_message(
                     conversation_id=conversation_id,
                     user_id=user_id,
                     role="assistant",
                     content=full_content,
                     tokens_used=total_tokens,
-                    metadata={"model": model, "provider": provider_name}
+                    metadata=metadata
                 )
                 saved = True
         
         # Final check: if loop finished but message wasn't saved (e.g. done flag missing)
         if not saved and full_content:
             print(f"[SERVICE] Final save for conversation {conversation_id} (done flag was missing)")
+            metadata = {"model": model, "provider": provider_name}
+            if references_metadata:
+                metadata["references"] = references_metadata
+                
             self.save_message(
                 conversation_id=conversation_id,
                 user_id=user_id,
                 role="assistant",
                 content=full_content,
                 tokens_used=total_tokens,
-                metadata={"model": model, "provider": provider_name}
+                metadata=metadata
             )
 
 
