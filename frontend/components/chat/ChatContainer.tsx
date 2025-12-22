@@ -5,10 +5,23 @@ import { Conversations, Sender, Bubble, Think } from '@ant-design/x';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
 import { Spin, Empty, Button, Space, Typography, Dropdown, Modal, Tag, Tooltip } from 'antd';
-import { SendOutlined, UserOutlined, RobotOutlined, PlusOutlined, MessageOutlined, MoreOutlined, EditOutlined, DeleteOutlined, ThunderboltOutlined, SettingOutlined } from '@ant-design/icons';
+import { 
+  SendOutlined, 
+  UserOutlined, 
+  RobotOutlined, 
+  PlusOutlined, 
+  MessageOutlined, 
+  MoreOutlined, 
+  EditOutlined, 
+  DeleteOutlined, 
+  ThunderboltOutlined, 
+  SettingOutlined,
+  StopOutlined
+} from '@ant-design/icons';
 import type { ConversationsProps } from '@ant-design/x';
 import type { Message as WebSocketMessage } from '@/hooks/useWebSocket';
 import ModelSelector from './ModelSelector';
+import { MarkdownContent } from '../markdown/MarkdownContent';
 
 const { Title, Text } = Typography;
 
@@ -41,6 +54,7 @@ export default function ChatContainer() {
     updateConversation,
     selectConversation,
     sendMessage,
+    stopGeneration,
   } = useChat(accessToken);
 
   // Auto-scroll to bottom when messages change or streaming
@@ -435,7 +449,7 @@ export default function ChatContainer() {
                         )}
                         {(msg.content || msg.id !== 'streaming') && (
                           <Bubble
-                            content={msg.content}
+                            content={<MarkdownContent content={msg.content} />}
                             avatar={msg.role === 'user' ? <UserAvatar /> : <AssistantAvatar />}
                             placement={msg.role === 'user' ? 'end' : 'start'}
                             typing={msg.id === 'streaming'}
@@ -446,7 +460,8 @@ export default function ChatContainer() {
                                 padding: '12px 16px',
                                 borderRadius: '12px',
                                 fontSize: '15px',
-                                lineHeight: '1.6'
+                                lineHeight: '1.6',
+                                maxWidth: '100%'
                               }
                             }}
                           />
@@ -466,19 +481,37 @@ export default function ChatContainer() {
               background: '#ffffff',
               padding: '20px 24px'
             }}>
-              <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+              <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
                 <Sender
                   value={inputValue}
                   onChange={setInputValue}
                   placeholder="Type your message here..."
                   onSubmit={handleSend}
                   loading={isStreaming}
-                  disabled={!isConnected || isStreaming}
+                  disabled={!isConnected}
                   style={{
                     boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                    borderRadius: '12px'
+                    borderRadius: '12px',
+                    flex: 1
                   }}
                 />
+                {isStreaming && (
+                  <Tooltip title="Stop generation">
+                    <Button 
+                      type="primary" 
+                      danger 
+                      shape="circle" 
+                      icon={<StopOutlined />} 
+                      onClick={stopGeneration}
+                      size="large"
+                      style={{ 
+                        height: '44px', 
+                        width: '44px',
+                        marginBottom: '2px'
+                      }}
+                    />
+                  </Tooltip>
+                )}
               </div>
             </div>
           </>

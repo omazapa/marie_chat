@@ -85,7 +85,7 @@ class LLMProvider(ABC):
         self.provider_name = self.__class__.__name__.replace('Provider', '').lower()
     
     @abstractmethod
-    async def list_models(self) -> List[ModelInfo]:
+    def list_models(self) -> List[ModelInfo]:
         """
         List all available models from this provider
         
@@ -95,7 +95,7 @@ class LLMProvider(ABC):
         pass
     
     @abstractmethod
-    async def get_model_info(self, model_id: str) -> Optional[ModelInfo]:
+    def get_model_info(self, model_id: str) -> Optional[ModelInfo]:
         """
         Get detailed information about a specific model
         
@@ -134,7 +134,7 @@ class LLMProvider(ABC):
         pass
     
     @abstractmethod
-    async def validate_connection(self) -> bool:
+    def validate_connection(self) -> bool:
         """
         Validate that the provider is accessible and configured correctly
         
@@ -159,7 +159,7 @@ class LLMProvider(ABC):
         """Get the default model for this provider"""
         return self.config.get('default_model')
     
-    async def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> Dict[str, Any]:
         """
         Perform health check on provider
         
@@ -167,8 +167,8 @@ class LLMProvider(ABC):
             Dictionary with health status information
         """
         try:
-            is_valid = await self.validate_connection()
-            models = await self.list_models() if is_valid else []
+            is_valid = self.validate_connection()
+            models = self.list_models() if is_valid else []
             
             return {
                 'provider': self.provider_name,

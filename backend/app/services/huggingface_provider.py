@@ -19,6 +19,7 @@ class HuggingFaceProvider(LLMProvider):
         self.base_url = config.get('base_url') if config else None
         self.base_url = self.base_url or 'https://api-inference.huggingface.co/models'
         self._client = None  # Lazy init
+        self._sync_client = None  # Lazy init
         self.provider_name = 'huggingface'
         
         # Popular models for quick listing
@@ -61,8 +62,15 @@ class HuggingFaceProvider(LLMProvider):
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(timeout=300.0)
         return self._client
+
+    @property
+    def sync_client(self):
+        """Lazy-initialize synchronous httpx client"""
+        if self._sync_client is None:
+            self._sync_client = httpx.Client(timeout=300.0)
+        return self._sync_client
     
-    async def list_models(self) -> List[ModelInfo]:
+    def list_models(self) -> List[ModelInfo]:
         """List available models from HuggingFace"""
         # For HuggingFace, we return a curated list of popular models
         # In production, you might want to query the HuggingFace Hub API
@@ -85,7 +93,7 @@ class HuggingFaceProvider(LLMProvider):
         
         return model_infos
     
-    async def get_model_info(self, model_id: str) -> Optional[ModelInfo]:
+    def get_model_info(self, model_id: str) -> Optional[ModelInfo]:
         """Get detailed information about a specific model"""
         # Check if it's in our popular models list
         for model in self._popular_models:
@@ -109,7 +117,7 @@ class HuggingFaceProvider(LLMProvider):
             if self.api_key:
                 headers['Authorization'] = f'Bearer {self.api_key}'
             
-            response = await self.client.get(
+            response = self.sync_client.get(
                 f"https://huggingface.co/api/models/{model_id}",
                 headers=headers
             )
@@ -269,7 +277,7 @@ class HuggingFaceProvider(LLMProvider):
                 model=model
             )
     
-    async def validate_connection(self) -> bool:
+    def validate_connection(self) -> bool:
         """Validate that HuggingFace API is accessible"""
         if not self.api_key:
             return False
@@ -277,7 +285,7 @@ class HuggingFaceProvider(LLMProvider):
         try:
             headers = {'Authorization': f'Bearer {self.api_key}'}
             # Use a simple model endpoint to test connectivity
-            response = await self.client.get(
+            response = self.sync_client.get(
                 'https://huggingface.co/api/whoami-v2',
                 headers=headers
             )

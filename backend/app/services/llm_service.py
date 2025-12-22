@@ -20,7 +20,7 @@ class LLMService:
     
     # ==================== Conversation Management ====================
     
-    async def create_conversation(
+    def create_conversation(
         self,
         user_id: str,
         title: str = "New Conversation",
@@ -56,7 +56,7 @@ class LLMService:
         
         return conversation
     
-    async def get_conversation(self, conversation_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+    def get_conversation(self, conversation_id: str, user_id: str) -> Optional[Dict[str, Any]]:
         """Get a conversation by ID"""
         try:
             result = self.client.get(
@@ -75,7 +75,7 @@ class LLMService:
             print(f"Error getting conversation: {e}")
             return None
     
-    async def list_conversations(
+    def list_conversations(
         self,
         user_id: str,
         limit: int = 50,
@@ -103,7 +103,7 @@ class LLMService:
             print(f"Error listing conversations: {e}")
             return []
     
-    async def update_conversation(
+    def update_conversation(
         self,
         conversation_id: str,
         user_id: str,
@@ -112,7 +112,7 @@ class LLMService:
         """Update conversation fields"""
         try:
             # Verify ownership first
-            conversation = await self.get_conversation(conversation_id, user_id)
+            conversation = self.get_conversation(conversation_id, user_id)
             if not conversation:
                 return False
             
@@ -130,11 +130,11 @@ class LLMService:
             print(f"Error updating conversation: {e}")
             return False
     
-    async def delete_conversation(self, conversation_id: str, user_id: str) -> bool:
+    def delete_conversation(self, conversation_id: str, user_id: str) -> bool:
         """Delete a conversation and all its messages"""
         try:
             # Verify ownership
-            conversation = await self.get_conversation(conversation_id, user_id)
+            conversation = self.get_conversation(conversation_id, user_id)
             if not conversation:
                 return False
             
@@ -163,7 +163,7 @@ class LLMService:
     
     # ==================== Message Management ====================
     
-    async def save_message(
+    def save_message(
         self,
         conversation_id: str,
         user_id: str,
@@ -195,11 +195,11 @@ class LLMService:
         )
         
         # Update conversation metadata
-        await self._update_conversation_metadata(conversation_id)
+        self._update_conversation_metadata(conversation_id)
         
         return message
     
-    async def get_messages(
+    def get_messages(
         self,
         conversation_id: str,
         user_id: str,
@@ -209,7 +209,7 @@ class LLMService:
         """Get messages for a conversation"""
         try:
             # Verify conversation ownership
-            conversation = await self.get_conversation(conversation_id, user_id)
+            conversation = self.get_conversation(conversation_id, user_id)
             if not conversation:
                 return []
             
@@ -233,7 +233,7 @@ class LLMService:
             print(f"Error getting messages: {e}")
             return []
     
-    async def _update_conversation_metadata(self, conversation_id: str):
+    def _update_conversation_metadata(self, conversation_id: str):
         """Update conversation message count and last message time"""
         try:
             # Count messages
@@ -287,14 +287,14 @@ class LLMService:
         """
         print(f"[SERVICE] chat_completion ENTRY: conv={conversation_id[:8]}, stream={stream}")
         # Get conversation
-        conversation = await self.get_conversation(conversation_id, user_id)
+        conversation = self.get_conversation(conversation_id, user_id)
         print(f"[SERVICE] Got conversation")
         if not conversation:
             raise ValueError("Conversation not found or access denied")
         
         # Save user message
         print(f"[SERVICE] Saving user message")
-        await self.save_message(
+        self.save_message(
             conversation_id=conversation_id,
             user_id=user_id,
             role="user",
@@ -302,7 +302,7 @@ class LLMService:
         )
         
         # Get conversation history
-        messages = await self.get_messages(conversation_id, user_id, limit=50)
+        messages = self.get_messages(conversation_id, user_id, limit=50)
         
         # Build messages array for LLM
         llm_messages = []
@@ -351,9 +351,19 @@ class LLMService:
             temperature=temperature,
             max_tokens=max_tokens
         )
+
+    async def _non_stream_completion(
+        self,
+        conversation_id: str,
+        user_id: str,
+        model: str,
+        messages: list[Dict[str, str]],
+        temperature: float,
+        max_tokens: int
+    ) -> Dict[str, Any]:
         """Non-streaming chat completion"""
         # Get conversation to determine provider
-        conversation = await self.get_conversation(conversation_id, user_id)
+        conversation = self.get_conversation(conversation_id, user_id)
         provider_name = conversation.get('provider', 'ollama') if conversation else 'ollama'
         
         # Get provider
@@ -365,6 +375,7 @@ class LLMService:
         chat_messages = [ChatMessage(role=m['role'], content=m['content']) for m in messages]
         
         # Get completion (non-streaming yields single chunk)
+        result = None
         async for chunk in provider.chat_completion(
             model=model,
             messages=chat_messages,
@@ -374,8 +385,11 @@ class LLMService:
         ):
             result = chunk
         
+        if not result:
+            raise ValueError("No response from provider")
+
         # Save assistant message
-        assistant_message = await self.save_message(
+        assistant_message = self.save_message(
             conversation_id=conversation_id,
             user_id=user_id,
             role="assistant",
@@ -398,7 +412,7 @@ class LLMService:
         """Streaming chat completion"""
         print(f"[SERVICE] _stream_completion called for conversation {conversation_id}")
         # Get conversation to determine provider
-        conversation = await self.get_conversation(conversation_id, user_id)
+        conversation = self.get_conversation(conversation_id, user_id)
         provider_name = conversation.get('provider', 'ollama') if conversation else 'ollama'
         print(f"[SERVICE] Using provider: {provider_name}")
         
@@ -437,7 +451,7 @@ class LLMService:
             
             # Save complete message when done
             if chunk.done:
-                await self.save_message(
+                self.save_message(
                     conversation_id=conversation_id,
                     user_id=user_id,
                     role="assistant",
@@ -450,7 +464,7 @@ class LLMService:
         # Final check: if loop finished but message wasn't saved (e.g. done flag missing)
         if not saved and full_content:
             print(f"[SERVICE] Final save for conversation {conversation_id} (done flag was missing)")
-            await self.save_message(
+            self.save_message(
                 conversation_id=conversation_id,
                 user_id=user_id,
                 role="assistant",

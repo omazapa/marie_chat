@@ -95,6 +95,7 @@ export function useChat(token: string | null) {
     leaveConversation: wsLeaveConversation,
     sendMessage: wsSendMessage,
     setTyping,
+    stopGeneration: wsStopGeneration,
   } = useWebSocket({
     token,
     onStreamStart: handleStreamStart,
@@ -103,6 +104,15 @@ export function useChat(token: string | null) {
     onMessageResponse: handleMessageResponse,
     onError: (err) => setError(err.message),
   });
+
+  // Stop generation
+  const stopGeneration = useCallback(() => {
+    const conv = currentConversationRef.current;
+    if (conv) {
+      wsStopGeneration(conv.id);
+      setIsStreaming(false);
+    }
+  }, [wsStopGeneration]);
 
   // Fetch conversations
   const fetchConversations = useCallback(async () => {
@@ -299,5 +309,6 @@ export function useChat(token: string | null) {
     selectConversation,
     sendMessage,
     setTyping,
+    stopGeneration,
   };
 }

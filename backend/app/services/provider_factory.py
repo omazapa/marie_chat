@@ -43,11 +43,11 @@ class ProviderFactory:
         """Get list of registered provider names"""
         return list(self._providers.keys())
     
-    async def get_all_health_status(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_health_status(self) -> Dict[str, Dict[str, Any]]:
         """Get health status of all providers"""
         health_status = {}
         for name, provider in self._providers.items():
-            health_status[name] = await provider.health_check()
+            health_status[name] = provider.health_check()
         return health_status
 
 
@@ -60,7 +60,7 @@ class ModelRegistry:
         self._cache_ttl = 300  # 5 minutes
         self._last_refresh: Dict[str, float] = {}
     
-    async def list_all_models(self, force_refresh: bool = False) -> Dict[str, List[ModelInfo]]:
+    def list_all_models(self, force_refresh: bool = False) -> Dict[str, List[ModelInfo]]:
         """
         List all models from all providers
         
@@ -86,7 +86,7 @@ class ModelRegistry:
             provider = self.provider_factory.get_provider(provider_name)
             if provider:
                 try:
-                    models = await provider.list_models()
+                    models = provider.list_models()
                     self._model_cache[provider_name] = models
                     self._last_refresh[provider_name] = time.time()
                     all_models[provider_name] = models
@@ -96,7 +96,7 @@ class ModelRegistry:
         
         return all_models
     
-    async def get_models_by_provider(self, provider_name: str, force_refresh: bool = False) -> List[ModelInfo]:
+    def get_models_by_provider(self, provider_name: str, force_refresh: bool = False) -> List[ModelInfo]:
         """
         Get models from a specific provider
         
@@ -107,10 +107,10 @@ class ModelRegistry:
         Returns:
             List of ModelInfo
         """
-        all_models = await self.list_all_models(force_refresh)
+        all_models = self.list_all_models(force_refresh)
         return all_models.get(provider_name, [])
     
-    async def get_model_info(self, provider_name: str, model_id: str) -> Optional[ModelInfo]:
+    def get_model_info(self, provider_name: str, model_id: str) -> Optional[ModelInfo]:
         """
         Get detailed information about a specific model
         
@@ -124,12 +124,12 @@ class ModelRegistry:
         provider = self.provider_factory.get_provider(provider_name)
         if provider:
             try:
-                return await provider.get_model_info(model_id)
+                return provider.get_model_info(model_id)
             except Exception as e:
                 print(f"Error getting model info for {provider_name}/{model_id}: {e}")
         return None
     
-    async def search_models(self, query: str) -> List[Dict[str, Any]]:
+    def search_models(self, query: str) -> List[Dict[str, Any]]:
         """
         Search for models across all providers
         
@@ -139,7 +139,7 @@ class ModelRegistry:
         Returns:
             List of matching models with provider information
         """
-        all_models = await self.list_all_models()
+        all_models = self.list_all_models()
         results = []
         
         query_lower = query.lower()

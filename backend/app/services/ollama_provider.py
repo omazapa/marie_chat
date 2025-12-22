@@ -17,6 +17,7 @@ class OllamaProvider(LLMProvider):
         self.base_url = config.get('base_url') if config else None
         self.base_url = self.base_url or os.getenv('OLLAMA_BASE_URL', 'http://ollama:11434')
         self._client = None  # Lazy init
+        self._sync_client = None  # Lazy init
         self.provider_name = 'ollama'
     
     @property
@@ -25,11 +26,18 @@ class OllamaProvider(LLMProvider):
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(timeout=300.0)
         return self._client
+
+    @property
+    def sync_client(self):
+        """Lazy-initialize synchronous httpx client"""
+        if self._sync_client is None:
+            self._sync_client = httpx.Client(timeout=300.0)
+        return self._sync_client
     
-    async def list_models(self) -> List[ModelInfo]:
+    def list_models(self) -> List[ModelInfo]:
         """List available models from Ollama"""
         try:
-            response = await self.client.get(f"{self.base_url}/api/tags")
+            response = self.sync_client.get(f"{self.base_url}/api/tags")
             response.raise_for_status()
             data = response.json()
             models = data.get("models", [])
@@ -61,10 +69,10 @@ class OllamaProvider(LLMProvider):
             print(f"Error listing Ollama models: {e}")
             return []
     
-    async def get_model_info(self, model_id: str) -> Optional[ModelInfo]:
+    def get_model_info(self, model_id: str) -> Optional[ModelInfo]:
         """Get detailed information about a specific model"""
         try:
-            response = await self.client.post(
+            response = self.sync_client.post(
                 f"{self.base_url}/api/show",
                 json={"name": model_id}
             )
@@ -135,10 +143,10 @@ class OllamaProvider(LLMProvider):
                 metadata=result
             )
     
-    async def validate_connection(self) -> bool:
+    def validate_connection(self) -> bool:
         """Validate that Ollama is accessible"""
         try:
-            response = await self.client.get(f"{self.base_url}/api/tags")
+            response = self.sync_client.get(f"{self.base_url}/api/tags")
             return response.status_code == 200
         except Exception:
             return False
@@ -185,10 +193,10 @@ class OllamaProvider(LLMProvider):
         return None
     
     # Keep legacy methods for backward compatibility
-    async def list_models_legacy(self) -> list[Dict[str, Any]]:
+    def list_models_legacy(self) -> list[Dict[str, Any]]:
         """List available models from Ollama"""
         try:
-            response = await self.client.get(f"{self.base_url}/api/tags")
+            response = self.sync_client.get(f"{self.base_url}/api/tags")
             response.raise_for_status()
             data = response.json()
             return data.get("models", [])

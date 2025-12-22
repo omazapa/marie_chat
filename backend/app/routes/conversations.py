@@ -12,7 +12,7 @@ conversations_bp = Blueprint('conversations', __name__)
 
 @conversations_bp.route('', methods=['POST'])
 @jwt_required()
-async def create_conversation():
+def create_conversation():
     """Create a new conversation"""
     user_id = get_jwt_identity()
     data = request.get_json()
@@ -23,7 +23,7 @@ async def create_conversation():
     system_prompt = data.get('system_prompt')
     settings = data.get('settings', {})
     
-    conversation = await llm_service.create_conversation(
+    conversation = llm_service.create_conversation(
         user_id=user_id,
         title=title,
         model=model,
@@ -37,14 +37,14 @@ async def create_conversation():
 
 @conversations_bp.route('', methods=['GET'])
 @jwt_required()
-async def get_conversations():
+def get_conversations():
     """List user's conversations"""
     user_id = get_jwt_identity()
     
     limit = request.args.get('limit', 50, type=int)
     offset = request.args.get('offset', 0, type=int)
     
-    conversations = await llm_service.list_conversations(
+    conversations = llm_service.list_conversations(
         user_id=user_id,
         limit=limit,
         offset=offset
@@ -55,11 +55,11 @@ async def get_conversations():
 
 @conversations_bp.route('/<conversation_id>', methods=['GET'])
 @jwt_required()
-async def get_conversation(conversation_id: str):
+def get_conversation(conversation_id: str):
     """Get a specific conversation"""
     user_id = get_jwt_identity()
     
-    conversation = await llm_service.get_conversation(
+    conversation = llm_service.get_conversation(
         conversation_id=conversation_id,
         user_id=user_id
     )
@@ -72,7 +72,7 @@ async def get_conversation(conversation_id: str):
 
 @conversations_bp.route('/<conversation_id>', methods=['PATCH'])
 @jwt_required()
-async def update_conversation(conversation_id: str):
+def update_conversation(conversation_id: str):
     """Update a conversation"""
     user_id = get_jwt_identity()
     data = request.get_json()
@@ -81,7 +81,7 @@ async def update_conversation(conversation_id: str):
     allowed_fields = ['title', 'model', 'provider', 'system_prompt', 'settings']
     updates = {k: v for k, v in data.items() if k in allowed_fields}
     
-    success = await llm_service.update_conversation(
+    success = llm_service.update_conversation(
         conversation_id=conversation_id,
         user_id=user_id,
         **updates
@@ -95,11 +95,11 @@ async def update_conversation(conversation_id: str):
 
 @conversations_bp.route('/<conversation_id>', methods=['DELETE'])
 @jwt_required()
-async def delete_conversation(conversation_id: str):
+def delete_conversation(conversation_id: str):
     """Delete a conversation"""
     user_id = get_jwt_identity()
     
-    success = await llm_service.delete_conversation(
+    success = llm_service.delete_conversation(
         conversation_id=conversation_id,
         user_id=user_id
     )
@@ -112,14 +112,14 @@ async def delete_conversation(conversation_id: str):
 
 @conversations_bp.route('/<conversation_id>/messages', methods=['GET'])
 @jwt_required()
-async def get_conversation_messages(conversation_id: str):
+def get_conversation_messages(conversation_id: str):
     """Get messages for a conversation"""
     user_id = get_jwt_identity()
     
     limit = request.args.get('limit', 100, type=int)
     offset = request.args.get('offset', 0, type=int)
     
-    messages = await llm_service.get_messages(
+    messages = llm_service.get_messages(
         conversation_id=conversation_id,
         user_id=user_id,
         limit=limit,

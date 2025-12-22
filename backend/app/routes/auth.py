@@ -16,7 +16,7 @@ opensearch_service = OpenSearchService()
 
 
 @auth_bp.route('/register', methods=['POST'])
-async def register():
+def register():
     """Register a new user"""
     try:
         data = RegisterRequest(**request.get_json())
@@ -24,13 +24,13 @@ async def register():
         return jsonify({'error': 'Invalid request', 'details': e.errors()}), 400
     
     # Check if user already exists
-    existing_user = await opensearch_service.get_user_by_email(data.email)
+    existing_user = opensearch_service.get_user_by_email(data.email)
     if existing_user:
         return jsonify({'error': 'User already exists'}), 409
     
     # Create user
     try:
-        user = await opensearch_service.create_user(
+        user = opensearch_service.create_user(
             email=data.email,
             password=data.password,
             full_name=data.full_name
@@ -41,7 +41,7 @@ async def register():
         refresh_token = create_refresh_token(identity=user['id'])
         
         # Update last login
-        await opensearch_service.update_last_login(user['id'])
+        opensearch_service.update_last_login(user['id'])
         
         return jsonify({
             'access_token': access_token,
@@ -54,7 +54,7 @@ async def register():
 
 
 @auth_bp.route('/login', methods=['POST'])
-async def login():
+def login():
     """Login user"""
     try:
         data = LoginRequest(**request.get_json())
@@ -62,13 +62,13 @@ async def login():
         return jsonify({'error': 'Invalid request', 'details': e.errors()}), 400
     
     # Get user
-    user = await opensearch_service.get_user_by_email(data.email)
+    user = opensearch_service.get_user_by_email(data.email)
     if not user:
         return jsonify({'error': 'Invalid credentials'}), 401
     
     # Verify password
     password_hash = user.get('password_hash')
-    if not await opensearch_service.verify_password(data.password, password_hash):
+    if not opensearch_service.verify_password(data.password, password_hash):
         return jsonify({'error': 'Invalid credentials'}), 401
     
     # Check if user is active
@@ -80,7 +80,7 @@ async def login():
     refresh_token = create_refresh_token(identity=user['id'])
     
     # Update last login
-    await opensearch_service.update_last_login(user['id'])
+    opensearch_service.update_last_login(user['id'])
     
     # Remove password_hash from response
     user.pop('password_hash', None)
@@ -94,7 +94,7 @@ async def login():
 
 @auth_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
-async def refresh():
+def refresh():
     """Refresh access token"""
     identity = get_jwt_identity()
     
@@ -108,7 +108,7 @@ async def refresh():
 
 @auth_bp.route('/logout', methods=['POST'])
 @jwt_required()
-async def logout():
+def logout():
     """Logout user"""
     # In a stateless JWT setup, logout is handled on the client side
     # For a more secure implementation, you could maintain a blocklist
@@ -117,11 +117,11 @@ async def logout():
 
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
-async def get_current_user():
+def get_current_user():
     """Get current user info"""
     user_id = get_jwt_identity()
     
-    user = await opensearch_service.get_user_by_id(user_id)
+    user = opensearch_service.get_user_by_id(user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
     

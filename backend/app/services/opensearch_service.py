@@ -14,7 +14,7 @@ class OpenSearchService:
     
     # ==================== USERS ====================
     
-    async def create_user(
+    def create_user(
         self, 
         email: str, 
         password: str,
@@ -65,7 +65,7 @@ class OpenSearchService:
             "can_manage_models": False,
         }
     
-    async def get_user_by_email(self, email: str) -> Optional[dict]:
+    def get_user_by_email(self, email: str) -> Optional[dict]:
         """Get user by email"""
         query = {
             "query": {
@@ -82,7 +82,7 @@ class OpenSearchService:
             return hits[0]["_source"]
         return None
     
-    async def get_user_by_id(self, user_id: str) -> Optional[dict]:
+    def get_user_by_id(self, user_id: str) -> Optional[dict]:
         """Get user by ID"""
         try:
             result = self.client.get(index="marie_users", id=user_id)
@@ -90,11 +90,11 @@ class OpenSearchService:
         except Exception:
             return None
     
-    async def verify_password(self, plain_password: str, hashed_password: str) -> bool:
+    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify password against hash"""
         return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
     
-    async def update_last_login(self, user_id: str):
+    def update_last_login(self, user_id: str):
         """Update user's last login timestamp"""
         self.client.update(
             index="marie_users",
@@ -108,7 +108,7 @@ class OpenSearchService:
     
     # ==================== CONVERSATIONS ====================
     
-    async def create_conversation(
+    def create_conversation(
         self, 
         user_id: str, 
         model: str, 
@@ -136,7 +136,7 @@ class OpenSearchService:
         self.client.index(index="marie_conversations", id=conv_id, body=doc, refresh=True)
         return doc
     
-    async def get_user_conversations(self, user_id: str, limit: int = 50) -> List[dict]:
+    def get_user_conversations(self, user_id: str, limit: int = 50) -> List[dict]:
         """Get user's conversations"""
         query = {
             "query": {
@@ -153,7 +153,7 @@ class OpenSearchService:
         result = self.client.search(index="marie_conversations", body=query)
         return [hit["_source"] for hit in result["hits"]["hits"]]
     
-    async def get_conversation(self, conversation_id: str) -> Optional[dict]:
+    def get_conversation(self, conversation_id: str) -> Optional[dict]:
         """Get conversation by ID"""
         try:
             result = self.client.get(index="marie_conversations", id=conversation_id)
@@ -161,7 +161,7 @@ class OpenSearchService:
         except Exception:
             return None
     
-    async def update_conversation(self, conversation_id: str, updates: dict):
+    def update_conversation(self, conversation_id: str, updates: dict):
         """Update conversation"""
         updates["updated_at"] = datetime.utcnow().isoformat()
         
@@ -171,7 +171,7 @@ class OpenSearchService:
             body={"doc": updates}
         )
     
-    async def delete_conversation(self, conversation_id: str):
+    def delete_conversation(self, conversation_id: str):
         """Delete conversation"""
         self.client.delete(index="marie_conversations", id=conversation_id)
         
@@ -188,7 +188,7 @@ class OpenSearchService:
     
     # ==================== MESSAGES ====================
     
-    async def create_message(
+    def create_message(
         self,
         conversation_id: str,
         user_id: str,
@@ -233,7 +233,7 @@ class OpenSearchService:
         
         return doc
     
-    async def get_conversation_messages(self, conversation_id: str, limit: int = 1000) -> List[dict]:
+    def get_conversation_messages(self, conversation_id: str, limit: int = 1000) -> List[dict]:
         """Get messages from a conversation"""
         query = {
             "query": {

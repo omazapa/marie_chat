@@ -16,6 +16,9 @@ from datetime import datetime
 # Store active connections
 active_connections = {}
 
+# Store stopped generations
+stopped_generations = set()
+
 # Global event loop for async operations (runs in dedicated thread)
 _async_loop = None
 _loop_thread = None
@@ -192,6 +195,9 @@ async def process_chat_message_async(
     """Process chat message and emit responses (async version)"""
     print(f"[ASYNC] Function started for conversation {conversation_id}")
     try:
+        # Ensure it's not in stopped set at start
+        stopped_generations.discard(conversation_id)
+        
         if stream:
             # Streaming response
             print(f"[STREAM] Starting stream for conversation {conversation_id}")
@@ -215,6 +221,11 @@ async def process_chat_message_async(
             print(f"[ITER] Got generator, starting iteration")
             # Now iterate over the generator
             async for chunk in generator:
+                # Check if generation was stopped
+                if conversation_id in stopped_generations:
+                    print(f"[STOP] Generation stopped for conversation {conversation_id}")
+                    break
+                
                 print(f"[CHUNK] Got chunk: {chunk.get('content', '')[:50]}...")
                 full_content += chunk['content']
                 # Emit each chunk to the client
@@ -228,7 +239,7 @@ async def process_chat_message_async(
             
             # Fetch the saved message from DB to get complete message object
             # We search for the last assistant message in this conversation
-            all_messages = await llm_service.get_messages(
+            all_messages = llm_service.get_messages(
                 conversation_id, user_id, limit=50
             )
             
@@ -276,6 +287,20 @@ async def process_chat_message_async(
         socketio.emit('error', {
             'message': f'Error processing message: {str(e)}'
         }, room=conversation_id)
+    finally:
+        # Cleanup stopped set
+        stopped_generations.discard(conversation_id)
+
+
+@socketio.on('stop_generation')
+def handle_stop_generation(data):
+    """Stop an ongoing generation"""
+    conversation_id = data.get('conversation_id')
+    if conversation_id:
+        print(f"🛑 Stop requested for conversation {conversation_id}")
+        stopped_generations.add(conversation_id)
+        # Emit confirmation
+        emit('generation_stopped', {'conversation_id': conversation_id}, room=conversation_id)
 
 
 @socketio.on('typing')

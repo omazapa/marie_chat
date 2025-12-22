@@ -187,6 +187,19 @@ export function useWebSocket({
     []
   );
 
+  // Stop generation
+  const stopGeneration = useCallback(
+    (conversationId: string) => {
+      if (socketRef.current && socketRef.current.connected) {
+        socketRef.current.emit('stop_generation', {
+          conversation_id: conversationId,
+        });
+        console.log(`🛑 Stop generation requested for ${conversationId}`);
+      }
+    },
+    []
+  );
+
   return {
     socket: socketRef.current,
     isConnected,
@@ -195,5 +208,6 @@ export function useWebSocket({
     leaveConversation,
     sendMessage,
     setTyping,
+    stopGeneration,
   };
 }

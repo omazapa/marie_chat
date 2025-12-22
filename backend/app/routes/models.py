@@ -11,11 +11,11 @@ models_bp = Blueprint('models', __name__, url_prefix='/api/models')
 
 @models_bp.route('', methods=['GET'])
 @jwt_required()
-async def list_all_models():
+def list_all_models():
     """List all available models from all providers"""
     try:
         force_refresh = request.args.get('refresh', 'false').lower() == 'true'
-        all_models = await model_registry.list_all_models(force_refresh=force_refresh)
+        all_models = model_registry.list_all_models(force_refresh=force_refresh)
         
         # Convert ModelInfo objects to dicts
         models_dict = {}
@@ -33,11 +33,11 @@ async def list_all_models():
 
 @models_bp.route('/<provider_name>', methods=['GET'])
 @jwt_required()
-async def list_models_by_provider(provider_name: str):
+def list_models_by_provider(provider_name: str):
     """List models from a specific provider"""
     try:
         force_refresh = request.args.get('refresh', 'false').lower() == 'true'
-        models = await model_registry.get_models_by_provider(provider_name, force_refresh=force_refresh)
+        models = model_registry.get_models_by_provider(provider_name, force_refresh=force_refresh)
         
         if not models and provider_name not in provider_factory.list_providers():
             return jsonify({"error": f"Provider '{provider_name}' not found"}), 404
@@ -54,10 +54,10 @@ async def list_models_by_provider(provider_name: str):
 
 @models_bp.route('/<provider_name>/<path:model_id>', methods=['GET'])
 @jwt_required()
-async def get_model_info(provider_name: str, model_id: str):
+def get_model_info(provider_name: str, model_id: str):
     """Get detailed information about a specific model"""
     try:
-        model_info = await model_registry.get_model_info(provider_name, model_id)
+        model_info = model_registry.get_model_info(provider_name, model_id)
         
         if not model_info:
             return jsonify({"error": f"Model '{model_id}' not found in provider '{provider_name}'"}), 404
@@ -70,7 +70,7 @@ async def get_model_info(provider_name: str, model_id: str):
 
 @models_bp.route('/search', methods=['GET'])
 @jwt_required()
-async def search_models():
+def search_models():
     """Search for models across all providers"""
     try:
         query = request.args.get('q', '')
@@ -78,7 +78,7 @@ async def search_models():
         if not query:
             return jsonify({"error": "Query parameter 'q' is required"}), 400
         
-        results = await model_registry.search_models(query)
+        results = model_registry.search_models(query)
         
         return jsonify({
             "query": query,
@@ -92,7 +92,7 @@ async def search_models():
 
 @models_bp.route('/providers', methods=['GET'])
 @jwt_required()
-async def list_providers():
+def list_providers():
     """List all available providers"""
     try:
         providers = provider_factory.list_providers()
@@ -106,10 +106,10 @@ async def list_providers():
 
 @models_bp.route('/providers/health', methods=['GET'])
 @jwt_required()
-async def providers_health():
+def providers_health():
     """Get health status of all providers"""
     try:
-        health_status = await provider_factory.get_all_health_status()
+        health_status = provider_factory.get_all_health_status()
         return jsonify(health_status), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
