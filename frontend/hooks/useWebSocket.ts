@@ -16,6 +16,7 @@ export interface StreamChunk {
   conversation_id: string;
   content: string;
   done: boolean;
+  follow_ups?: string[];
 }
 
 interface UseWebSocketProps {

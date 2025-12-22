@@ -56,6 +56,7 @@ def register():
 @auth_bp.route('/login', methods=['POST'])
 def login():
     """Login user"""
+    print(f"[AUTH] Login attempt for: {request.get_json().get('email')}")
     try:
         data = LoginRequest(**request.get_json())
     except ValidationError as e:

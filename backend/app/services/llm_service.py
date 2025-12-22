@@ -512,10 +512,19 @@ class LLMService:
         if not result:
             raise ValueError("No response from provider")
 
+        # Generate follow-ups
+        follow_ups = await self.generate_follow_ups(
+            model=model,
+            provider_name=provider_name,
+            history=chat_messages + [ChatMessage(role="assistant", content=result.content)]
+        )
+
         # Save assistant message
         metadata = {"model": model, "provider": provider_name}
         if references_metadata:
             metadata["references"] = references_metadata
+        if follow_ups:
+            metadata["follow_ups"] = follow_ups
 
         assistant_message = self.save_message(
             conversation_id=conversation_id,
@@ -580,9 +589,18 @@ class LLMService:
             
             # Save complete message when done
             if chunk.done:
+                # Generate follow-ups
+                follow_ups = await self.generate_follow_ups(
+                    model=model,
+                    provider_name=provider_name,
+                    history=chat_messages + [ChatMessage(role="assistant", content=full_content)]
+                )
+                
                 metadata = {"model": model, "provider": provider_name}
                 if references_metadata:
                     metadata["references"] = references_metadata
+                if follow_ups:
+                    metadata["follow_ups"] = follow_ups
                 
                 self.save_message(
                     conversation_id=conversation_id,
@@ -592,14 +610,33 @@ class LLMService:
                     tokens_used=total_tokens,
                     metadata=metadata
                 )
+                
+                # Yield follow-ups in a final special chunk if they exist
+                if follow_ups:
+                    yield {
+                        "content": "",
+                        "done": True,
+                        "follow_ups": follow_ups
+                    }
+                
                 saved = True
         
         # Final check: if loop finished but message wasn't saved (e.g. done flag missing)
         if not saved and full_content:
             print(f"[SERVICE] Final save for conversation {conversation_id} (done flag was missing)")
+            
+            # Generate follow-ups even if done flag was missing
+            follow_ups = await self.generate_follow_ups(
+                model=model,
+                provider_name=provider_name,
+                history=chat_messages + [ChatMessage(role="assistant", content=full_content)]
+            )
+            
             metadata = {"model": model, "provider": provider_name}
             if references_metadata:
                 metadata["references"] = references_metadata
+            if follow_ups:
+                metadata["follow_ups"] = follow_ups
                 
             self.save_message(
                 conversation_id=conversation_id,
@@ -609,6 +646,64 @@ class LLMService:
                 tokens_used=total_tokens,
                 metadata=metadata
             )
+            
+            if follow_ups:
+                yield {
+                    "content": "",
+                    "done": True,
+                    "follow_ups": follow_ups
+                }
+
+    async def generate_follow_ups(
+        self,
+        model: str,
+        provider_name: str,
+        history: List[ChatMessage]
+    ) -> List[str]:
+        """Generate follow-up questions based on conversation history"""
+        try:
+            provider = self.provider_factory.get_provider(provider_name)
+            if not provider:
+                return []
+            
+            # Create a prompt for follow-ups
+            follow_up_prompt = (
+                "Based on the previous conversation, generate 5 short and relevant follow-up questions "
+                "that the user might want to ask next. "
+                "Respond ONLY with the questions, one per line, without numbering, without bullets, and without additional text."
+            )
+            
+            # We only take the last few messages to keep it relevant and fast
+            recent_history = history[-5:]
+            messages = recent_history + [ChatMessage(role="user", content=follow_up_prompt)]
+            
+            follow_ups_text = ""
+            async for chunk in provider.chat_completion(
+                model=model,
+                messages=messages,
+                stream=False,
+                temperature=0.7,
+                max_tokens=500
+            ):
+                follow_ups_text += chunk.content
+            
+            # Parse lines and clean up
+            questions = []
+            for line in follow_ups_text.split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                # Remove common prefixes like "1. ", "- ", "* "
+                import re
+                line = re.sub(r'^(\d+\.|\-|\*)\s*', '', line)
+                if line:
+                    questions.append(line)
+            
+            # Return top 5
+            return questions[:5]
+        except Exception as e:
+            print(f"Error generating follow-ups: {e}")
+            return []
 
 
 # Global instance

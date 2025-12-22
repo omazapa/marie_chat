@@ -113,7 +113,7 @@ class OpenSearchService:
         user_id: str, 
         model: str, 
         provider: str,
-        title: str = "Nueva conversación",
+        title: str = "New Conversation",
         system_prompt: str = None
     ) -> dict:
         """Create a new conversation"""

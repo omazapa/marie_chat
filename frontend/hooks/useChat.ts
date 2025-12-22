@@ -46,7 +46,15 @@ export function useChat(token: string | null) {
 
   const handleStreamChunk = useCallback((chunk: StreamChunk) => {
     if (currentConversationRef.current?.id === chunk.conversation_id) {
-      setStreamingMessage((prev) => prev + chunk.content);
+      if (chunk.content) {
+        setStreamingMessage((prev) => prev + chunk.content);
+      }
+      
+      // If we get follow-ups in a chunk, we can store them
+      if (chunk.follow_ups && chunk.follow_ups.length > 0) {
+        // We'll handle this in handleStreamEnd or by updating the last message
+        console.log('Follow-ups received in chunk:', chunk.follow_ups);
+      }
     }
   }, []);
 
@@ -61,7 +69,8 @@ export function useChat(token: string | null) {
           // Check if message already exists
           const exists = prev.some(m => m.id === newMessage.id);
           if (exists) {
-            return prev;
+            // Update existing message to ensure metadata (like follow-ups) is included
+            return prev.map(m => m.id === newMessage.id ? newMessage : m);
           }
           return [...prev, newMessage];
         });

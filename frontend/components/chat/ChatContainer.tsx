@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react';
 import { Conversations, Sender, Bubble, Think, Welcome, Prompts } from '@ant-design/x';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
@@ -135,7 +135,7 @@ const MessageItem = memo(({
                   }}
                   onClick={() => onNavigate(ref)}
                 >
-                  {ref.type === 'message' ? 'Mensaje: ' + ref.content : ref.title}
+                  {ref.type === 'message' ? 'Message: ' + ref.content : ref.title}
                 </Tag>
               ))}
             </div>
@@ -305,6 +305,45 @@ const ChatInput = memo(({
 
 ChatInput.displayName = 'ChatInput';
 
+const FollowUpSuggestions = memo(({ 
+  suggestions, 
+  onSelect 
+}: { 
+  suggestions: string[], 
+  onSelect: (text: string) => void 
+}) => {
+  if (!suggestions || suggestions.length === 0) return null;
+
+  return (
+    <div style={{ 
+      marginTop: '12px',
+      marginBottom: '16px',
+      paddingLeft: '48px' // Align with assistant messages
+    }}>
+      <Prompts
+        title="Follow-up questions"
+        vertical
+        styles={{
+          item: {
+            whiteSpace: 'normal',
+            height: 'auto',
+            textAlign: 'left',
+            padding: '8px 12px'
+          }
+        }}
+        items={suggestions.map((s, i) => ({
+          key: String(i),
+          label: s,
+          icon: <MessageOutlined style={{ color: '#1890ff' }} />
+        }))}
+        onItemClick={(info) => onSelect(info.data.label as string)}
+      />
+    </div>
+  );
+});
+
+FollowUpSuggestions.displayName = 'FollowUpSuggestions';
+
 const MessageList = memo(({ 
   messages, 
   isStreaming, 
@@ -312,6 +351,7 @@ const MessageList = memo(({
   onReference,
   referencedMsgIds,
   onNavigate,
+  onFollowUp,
   messagesEndRef 
 }: { 
   messages: any[], 
@@ -320,20 +360,32 @@ const MessageList = memo(({
   onReference: (id: string) => void,
   referencedMsgIds: string[],
   onNavigate: (ref: any) => void,
+  onFollowUp: (text: string) => void,
   messagesEndRef: any 
 }) => {
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-      {messages.map((msg) => (
-        <MessageItem 
-          key={msg.id} 
-          msg={msg} 
-          isStreaming={isStreaming} 
-          onEdit={onEdit} 
-          onReference={onReference}
-          isReferenced={referencedMsgIds.includes(msg.id)}
-          onNavigate={onNavigate}
-        />
+      {messages.map((msg, index) => (
+        <div key={msg.id}>
+          <MessageItem 
+            msg={msg} 
+            isStreaming={isStreaming} 
+            onEdit={onEdit} 
+            onReference={onReference}
+            isReferenced={referencedMsgIds.includes(msg.id)}
+            onNavigate={onNavigate}
+          />
+          {/* Show follow-ups only for the last assistant message and when not streaming */}
+          {msg.role === 'assistant' && 
+           msg.metadata?.follow_ups && 
+           index === messages.length - 1 && 
+           !isStreaming && (
+            <FollowUpSuggestions 
+              suggestions={msg.metadata.follow_ups} 
+              onSelect={onFollowUp} 
+            />
+          )}
+        </div>
       ))}
       <div ref={messagesEndRef} />
     </div>
@@ -847,10 +899,21 @@ export default function ChatContainer() {
                 <Space orientation="vertical" size="large" style={{ width: '100%', marginTop: 24, alignItems: 'center' }}>
                   <Prompts
                     title="Suggested Topics"
+                    vertical
+                    styles={{
+                      item: {
+                        whiteSpace: 'normal',
+                        height: 'auto',
+                        textAlign: 'left',
+                        padding: '8px 12px'
+                      }
+                    }}
                     items={[
                       { key: '1', label: 'What is ImpactU?', icon: <ThunderboltOutlined /> },
                       { key: '2', label: 'How to analyze research data?', icon: <MessageOutlined /> },
                       { key: '3', label: 'Explain RAG technology', icon: <RobotOutlined /> },
+                      { key: '4', label: 'How to use references in Marie Chat?', icon: <LinkOutlined /> },
+                      { key: '5', label: 'Tell me about the available LLM models', icon: <SettingOutlined /> },
                     ]}
                     onItemClick={(info) => handleSend(info.data.label as string)}
                   />
@@ -927,13 +990,35 @@ export default function ChatContainer() {
               ) : chatMessages.length === 0 ? (
                 <div style={{ 
                   display: 'flex',
+                  flexDirection: 'column',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  height: '100%'
+                  height: '100%',
+                  gap: '24px'
                 }}>
                   <Empty 
                     description="No messages yet. Start the conversation!"
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  />
+                  <Prompts
+                    title="Suggested Topics"
+                    vertical
+                    styles={{
+                      item: {
+                        whiteSpace: 'normal',
+                        height: 'auto',
+                        textAlign: 'left',
+                        padding: '8px 12px'
+                      }
+                    }}
+                    items={[
+                      { key: '1', label: 'What is ImpactU?', icon: <ThunderboltOutlined /> },
+                      { key: '2', label: 'How to analyze research data?', icon: <MessageOutlined /> },
+                      { key: '3', label: 'Explain RAG technology', icon: <RobotOutlined /> },
+                      { key: '4', label: 'How to use references in Marie Chat?', icon: <LinkOutlined /> },
+                      { key: '5', label: 'Tell me about the available LLM models', icon: <SettingOutlined /> },
+                    ]}
+                    onItemClick={(info) => handleSend(info.data.label as string)}
                   />
                 </div>
               ) : (
@@ -944,6 +1029,7 @@ export default function ChatContainer() {
                   onReference={toggleMessageReference}
                   referencedMsgIds={referencedMsgIds}
                   onNavigate={handleNavigate}
+                  onFollowUp={handleSend}
                   messagesEndRef={messagesEndRef} 
                 />
               )}

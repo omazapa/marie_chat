@@ -256,8 +256,9 @@ async def process_chat_message_async(
                 print(f"[EMIT] Emitting stream_chunk to conversation room {conversation_id}")
                 socketio.emit('stream_chunk', {
                     'conversation_id': conversation_id,
-                    'content': chunk['content'],
-                    'done': chunk.get('done', False)
+                    'content': chunk.get('content', ''),
+                    'done': chunk.get('done', False),
+                    'follow_ups': chunk.get('follow_ups')
                 }, room=conversation_id)
                 print(f"[EMIT] stream_chunk emitted")
             
@@ -297,7 +298,9 @@ async def process_chat_message_async(
                 user_id=user_id,
                 user_message=message,
                 stream=False,
-                attachments=attachments
+                attachments=attachments,
+                referenced_conv_ids=referenced_conv_ids,
+                referenced_msg_ids=referenced_msg_ids
             )
             
             socketio.emit('message_response', {
