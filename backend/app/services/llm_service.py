@@ -414,6 +414,7 @@ class LLMService:
         
         full_content = ""
         total_tokens = 0
+        saved = False
         
         print(f"[SERVICE] Starting provider.chat_completion iteration")
         async for chunk in provider.chat_completion(
@@ -444,6 +445,19 @@ class LLMService:
                     tokens_used=total_tokens,
                     metadata={"model": model, "provider": provider_name}
                 )
+                saved = True
+        
+        # Final check: if loop finished but message wasn't saved (e.g. done flag missing)
+        if not saved and full_content:
+            print(f"[SERVICE] Final save for conversation {conversation_id} (done flag was missing)")
+            await self.save_message(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                role="assistant",
+                content=full_content,
+                tokens_used=total_tokens,
+                metadata={"model": model, "provider": provider_name}
+            )
 
 
 # Global instance

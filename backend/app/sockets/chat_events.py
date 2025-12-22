@@ -9,6 +9,8 @@ from app import socketio
 from app.services.llm_service import llm_service
 import asyncio
 import threading
+import uuid
+from datetime import datetime
 
 
 # Store active connections
@@ -125,6 +127,10 @@ def handle_send_message(data):
     
     print(f"💬 Message from {user_id} in conversation {conversation_id}: {message[:50]}...")
     
+    # Ensure client is in the conversation room before processing
+    join_room(conversation_id)
+    print(f"[AUTOJOIN] Ensured client {request.sid} is in conversation room {conversation_id}")
+    
     # Acknowledge message received
     emit('message_received', {
         'conversation_id': conversation_id,
@@ -221,21 +227,30 @@ async def process_chat_message_async(
                 print(f"[EMIT] stream_chunk emitted")
             
             # Fetch the saved message from DB to get complete message object
-            messages = await llm_service.get_messages(
-                conversation_id, user_id, limit=1, offset=0
+            # We search for the last assistant message in this conversation
+            all_messages = await llm_service.get_messages(
+                conversation_id, user_id, limit=50
             )
-            # Get the last message (should be the assistant's response)
+            
             last_message = None
-            if messages:
-                # Get all messages and find the last assistant message
-                all_messages = await llm_service.get_messages(
-                    conversation_id, user_id, limit=100
-                )
+            if all_messages:
+                # Find the most recent assistant message
                 for msg in reversed(all_messages):
                     if msg['role'] == 'assistant':
                         last_message = msg
                         break
             
+            if not last_message and full_content:
+                # Fallback: if message wasn't saved for some reason but we have content
+                print(f"⚠️ Warning: Assistant message not found in DB, using fallback")
+                last_message = {
+                    'id': f'fallback-{uuid.uuid4()}',
+                    'conversation_id': conversation_id,
+                    'role': 'assistant',
+                    'content': full_content,
+                    'created_at': datetime.utcnow().isoformat()
+                }
+
             socketio.emit('stream_end', {
                 'conversation_id': conversation_id,
                 'message': last_message

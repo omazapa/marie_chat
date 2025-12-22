@@ -66,9 +66,35 @@ export function useWebSocket({
       reconnectionAttempts: 5,
     });
 
-    socketRef.current = socket;
+    // Register ALL event handlers IMMEDIATELY after socket creation
+    // This ensures they're ready before any events arrive
+    
+    // Message handlers - REGISTER FIRST before connection handlers
+    socket.on('stream_start', (data) => {
+      console.log('🚀 Stream started:', data);
+      onStreamStart?.(data);
+    });
 
-    // Connection handlers
+    socket.on('stream_chunk', (chunk: StreamChunk) => {
+      console.log('📦 Stream chunk received:', chunk);
+      onStreamChunk?.(chunk);
+    });
+
+    socket.on('stream_end', (data) => {
+      console.log('✅ Stream ended:', data);
+      onStreamEnd?.(data);
+    });
+
+    socket.on('message_response', (data) => {
+      console.log('📩 Message response:', data);
+      onMessageResponse?.(data);
+    });
+
+    socket.on('message_received', (data) => {
+      console.log('📨 Message received acknowledgment:', data);
+    });
+
+    // Connection handlers - AFTER message handlers
     socket.on('connect', () => {
       console.log('✅ WebSocket connected');
       setIsConnected(true);
@@ -96,30 +122,8 @@ export function useWebSocket({
       onError?.(error);
     });
 
-    // Message handlers
-    socket.on('message_received', (data) => {
-      console.log('📨 Message received acknowledgment:', data);
-    });
-
-    socket.on('stream_start', (data) => {
-      console.log('🚀 Stream started:', data);
-      onStreamStart?.(data);
-    });
-
-    socket.on('stream_chunk', (chunk: StreamChunk) => {
-      console.log('📦 Stream chunk received:', chunk);
-      onStreamChunk?.(chunk);
-    });
-
-    socket.on('stream_end', (data) => {
-      console.log('✅ Stream ended:', data);
-      onStreamEnd?.(data);
-    });
-
-    socket.on('message_response', (data) => {
-      console.log('📩 Message response:', data);
-      onMessageResponse?.(data);
-    });
+    // Set socket ref AFTER all handlers are registered
+    socketRef.current = socket;
 
     // Cleanup
     return () => {
@@ -128,11 +132,17 @@ export function useWebSocket({
   }, [token]);
 
   // Join conversation
-  const joinConversation = useCallback((conversationId: string) => {
+  const joinConversation = useCallback(async (conversationId: string) => {
+    setCurrentConversation(conversationId);
     if (socketRef.current && socketRef.current.connected) {
       socketRef.current.emit('join_conversation', { conversation_id: conversationId });
-      setCurrentConversation(conversationId);
       console.log(`📥 Joined conversation: ${conversationId}`);
+      
+      // Wait a moment to ensure backend processes the join before allowing messages
+      await new Promise(resolve => setTimeout(resolve, 200));
+      console.log(`✓ Ready to send messages in: ${conversationId}`);
+    } else {
+      console.log(`⏳ Queued join for conversation: ${conversationId} (waiting for connection)`);
     }
   }, []);
 

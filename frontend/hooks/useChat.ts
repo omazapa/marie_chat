@@ -37,19 +37,22 @@ export function useChat(token: string | null) {
   }, [currentConversation]);
 
   // WebSocket handlers
-  const handleStreamStart = useCallback(() => {
-    setIsStreaming(true);
-    setStreamingMessage('');
+  const handleStreamStart = useCallback((data: { conversation_id: string }) => {
+    if (currentConversationRef.current?.id === data.conversation_id) {
+      setIsStreaming(true);
+      setStreamingMessage('');
+    }
   }, []);
 
   const handleStreamChunk = useCallback((chunk: StreamChunk) => {
-    setStreamingMessage((prev) => prev + chunk.content);
+    if (currentConversationRef.current?.id === chunk.conversation_id) {
+      setStreamingMessage((prev) => prev + chunk.content);
+    }
   }, []);
 
   const handleStreamEnd = useCallback(
     async (data: { conversation_id: string; message?: Message }) => {
       setIsStreaming(false);
-      setStreamingMessage('');
       
       // Add the complete assistant message if provided
       if (data.message && currentConversationRef.current?.id === data.conversation_id) {
@@ -62,6 +65,15 @@ export function useChat(token: string | null) {
           }
           return [...prev, newMessage];
         });
+        setStreamingMessage('');
+      } else if (currentConversationRef.current?.id === data.conversation_id) {
+        // Fallback: if no message object but we have streaming content, 
+        // we should probably keep it or convert it to a message
+        console.warn('Stream ended without message object, keeping streaming content as fallback');
+        // We don't clear streamingMessage here so it stays visible in the UI
+        // until a real message replaces it or the user refreshes
+      } else {
+        setStreamingMessage('');
       }
     },
     []
@@ -226,8 +238,8 @@ export function useChat(token: string | null) {
       // Set new conversation
       setCurrentConversation(conversation);
       
-      // Join new conversation
-      wsJoinConversation(conversation.id);
+      // Join new conversation and wait for it to be ready
+      await wsJoinConversation(conversation.id);
       
       // Fetch messages
       await fetchMessages(conversation.id);
@@ -238,7 +250,8 @@ export function useChat(token: string | null) {
   // Send message
   const sendMessage = useCallback(
     async (content: string) => {
-      if (!currentConversation || !isConnected) {
+      const conv = currentConversationRef.current;
+      if (!conv || !isConnected) {
         setError('Not connected to chat');
         return;
       }
@@ -246,7 +259,7 @@ export function useChat(token: string | null) {
       // Add user message to UI immediately
       const userMessage: Message = {
         id: `temp-${Date.now()}`,
-        conversation_id: currentConversation.id,
+        conversation_id: conv.id,
         user_id: 'current-user',
         role: 'user',
         content,
@@ -255,9 +268,9 @@ export function useChat(token: string | null) {
       setMessages((prev) => [...prev, userMessage]);
 
       // Send via WebSocket
-      wsSendMessage(currentConversation.id, content, true);
+      wsSendMessage(conv.id, content, true);
     },
-    [currentConversation, isConnected, wsSendMessage]
+    [isConnected, wsSendMessage]
   );
 
   // Load conversations on mount

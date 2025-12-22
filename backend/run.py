@@ -2,6 +2,9 @@
 """
 Marie Chat Backend Server
 """
+import eventlet
+eventlet.monkey_patch()
+
 import os
 from app import create_app, socketio
 from app.services.opensearch_init import init_opensearch_indices

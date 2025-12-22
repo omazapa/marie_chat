@@ -276,22 +276,27 @@ class OllamaProvider(LLMProvider):
                             chunk = json.loads(line)
                             
                             # Extract content from the message
-                            if "message" in chunk and "content" in chunk["message"]:
-                                content = chunk["message"]["content"]
-                                print(f"[OLLAMA] Got chunk: {content[:50]}...")
-                                
+                            content = ""
+                            role = "assistant"
+                            if "message" in chunk:
+                                content = chunk["message"].get("content", "")
+                                role = chunk["message"].get("role", "assistant")
+                            
+                            is_done = chunk.get("done", False)
+                            
+                            if content or is_done:
                                 yield {
                                     "content": content,
-                                    "role": chunk["message"].get("role", "assistant"),
+                                    "role": role,
                                     "model": chunk.get("model", ""),
-                                    "done": chunk.get("done", False),
+                                    "done": is_done,
                                     "tokens_used": chunk.get("eval_count", 0)
                                 }
-                                
-                                # Stop if done
-                                if chunk.get("done", False):
-                                    print(f"[OLLAMA] Stream completed")
-                                    break
+                            
+                            # Stop if done
+                            if is_done:
+                                print(f"[OLLAMA] Stream completed")
+                                break
                         except json.JSONDecodeError:
                             continue
         except Exception as e:

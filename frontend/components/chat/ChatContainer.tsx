@@ -7,16 +7,10 @@ import { useAuthStore } from '@/stores/authStore';
 import { Spin, Empty, Button, Space, Typography, Dropdown, Modal, Tag, Tooltip } from 'antd';
 import { SendOutlined, UserOutlined, RobotOutlined, PlusOutlined, MessageOutlined, MoreOutlined, EditOutlined, DeleteOutlined, ThunderboltOutlined, SettingOutlined } from '@ant-design/icons';
 import type { ConversationsProps } from '@ant-design/x';
+import type { Message as WebSocketMessage } from '@/hooks/useWebSocket';
 import ModelSelector from './ModelSelector';
 
 const { Title, Text } = Typography;
-
-interface Message {
-  id: string;
-  content: string;
-  role: 'user' | 'assistant';
-  created_at: string;
-}
 
 interface Conversation {
   id: string;
@@ -60,21 +54,28 @@ export default function ChatContainer() {
 
   // Format messages for Ant Design X
   const chatMessages = [
-    ...messages.map((msg: Message) => ({
+    ...messages.filter((msg: WebSocketMessage) => msg.role !== 'system').map((msg: WebSocketMessage) => ({
       id: msg.id,
       content: msg.content,
       role: msg.role as 'user' | 'assistant',
       status: 'success' as const,
     })),
-    ...(isStreaming && streamingMessage ? [{
+    ...(isStreaming ? [{
       id: 'streaming',
-      content: streamingMessage,
+      content: streamingMessage || '',
       role: 'assistant' as const,
       status: 'loading' as const,
     }] : []),
   ];
 
-  const handleNewConversation = () => {
+  const handleNewConversation = async () => {
+    const conv = await createConversation('New Conversation', selectedModel, selectedProvider);
+    if (conv) {
+      await selectConversation(conv);
+    }
+  };
+
+  const handleOpenModelSelector = () => {
     setShowModelSelector(true);
   };
 
@@ -82,7 +83,7 @@ export default function ChatContainer() {
     setShowModelSelector(false);
     const conv = await createConversation('New Conversation', selectedModel, selectedProvider);
     if (conv) {
-      selectConversation(conv);
+      await selectConversation(conv);
     }
   };
 
@@ -188,6 +189,15 @@ export default function ChatContainer() {
             }}
           >
             New Conversation
+          </Button>
+          <Button
+            type="text"
+            icon={<SettingOutlined />}
+            onClick={handleOpenModelSelector}
+            block
+            style={{ marginTop: 8 }}
+          >
+            Choose Model
           </Button>
         </div>
 
@@ -423,22 +433,24 @@ export default function ChatContainer() {
                             </Think>
                           </div>
                         )}
-                        <Bubble
-                          content={msg.content}
-                          avatar={msg.role === 'user' ? <UserAvatar /> : <AssistantAvatar />}
-                          placement={msg.role === 'user' ? 'end' : 'start'}
-                          typing={msg.id === 'streaming'}
-                          styles={{
-                            content: {
-                              background: msg.role === 'user' ? '#1B4B73' : '#f5f5f5',
-                              color: msg.role === 'user' ? '#ffffff' : '#262626',
-                              padding: '12px 16px',
-                              borderRadius: '12px',
-                              fontSize: '15px',
-                              lineHeight: '1.6'
-                            }
-                          }}
-                        />
+                        {(msg.content || msg.id !== 'streaming') && (
+                          <Bubble
+                            content={msg.content}
+                            avatar={msg.role === 'user' ? <UserAvatar /> : <AssistantAvatar />}
+                            placement={msg.role === 'user' ? 'end' : 'start'}
+                            typing={msg.id === 'streaming'}
+                            styles={{
+                              content: {
+                                background: msg.role === 'user' ? '#1B4B73' : '#f5f5f5',
+                                color: msg.role === 'user' ? '#ffffff' : '#262626',
+                                padding: '12px 16px',
+                                borderRadius: '12px',
+                                fontSize: '15px',
+                                lineHeight: '1.6'
+                              }
+                            }}
+                          />
+                        )}
                       </div>
                     );
                   })}

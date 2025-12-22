@@ -109,7 +109,7 @@ export function LoginForm() {
 
           <div style={{ textAlign: 'center' }}>
             <Text type="secondary">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/register">Sign up</Link>
             </Text>
           </div>

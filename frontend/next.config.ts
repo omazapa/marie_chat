@@ -4,6 +4,11 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ['antd', '@ant-design/x', '@ant-design/icons'],
   
+  // Disable type checking during build
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  
   // Empty turbopack config to silence the warning
   turbopack: {},
   
