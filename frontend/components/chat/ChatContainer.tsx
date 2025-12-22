@@ -15,8 +15,7 @@ import {
   EditOutlined, 
   DeleteOutlined, 
   ThunderboltOutlined, 
-  SettingOutlined,
-  StopOutlined
+  SettingOutlined
 } from '@ant-design/icons';
 import type { ConversationsProps } from '@ant-design/x';
 import type { Message as WebSocketMessage } from '@/hooks/useWebSocket';
@@ -481,37 +480,20 @@ export default function ChatContainer() {
               background: '#ffffff',
               padding: '20px 24px'
             }}>
-              <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+              <div style={{ maxWidth: '900px', margin: '0 auto' }}>
                 <Sender
                   value={inputValue}
                   onChange={setInputValue}
                   placeholder="Type your message here..."
                   onSubmit={handleSend}
+                  onCancel={stopGeneration}
                   loading={isStreaming}
                   disabled={!isConnected}
                   style={{
                     boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                    borderRadius: '12px',
-                    flex: 1
+                    borderRadius: '12px'
                   }}
                 />
-                {isStreaming && (
-                  <Tooltip title="Stop generation">
-                    <Button 
-                      type="primary" 
-                      danger 
-                      shape="circle" 
-                      icon={<StopOutlined />} 
-                      onClick={stopGeneration}
-                      size="large"
-                      style={{ 
-                        height: '44px', 
-                        width: '44px',
-                        marginBottom: '2px'
-                      }}
-                    />
-                  </Tooltip>
-                )}
               </div>
             </div>
           </>
