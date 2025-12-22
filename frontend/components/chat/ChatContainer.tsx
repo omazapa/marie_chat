@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react';
 import { Conversations, Sender, Bubble, Think, Welcome, Prompts } from '@ant-design/x';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
@@ -37,6 +37,209 @@ interface Conversation {
   updated_at: string;
 }
 
+const UserAvatar = () => (
+  <div style={{
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    background: '#1B4B73',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#ffffff',
+    fontSize: '16px'
+  }}>
+    <UserOutlined />
+  </div>
+);
+
+const AssistantAvatar = () => (
+  <div style={{
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    background: '#ffffff',
+    border: '1px solid #f0f0f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    color: '#1B4B73',
+    fontSize: '20px'
+  }}>
+    <RobotOutlined />
+  </div>
+);
+
+const MessageItem = memo(({ msg, isStreaming, onEdit }: { msg: any, isStreaming: boolean, onEdit: (id: string, content: string) => void }) => {
+  return (
+    <div style={{ marginBottom: '24px' }}>
+      {/* Show thinking component BEFORE message for assistant streaming */}
+      {msg.role === 'assistant' && msg.id === 'streaming' && isStreaming && msg.content.length < 50 && (
+        <div style={{ marginBottom: '12px', marginLeft: '52px' }}>
+          <Think
+            title="Thinking..."
+            loading={true}
+            defaultExpanded={true}
+            blink={true}
+          >
+            <div style={{ fontSize: '13px', color: '#8c8c8c', lineHeight: '1.8' }}>
+              <div>• Processing your query</div>
+              <div>• Searching knowledge base</div>
+              <div>• Generating contextual response</div>
+            </div>
+          </Think>
+        </div>
+      )}
+      {(msg.content || msg.id !== 'streaming') && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+          {msg.metadata?.attachments && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
+              {msg.metadata.attachments.map((att: any) => (
+                <Tag key={att.file_id} icon={<FileOutlined />} style={{ fontSize: '11px' }}>
+                  {att.filename}
+                </Tag>
+              ))}
+            </div>
+          )}
+          <Bubble
+            content={<MarkdownContent content={msg.content} isStreaming={msg.id === 'streaming'} />}
+            avatar={msg.role === 'user' ? <UserAvatar /> : <AssistantAvatar />}
+            placement={msg.role === 'user' ? 'end' : 'start'}
+            typing={msg.id === 'streaming'}
+            header={msg.role === 'user' ? (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
+                <Tooltip title="Edit message">
+                  <Button 
+                    type="text" 
+                    size="small" 
+                    icon={<EditOutlined style={{ fontSize: '12px', color: '#8c8c8c' }} />} 
+                    onClick={() => onEdit(msg.id, msg.content)}
+                  />
+                </Tooltip>
+              </div>
+            ) : null}
+            styles={{
+              content: {
+                background: msg.role === 'user' ? '#1B4B73' : '#f5f5f5',
+                color: msg.role === 'user' ? '#ffffff' : '#262626',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                fontSize: '15px',
+                lineHeight: '1.6',
+                maxWidth: '100%',
+                width: (msg.content.includes('```html') || msg.content.includes('```svg')) && msg.role === 'assistant' ? '100%' : 'auto',
+                overflow: (msg.content.includes('```html') || msg.content.includes('```svg')) ? 'visible' : 'hidden'
+              }
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+});
+
+MessageItem.displayName = 'MessageItem';
+
+interface ChatInputProps {
+  value: string;
+  onChange: (val: string) => void;
+  onSend: (content: string) => void;
+  onStop: () => void;
+  isStreaming: boolean;
+  isConnected: boolean;
+  isUploading: boolean;
+  onFileClick: () => void;
+  editingMessageId: string | null;
+  onCancelEdit: () => void;
+}
+
+const ChatInput = memo(({ 
+  value,
+  onChange,
+  onSend, 
+  onStop, 
+  isStreaming, 
+  isConnected, 
+  isUploading, 
+  onFileClick,
+  editingMessageId,
+  onCancelEdit
+}: ChatInputProps) => {
+  const handleSubmit = (val: string) => {
+    onSend(val);
+  };
+
+  return (
+    <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+      {editingMessageId && (
+        <div style={{ 
+          marginBottom: '8px', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          padding: '4px 12px',
+          background: '#fff7e6',
+          borderRadius: '6px',
+          border: '1px solid #ffd591'
+        }}>
+          <Text type="warning" strong style={{ fontSize: '12px' }}>
+            <EditOutlined /> Editing message...
+          </Text>
+          <Button type="link" size="small" onClick={onCancelEdit} danger>
+            Cancel
+          </Button>
+        </div>
+      )}
+      
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+        <Sender
+          value={value}
+          onChange={onChange}
+          placeholder={editingMessageId ? "Edit your message..." : "Type your message here..."}
+          onSubmit={handleSubmit}
+          onCancel={onStop}
+          loading={isStreaming}
+          disabled={!isConnected}
+          prefix={
+            <Button 
+              type="text"
+              icon={<PaperClipOutlined />} 
+              onClick={onFileClick}
+              loading={isUploading}
+              style={{ color: '#1B4B73' }}
+            />
+          }
+          style={{
+            flex: 1,
+            boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0'
+          }}
+        />
+      </div>
+    </div>
+  );
+});
+
+const MessageList = memo(({ messages, isStreaming, onEdit, messagesEndRef }: { messages: any[], isStreaming: boolean, onEdit: (id: string, content: string) => void, messagesEndRef: any }) => {
+  return (
+    <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+      {messages.map((msg) => (
+        <MessageItem 
+          key={msg.id} 
+          msg={msg} 
+          isStreaming={isStreaming} 
+          onEdit={onEdit} 
+        />
+      ))}
+      <div ref={messagesEndRef} />
+    </div>
+  );
+});
+
+MessageList.displayName = 'MessageList';
+
 export default function ChatContainer() {
   const [inputValue, setInputValue] = useState('');
   const [showModelSelector, setShowModelSelector] = useState(false);
@@ -47,6 +250,7 @@ export default function ChatContainer() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { accessToken } = useAuthStore();
   const { modal } = useApp();
   const {
@@ -69,16 +273,27 @@ export default function ChatContainer() {
   } = useChat(accessToken);
 
   // Auto-scroll to bottom when messages change or streaming
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    if (!scrollContainerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    // If we are streaming, only scroll if the user is already near the bottom
+    // This allows the user to scroll up to read previous messages without being snapped back
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+
+    if (isNearBottom || behavior === 'smooth') {
+      messagesEndRef.current?.scrollIntoView({ behavior });
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Use 'auto' (instant) scroll during streaming to avoid UI lag
+    // Use 'smooth' only for new complete messages
+    scrollToBottom(isStreaming ? 'auto' : 'smooth');
   }, [messages, streamingMessage, isStreaming]);
 
   // Format messages for Ant Design X
-  const chatMessages = [
+  const chatMessages = useMemo(() => [
     ...messages.filter((msg: WebSocketMessage) => msg.role !== 'system').map((msg: WebSocketMessage) => ({
       id: msg.id,
       content: msg.content,
@@ -92,7 +307,7 @@ export default function ChatContainer() {
       role: 'assistant' as const,
       status: 'loading' as const,
     }] : []),
-  ];
+  ], [messages, isStreaming, streamingMessage]);
 
   const handleNewConversation = async () => {
     const conv = await createConversation('New Conversation', selectedModel, selectedProvider);
@@ -206,15 +421,15 @@ export default function ChatContainer() {
     setAttachments(prev => prev.filter(a => a.file_id !== id));
   };
 
-  const handleEdit = (messageId: string, content: string) => {
+  const handleEdit = useCallback((messageId: string, content: string) => {
     setEditingMessageId(messageId);
     setInputValue(content);
-  };
+  }, []);
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditingMessageId(null);
     setInputValue('');
-  };
+  }, []);
 
   return (
     <Layout style={{ height: '100vh', overflow: 'hidden' }}>
@@ -407,7 +622,7 @@ export default function ChatContainer() {
             />
           </div>
         ) : (
-          <>
+          <div key={currentConversation.id} style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minWidth: 0 }}>
             {/* Chat Header with Model Info */}
             <div style={{
               padding: '16px 24px',
@@ -444,12 +659,16 @@ export default function ChatContainer() {
             </div>
 
             {/* Messages Area */}
-            <div style={{ 
-              flex: 1, 
-              overflowY: 'auto',
-              padding: '24px',
-              background: '#ffffff'
-            }}>
+            <div 
+              ref={scrollContainerRef}
+              style={{ 
+                flex: 1, 
+                overflowY: 'auto',
+                padding: '24px',
+                background: '#ffffff',
+                scrollBehavior: isStreaming ? 'auto' : 'smooth'
+              }}
+            >
               {loading && chatMessages.length === 0 ? (
                 <div style={{ 
                   display: 'flex',
@@ -472,110 +691,12 @@ export default function ChatContainer() {
                   />
                 </div>
               ) : (
-                <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-                  {chatMessages.map((msg) => {
-                    const UserAvatar = () => (
-                      <div style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '50%',
-                        background: '#1B4B73',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#ffffff',
-                        fontSize: '16px'
-                      }}>
-                        <UserOutlined />
-                      </div>
-                    );
-
-                    const AssistantAvatar = () => (
-                      <div style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '50%',
-                        background: '#ffffff',
-                        border: '1px solid #f0f0f0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        overflow: 'hidden',
-                        color: '#1B4B73',
-                        fontSize: '20px'
-                      }}>
-                        <RobotOutlined />
-                      </div>
-                    );
-
-                    return (
-                      <div key={msg.id} style={{ marginBottom: '24px' }}>
-                        {/* Show thinking component BEFORE message for assistant streaming */}
-                        {msg.role === 'assistant' && msg.id === 'streaming' && isStreaming && msg.content.length < 50 && (
-                          <div style={{ marginBottom: '12px', marginLeft: '52px' }}>
-                            <Think
-                              title="Thinking..."
-                              loading={true}
-                              defaultExpanded={true}
-                              blink={true}
-                            >
-                              <div style={{ fontSize: '13px', color: '#8c8c8c', lineHeight: '1.8' }}>
-                                <div>• Processing your query</div>
-                                <div>• Searching knowledge base</div>
-                                <div>• Generating contextual response</div>
-                              </div>
-                            </Think>
-                          </div>
-                        )}
-                        {(msg.content || msg.id !== 'streaming') && (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                            {msg.metadata?.attachments && (
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
-                                {msg.metadata.attachments.map((att: any) => (
-                                  <Tag key={att.file_id} icon={<FileOutlined />} style={{ fontSize: '11px' }}>
-                                    {att.filename}
-                                  </Tag>
-                                ))}
-                              </div>
-                            )}
-                            <Bubble
-                              content={<MarkdownContent content={msg.content} isStreaming={msg.id === 'streaming'} />}
-                              avatar={msg.role === 'user' ? <UserAvatar /> : <AssistantAvatar />}
-                              placement={msg.role === 'user' ? 'end' : 'start'}
-                              typing={msg.id === 'streaming'}
-                              header={msg.role === 'user' ? (
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
-                                  <Tooltip title="Edit message">
-                                    <Button 
-                                      type="text" 
-                                      size="small" 
-                                      icon={<EditOutlined style={{ fontSize: '12px', color: '#8c8c8c' }} />} 
-                                      onClick={() => handleEdit(msg.id, msg.content)}
-                                    />
-                                  </Tooltip>
-                                </div>
-                              ) : null}
-                              styles={{
-                                content: {
-                                  background: msg.role === 'user' ? '#1B4B73' : '#f5f5f5',
-                                  color: msg.role === 'user' ? '#ffffff' : '#262626',
-                                  padding: '12px 16px',
-                                  borderRadius: '12px',
-                                  fontSize: '15px',
-                                  lineHeight: '1.6',
-                                  maxWidth: '100%',
-                                  width: msg.content.includes('```html') || msg.content.includes('```svg') ? '100%' : 'auto'
-                                }
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {/* Invisible div for auto-scroll */}
-                  <div ref={messagesEndRef} />
-                </div>
+                <MessageList 
+                  messages={chatMessages} 
+                  isStreaming={isStreaming} 
+                  onEdit={handleEdit} 
+                  messagesEndRef={messagesEndRef} 
+                />
               )}
             </div>
 
@@ -603,26 +724,6 @@ export default function ChatContainer() {
                   </div>
                 )}
 
-                {editingMessageId && (
-                  <div style={{ 
-                    marginBottom: '8px', 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    padding: '4px 12px',
-                    background: '#fff7e6',
-                    borderRadius: '6px',
-                    border: '1px solid #ffd591'
-                  }}>
-                    <Text type="warning" strong style={{ fontSize: '12px' }}>
-                      <EditOutlined /> Editing message...
-                    </Text>
-                    <Button type="link" size="small" onClick={handleCancelEdit} danger>
-                      Cancel
-                    </Button>
-                  </div>
-                )}
-                
                 <input 
                   type="file" 
                   ref={fileInputRef} 
@@ -631,35 +732,21 @@ export default function ChatContainer() {
                   multiple
                 />
 
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-                  <Sender
-                    value={inputValue}
-                    onChange={setInputValue}
-                    placeholder={editingMessageId ? "Edit your message..." : "Type your message here..."}
-                    onSubmit={handleSend}
-                    onCancel={stopGeneration}
-                    loading={isStreaming}
-                    disabled={!isConnected}
-                    prefix={
-                      <Button 
-                        type="text"
-                        icon={<PaperClipOutlined />} 
-                        onClick={handleFileClick}
-                        loading={isUploading}
-                        style={{ color: '#1B4B73' }}
-                      />
-                    }
-                    style={{
-                      flex: 1,
-                      boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
-                      borderRadius: '12px',
-                      border: '1px solid #e2e8f0'
-                    }}
-                  />
-                </div>
+                <ChatInput 
+                  value={inputValue}
+                  onChange={setInputValue}
+                  onSend={handleSend}
+                  onStop={stopGeneration}
+                  isStreaming={isStreaming}
+                  isConnected={isConnected}
+                  isUploading={isUploading}
+                  onFileClick={handleFileClick}
+                  editingMessageId={editingMessageId}
+                  onCancelEdit={handleCancelEdit}
+                />
               </div>
             </div>
-          </>
+          </div>
         )}
         </Content>
       </Layout>

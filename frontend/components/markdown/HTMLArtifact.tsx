@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, Button, Tooltip, Space, Typography, App } from 'antd';
+import { useState, useEffect, memo, useMemo } from 'react';
+import { Card, Button, Tooltip, Space, Typography, App, Spin, Tag } from 'antd';
 import { 
   CopyOutlined, 
   FullscreenOutlined, 
   FullscreenExitOutlined, 
   ExportOutlined,
   CodeOutlined,
-  EyeOutlined
+  EyeOutlined,
+  LoadingOutlined
 } from '@ant-design/icons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -21,22 +22,26 @@ interface HTMLArtifactProps {
   isStreaming?: boolean;
 }
 
-export function HTMLArtifact({ html, className, isStreaming }: HTMLArtifactProps) {
+export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStreaming }: HTMLArtifactProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [viewMode, setViewMode] = useState<'preview' | 'code'>('preview');
   const [displayHtml, setDisplayHtml] = useState(html);
+  const [isUpdating, setIsUpdating] = useState(false);
   const { message } = App.useApp();
 
-  // Debounce HTML updates during streaming to reduce flickering
+  // Debounce HTML updates during streaming to reduce flickering and CPU load
   useEffect(() => {
     if (!isStreaming) {
       setDisplayHtml(html);
+      setIsUpdating(false);
       return;
     }
 
+    setIsUpdating(true);
     const timer = setTimeout(() => {
       setDisplayHtml(html);
-    }, 500); // Update every 500ms during streaming
+      setIsUpdating(false);
+    }, 800);
 
     return () => clearTimeout(timer);
   }, [html, isStreaming]);
@@ -47,17 +52,18 @@ export function HTMLArtifact({ html, className, isStreaming }: HTMLArtifactProps
   };
 
   const handleOpenNewTab = () => {
-    const win = window.open();
-    if (win) {
-      win.document.write(html);
-      win.document.close();
+    const newTab = window.open();
+    if (newTab) {
+      newTab.document.write(fullHtml);
+      newTab.document.close();
     }
   };
 
-  // Wrap HTML in basic boilerplate if it doesn't have it
-  const getFullHtml = (content: string) => {
-    if (content.includes('<html') || content.includes('<body')) {
-      return content;
+  // Use useMemo for the full HTML to avoid recalculating on every render
+  const fullHtml = useMemo(() => {
+    const contentToRender = isStreaming ? displayHtml : html;
+    if (contentToRender.includes('<html') || contentToRender.includes('<body')) {
+      return contentToRender;
     }
     return `
       <!DOCTYPE html>
@@ -73,17 +79,20 @@ export function HTMLArtifact({ html, className, isStreaming }: HTMLArtifactProps
               line-height: 1.5;
               color: #262626;
               background-color: #ffffff;
+              overflow-x: hidden;
             }
             * { box-sizing: border-box; }
             img { max-width: 100%; height: auto; }
+            /* Hide scrollbars during streaming to prevent layout shifts */
+            ${isStreaming ? 'body { overflow: hidden; }' : ''}
           </style>
         </head>
         <body>
-          ${content}
+          ${contentToRender}
         </body>
       </html>
     `;
-  };
+  }, [displayHtml, html, isStreaming]);
 
   return (
     <Card
@@ -95,7 +104,8 @@ export function HTMLArtifact({ html, className, isStreaming }: HTMLArtifactProps
         overflow: 'hidden',
         border: '1px solid #d9d9d9',
         width: '100%',
-        maxWidth: '100%'
+        maxWidth: '100%',
+        boxShadow: isStreaming ? '0 0 15px rgba(27, 75, 115, 0.1)' : 'none'
       }}
       styles={{
         header: { background: '#f5f5f5', padding: '8px 12px' },
@@ -107,7 +117,11 @@ export function HTMLArtifact({ html, className, isStreaming }: HTMLArtifactProps
             <Text strong style={{ fontSize: '12px', color: '#8c8c8c', textTransform: 'uppercase' }}>
               HTML Artifact
             </Text>
-            {isStreaming && <Text type="secondary" style={{ fontSize: '11px' }}>(Rendering...)</Text>}
+            {isStreaming && (
+              <Tag color="processing" icon={<LoadingOutlined spin />} style={{ border: 'none', background: 'transparent' }}>
+                Streaming...
+              </Tag>
+            )}
           </Space>
           <Space size="small">
             <Tooltip title={viewMode === 'preview' ? "Show Code" : "Show Preview"}>
@@ -137,17 +151,41 @@ export function HTMLArtifact({ html, className, isStreaming }: HTMLArtifactProps
       }
     >
       {viewMode === 'preview' ? (
-        <iframe
-          srcDoc={getFullHtml(displayHtml)}
-          title="HTML Artifact Preview"
-          style={{ 
-            width: '100%', 
-            height: '100%', 
-            border: 'none',
-            background: '#ffffff'
-          }}
-          sandbox="allow-scripts allow-forms allow-popups allow-modals"
-        />
+        <>
+          {isUpdating && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(255, 255, 255, 0.6)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 10,
+              backdropFilter: 'blur(1px)'
+            }}>
+              <Space direction="vertical" align="center">
+                <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
+                <Text type="secondary" style={{ fontSize: '12px' }}>Updating preview...</Text>
+              </Space>
+            </div>
+          )}
+          <iframe
+            srcDoc={fullHtml}
+            title="HTML Artifact Preview"
+            loading="lazy"
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              border: 'none',
+              background: '#ffffff',
+              pointerEvents: isStreaming ? 'none' : 'auto'
+            }}
+            sandbox="allow-scripts allow-forms allow-popups allow-modals"
+          />
+        </>
       ) : (
         <div style={{ height: '100%', overflow: 'auto' }}>
           <SyntaxHighlighter
@@ -161,5 +199,6 @@ export function HTMLArtifact({ html, className, isStreaming }: HTMLArtifactProps
       )}
     </Card>
   );
-}
+});
+
 

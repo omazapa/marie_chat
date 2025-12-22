@@ -343,6 +343,10 @@ export function useChat(token: string | null) {
         wsLeaveConversation(currentConversation.id);
       }
 
+      // Reset streaming state when switching conversations
+      setIsStreaming(false);
+      setStreamingMessage('');
+
       // Set new conversation
       setCurrentConversation(conversation);
       

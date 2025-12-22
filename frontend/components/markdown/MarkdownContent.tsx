@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -16,49 +17,51 @@ interface MarkdownContentProps {
   isStreaming?: boolean;
 }
 
-export function MarkdownContent({ content, className, isStreaming }: MarkdownContentProps) {
+export const MarkdownContent = memo(function MarkdownContent({ content, className, isStreaming }: MarkdownContentProps) {
+  const components = useMemo(() => ({
+    code({ node, inline, className, children, ...props }: any) {
+      const match = /language-(\w+)/.exec(className || '');
+      const language = match ? match[1] : '';
+      const codeContent = String(children).replace(/\n$/, '');
+
+      // Handle HTML artifacts
+      if (language === 'html' || language === 'svg') {
+        return <HTMLArtifact html={codeContent} isStreaming={isStreaming} />;
+      }
+
+      return !inline && match ? (
+        <SyntaxHighlighter
+          style={vscDarkPlus}
+          language={language}
+          PreTag="div"
+          {...props}
+        >
+          {codeContent}
+        </SyntaxHighlighter>
+      ) : (
+        <code className={className} {...props}>
+          {children}
+        </code>
+      );
+    },
+    // Custom rendering for math blocks if needed
+    div({ node, className, children, ...props }: any) {
+      if (className === 'math math-display') {
+        return <div className={className} {...props}>{children}</div>;
+      }
+      return <div className={className} {...props}>{children}</div>;
+    }
+  }), [isStreaming]);
+
   return (
     <div className={`markdown-content ${className || ''}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex, rehypeRaw]}
-        components={{
-          code({ node, inline, className, children, ...props }: any) {
-            const match = /language-(\w+)/.exec(className || '');
-            const language = match ? match[1] : '';
-            const codeContent = String(children).replace(/\n$/, '');
-
-            // Handle HTML artifacts
-            if (language === 'html' || language === 'svg') {
-              return <HTMLArtifact html={codeContent} isStreaming={isStreaming} />;
-            }
-
-            return !inline && match ? (
-              <SyntaxHighlighter
-                style={vscDarkPlus}
-                language={language}
-                PreTag="div"
-                {...props}
-              >
-                {codeContent}
-              </SyntaxHighlighter>
-            ) : (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            );
-          },
-          // Custom rendering for math blocks if needed
-          div({ node, className, children, ...props }: any) {
-            if (className === 'math math-display') {
-              return <div className={className} {...props}>{children}</div>;
-            }
-            return <div className={className} {...props}>{children}</div>;
-          }
-        }}
+        components={components}
       >
         {content}
       </ReactMarkdown>
     </div>
   );
-}
+});
