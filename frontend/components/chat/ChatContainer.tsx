@@ -37,6 +37,7 @@ export default function ChatContainer() {
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState('ollama');
   const [selectedModel, setSelectedModel] = useState('llama3.2');
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { accessToken } = useAuthStore();
   const {
@@ -53,6 +54,7 @@ export default function ChatContainer() {
     updateConversation,
     selectConversation,
     sendMessage,
+    editMessage,
     stopGeneration,
   } = useChat(accessToken);
 
@@ -140,6 +142,12 @@ export default function ChatContainer() {
     
     setInputValue('');
     
+    if (editingMessageId) {
+      await editMessage(editingMessageId, content);
+      setEditingMessageId(null);
+      return;
+    }
+    
     // Create new conversation if none selected
     if (!currentConversation) {
       const conv = await createConversation('New Chat', selectedModel, selectedProvider);
@@ -150,6 +158,16 @@ export default function ChatContainer() {
     } else {
       await sendMessage(content);
     }
+  };
+
+  const handleEdit = (messageId: string, content: string) => {
+    setEditingMessageId(messageId);
+    setInputValue(content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setInputValue('');
   };
 
   return (
@@ -452,6 +470,18 @@ export default function ChatContainer() {
                             avatar={msg.role === 'user' ? <UserAvatar /> : <AssistantAvatar />}
                             placement={msg.role === 'user' ? 'end' : 'start'}
                             typing={msg.id === 'streaming'}
+                            header={msg.role === 'user' ? (
+                              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
+                                <Tooltip title="Edit message">
+                                  <Button 
+                                    type="text" 
+                                    size="small" 
+                                    icon={<EditOutlined style={{ fontSize: '12px', color: '#8c8c8c' }} />} 
+                                    onClick={() => handleEdit(msg.id, msg.content)}
+                                  />
+                                </Tooltip>
+                              </div>
+                            ) : null}
                             styles={{
                               content: {
                                 background: msg.role === 'user' ? '#1B4B73' : '#f5f5f5',
@@ -481,10 +511,29 @@ export default function ChatContainer() {
               padding: '20px 24px'
             }}>
               <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+                {editingMessageId && (
+                  <div style={{ 
+                    marginBottom: '8px', 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    padding: '4px 12px',
+                    background: '#fff7e6',
+                    borderRadius: '6px',
+                    border: '1px solid #ffd591'
+                  }}>
+                    <Text type="warning" strong style={{ fontSize: '12px' }}>
+                      <EditOutlined /> Editing message...
+                    </Text>
+                    <Button type="link" size="small" onClick={handleCancelEdit} danger>
+                      Cancel
+                    </Button>
+                  </div>
+                )}
                 <Sender
                   value={inputValue}
                   onChange={setInputValue}
-                  placeholder="Type your message here..."
+                  placeholder={editingMessageId ? "Edit your message..." : "Type your message here..."}
                   onSubmit={handleSend}
                   onCancel={stopGeneration}
                   loading={isStreaming}

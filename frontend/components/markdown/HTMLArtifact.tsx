@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import DOMPurify from 'dompurify';
+import { useState } from 'react';
 
 interface HTMLArtifactProps {
   html: string;
@@ -9,53 +8,61 @@ interface HTMLArtifactProps {
 }
 
 export function HTMLArtifact({ html, className }: HTMLArtifactProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (containerRef.current) {
-      // Sanitize HTML before inserting
-      const sanitizedHTML = DOMPurify.sanitize(html, {
-        ADD_TAGS: ['iframe', 'script', 'style'], // Be careful with these
-        ADD_ATTR: ['target', 'src', 'frameborder', 'allowfullscreen'],
-        FORCE_BODY: true,
-      });
-      
-      containerRef.current.innerHTML = sanitizedHTML;
-
-      // Execute scripts if any (Plotly/Charts often need this)
-      const scripts = containerRef.current.querySelectorAll('script');
-      scripts.forEach((oldScript) => {
-        const newScript = document.createElement('script');
-        Array.from(oldScript.attributes).forEach((attr) => {
-          newScript.setAttribute(attr.name, attr.value);
-        });
-        
-        // Wrap script content in an IIFE to avoid global scope collisions (like "Identifier already declared")
-        // and add a try-catch to prevent script errors from crashing the whole UI
-        const scriptContent = oldScript.innerHTML;
-        if (scriptContent.trim()) {
-          const wrappedContent = `
-            (function() {
-              try {
-                ${scriptContent}
-              } catch (err) {
-                console.error('Error executing artifact script:', err);
-              }
-            })();
-          `;
-          newScript.appendChild(document.createTextNode(wrappedContent));
-        }
-        
-        oldScript.parentNode?.replaceChild(newScript, oldScript);
-      });
-    }
-  }, [html]);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div 
-      ref={containerRef} 
-      className={`html-artifact overflow-auto max-w-full my-4 p-4 bg-white rounded-lg border border-gray-200 shadow-sm ${className || ''}`}
-      style={{ minHeight: '100px' }}
-    />
+    <div className={`html-artifact-container my-6 ${className || ''}`}>
+      <div className="flex items-center justify-between px-4 py-2 bg-gray-100 border border-b-0 border-gray-200 rounded-t-lg">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">HTML Artifact</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => {
+              navigator.clipboard.writeText(html);
+            }}
+            className="p-1 hover:bg-gray-200 rounded text-gray-600 transition-colors"
+            title="Copy code"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+          <button 
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="p-1 hover:bg-gray-200 rounded text-gray-600 transition-colors"
+            title={isExpanded ? "Shrink" : "Expand"}
+          >
+            {isExpanded ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"/></svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+            )}
+          </button>
+          <button 
+            onClick={() => {
+              const win = window.open();
+              if (win) {
+                win.document.write(html);
+                win.document.close();
+              }
+            }}
+            className="p-1 hover:bg-gray-200 rounded text-gray-600 transition-colors"
+            title="Open in new tab"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div 
+        className="bg-white border border-gray-200 rounded-b-lg shadow-sm overflow-hidden transition-all duration-300 ease-in-out"
+        style={{ height: isExpanded ? '800px' : '450px' }}
+      >
+        <iframe
+          srcDoc={html}
+          title="HTML Artifact"
+          className="w-full h-full border-0"
+          sandbox="allow-scripts allow-forms allow-popups allow-modals"
+        />
+      </div>
+    </div>
   );
 }

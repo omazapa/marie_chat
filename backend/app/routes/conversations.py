@@ -128,3 +128,29 @@ def get_conversation_messages(conversation_id: str):
     
     return jsonify({'messages': messages}), 200
 
+
+@conversations_bp.route('/<conversation_id>/messages/truncate', methods=['POST'])
+@jwt_required()
+def truncate_conversation(conversation_id: str):
+    """Delete messages after a certain timestamp"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    timestamp = data.get('timestamp')
+    inclusive = data.get('inclusive', False)
+    
+    if not timestamp:
+        return jsonify({'error': 'timestamp is required'}), 400
+    
+    success = llm_service.delete_messages_after(
+        conversation_id=conversation_id,
+        user_id=user_id,
+        timestamp=timestamp,
+        inclusive=inclusive
+    )
+    
+    if not success:
+        return jsonify({'error': 'Failed to truncate conversation'}), 500
+    
+    return jsonify({'message': 'Conversation truncated'}), 200
+

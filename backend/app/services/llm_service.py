@@ -233,6 +233,40 @@ class LLMService:
             print(f"Error getting messages: {e}")
             return []
     
+    def delete_messages_after(self, conversation_id: str, user_id: str, timestamp: str, inclusive: bool = False) -> bool:
+        """Delete all messages in a conversation created after (or at) a certain timestamp"""
+        try:
+            # Verify ownership
+            conversation = self.get_conversation(conversation_id, user_id)
+            if not conversation:
+                return False
+            
+            range_query = {"gte": timestamp} if inclusive else {"gt": timestamp}
+            
+            query = {
+                "query": {
+                    "bool": {
+                        "must": [
+                            {"term": {"conversation_id": conversation_id}},
+                            {"range": {"created_at": range_query}}
+                        ]
+                    }
+                }
+            }
+            
+            self.client.delete_by_query(
+                index="marie_messages",
+                body=query,
+                refresh=True
+            )
+            
+            # Update conversation metadata
+            self._update_conversation_metadata(conversation_id)
+            return True
+        except Exception as e:
+            print(f"Error deleting messages after: {e}")
+            return False
+    
     def _update_conversation_metadata(self, conversation_id: str):
         """Update conversation message count and last message time"""
         try:

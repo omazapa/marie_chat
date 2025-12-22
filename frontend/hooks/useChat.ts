@@ -114,6 +114,73 @@ export function useChat(token: string | null) {
     }
   }, [wsStopGeneration]);
 
+  // Send message
+  const sendMessage = useCallback(
+    async (content: string) => {
+      const conv = currentConversationRef.current;
+      if (!conv || !isConnected) {
+        setError('Not connected to chat');
+        return;
+      }
+
+      // Add user message to UI immediately
+      const userMessage: Message = {
+        id: `temp-${Date.now()}`,
+        conversation_id: conv.id,
+        user_id: 'current-user',
+        role: 'user',
+        content,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+
+      // Send via WebSocket
+      wsSendMessage(conv.id, content, true);
+    },
+    [isConnected, wsSendMessage]
+  );
+
+  // Edit and resend message
+  const editMessage = useCallback(
+    async (messageId: string, newContent: string) => {
+      const conv = currentConversationRef.current;
+      if (!conv || !isConnected) {
+        setError('Not connected to chat');
+        return;
+      }
+
+      // Find the message to edit
+      const messageToEdit = messages.find(m => m.id === messageId);
+      if (!messageToEdit) return;
+
+      try {
+        setLoading(true);
+        // Truncate conversation at this message (inclusive)
+        await axios.post(`${API_BASE}/conversations/${conv.id}/messages/truncate`, {
+          timestamp: messageToEdit.created_at,
+          inclusive: true
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Remove messages from state
+        setMessages(prev => {
+          const index = prev.findIndex(m => m.id === messageId);
+          if (index === -1) return prev;
+          return prev.slice(0, index);
+        });
+
+        // Send the new content
+        await sendMessage(newContent);
+      } catch (err: any) {
+        setError(err.response?.data?.error || 'Failed to edit message');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [isConnected, messages, token, sendMessage]
+  );
+
   // Fetch conversations
   const fetchConversations = useCallback(async () => {
     if (!token) return;
@@ -257,32 +324,6 @@ export function useChat(token: string | null) {
     [currentConversation, wsJoinConversation, wsLeaveConversation, fetchMessages]
   );
 
-  // Send message
-  const sendMessage = useCallback(
-    async (content: string) => {
-      const conv = currentConversationRef.current;
-      if (!conv || !isConnected) {
-        setError('Not connected to chat');
-        return;
-      }
-
-      // Add user message to UI immediately
-      const userMessage: Message = {
-        id: `temp-${Date.now()}`,
-        conversation_id: conv.id,
-        user_id: 'current-user',
-        role: 'user',
-        content,
-        created_at: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, userMessage]);
-
-      // Send via WebSocket
-      wsSendMessage(conv.id, content, true);
-    },
-    [isConnected, wsSendMessage]
-  );
-
   // Load conversations on mount
   useEffect(() => {
     if (token) {
@@ -308,6 +349,7 @@ export function useChat(token: string | null) {
     updateConversation,
     selectConversation,
     sendMessage,
+    editMessage,
     setTyping,
     stopGeneration,
   };
