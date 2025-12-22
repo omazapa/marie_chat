@@ -335,6 +335,31 @@ class LLMService:
         if not conversation:
             raise ValueError("Conversation not found or access denied")
         
+        # Build context with references if any
+        references_metadata = None
+        if referenced_conv_ids:
+            print(f"[SERVICE] Building context for {len(referenced_conv_ids)} references")
+            # Fetch references once to use for both metadata and context
+            ref_convs = self.reference_service.get_referenced_conversations(
+                referenced_conv_ids, 
+                user_id
+            )
+            
+            # Prepare metadata for the UI
+            references_metadata = [
+                {"id": c["id"], "title": c["title"]} for c in ref_convs
+            ]
+            
+            # Build context string manually or update build_context_with_references to accept pre-fetched convs
+            user_message_with_context = self.reference_service.build_context_with_references(
+                user_message=user_message,
+                referenced_conv_ids=referenced_conv_ids,
+                user_id=user_id
+            )
+            print(f"[SERVICE] Context built, length: {len(user_message_with_context)}")
+        else:
+            user_message_with_context = user_message
+
         # Save user message with attachments and references in metadata
         print(f"[SERVICE] Saving user message")
         saved_user_msg = self.save_message(
@@ -344,22 +369,11 @@ class LLMService:
             content=user_message,
             metadata={
                 "attachments": attachments,
-                "referenced_conv_ids": referenced_conv_ids
+                "referenced_conv_ids": referenced_conv_ids,
+                "references": references_metadata
             } if attachments or referenced_conv_ids else None
         )
         current_msg_id = saved_user_msg["id"]
-        
-        # Build context with references if any
-        if referenced_conv_ids:
-            print(f"[SERVICE] Building context for {len(referenced_conv_ids)} references")
-            user_message_with_context = self.reference_service.build_context_with_references(
-                user_message=user_message,
-                referenced_conv_ids=referenced_conv_ids,
-                user_id=user_id
-            )
-            print(f"[SERVICE] Context built, length: {len(user_message_with_context)}")
-        else:
-            user_message_with_context = user_message
 
         # Get conversation history
         messages = self.get_messages(conversation_id, user_id, limit=50)

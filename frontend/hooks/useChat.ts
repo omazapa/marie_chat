@@ -116,12 +116,14 @@ export function useChat(token: string | null) {
 
   // Send message
   const sendMessage = useCallback(
-    async (content: string, attachments: any[] = [], referenced_conv_ids: string[] = []) => {
+    async (content: string, attachments: any[] = [], referenced_convs: { id: string, title: string }[] = []) => {
       const conv = currentConversationRef.current;
       if (!conv || !isConnected) {
         setError('Not connected to chat');
         return;
       }
+
+      const referenced_conv_ids = referenced_convs.map(r => r.id);
 
       // Add user message to UI immediately
       const userMessage: Message = {
@@ -132,6 +134,7 @@ export function useChat(token: string | null) {
         content,
         metadata: {
           ...(attachments.length > 0 ? { attachments } : {}),
+          ...(referenced_convs.length > 0 ? { references: referenced_convs } : {}),
           ...(referenced_conv_ids.length > 0 ? { referenced_conv_ids } : {}),
         },
         created_at: new Date().toISOString(),
@@ -176,7 +179,7 @@ export function useChat(token: string | null) {
 
   // Edit and resend message
   const editMessage = useCallback(
-    async (messageId: string, newContent: string) => {
+    async (messageId: string, newContent: string, attachments: any[] = [], referenced_convs: { id: string, title: string }[] = []) => {
       const conv = currentConversationRef.current;
       if (!conv || !isConnected) {
         setError('Not connected to chat');
@@ -205,7 +208,7 @@ export function useChat(token: string | null) {
         });
 
         // Send the new content
-        await sendMessage(newContent);
+        await sendMessage(newContent, attachments, referenced_convs);
       } catch (err: any) {
         setError(err.response?.data?.error || 'Failed to edit message');
       } finally {

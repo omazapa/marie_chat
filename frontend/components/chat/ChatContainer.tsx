@@ -76,7 +76,7 @@ const AssistantAvatar = () => (
   </div>
 );
 
-const MessageItem = memo(({ msg, isStreaming, onEdit }: { msg: any, isStreaming: boolean, onEdit: (id: string, content: string) => void }) => {
+const MessageItem = memo(({ msg, isStreaming, onEdit }: { msg: any, isStreaming: boolean, onEdit: (msg: any) => void }) => {
   return (
     <div style={{ marginBottom: '24px' }}>
       {/* Show thinking component BEFORE message for assistant streaming */}
@@ -107,6 +107,15 @@ const MessageItem = memo(({ msg, isStreaming, onEdit }: { msg: any, isStreaming:
               ))}
             </div>
           )}
+          {msg.metadata?.references && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
+              {msg.metadata.references.map((ref: any) => (
+                <Tag key={ref.id} icon={<LinkOutlined />} style={{ fontSize: '11px', background: '#e6f7ff', borderColor: '#91d5ff' }}>
+                  {ref.title}
+                </Tag>
+              ))}
+            </div>
+          )}
           <Bubble
             content={<MarkdownContent content={msg.content} isStreaming={msg.id === 'streaming'} />}
             avatar={msg.role === 'user' ? <UserAvatar /> : <AssistantAvatar />}
@@ -119,7 +128,7 @@ const MessageItem = memo(({ msg, isStreaming, onEdit }: { msg: any, isStreaming:
                     type="text" 
                     size="small" 
                     icon={<EditOutlined style={{ fontSize: '12px', color: '#8c8c8c' }} />} 
-                    onClick={() => onEdit(msg.id, msg.content)}
+                    onClick={() => onEdit(msg)}
                   />
                 </Tooltip>
               </div>
@@ -259,7 +268,7 @@ const ChatInput = memo(({
 
 ChatInput.displayName = 'ChatInput';
 
-const MessageList = memo(({ messages, isStreaming, onEdit, messagesEndRef }: { messages: any[], isStreaming: boolean, onEdit: (id: string, content: string) => void, messagesEndRef: any }) => {
+const MessageList = memo(({ messages, isStreaming, onEdit, messagesEndRef }: { messages: any[], isStreaming: boolean, onEdit: (msg: any) => void, messagesEndRef: any }) => {
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
       {messages.map((msg) => (
@@ -427,12 +436,16 @@ export default function ChatContainer() {
     
     setInputValue('');
     const currentAttachments = [...attachments];
-    const currentReferences = [...referencedConvIds];
+    const currentReferences = referencedConvIds.map(id => {
+      const conv = conversations.find((c: any) => c.id === id);
+      return { id, title: conv?.title || 'Chat' };
+    });
+    
     setAttachments([]);
     setReferencedConvIds([]);
     
     if (editingMessageId) {
-      await editMessage(editingMessageId, content);
+      await editMessage(editingMessageId, content, currentAttachments, currentReferences);
       setEditingMessageId(null);
       return;
     }
@@ -489,14 +502,32 @@ export default function ChatContainer() {
     setAttachments(prev => prev.filter(a => a.file_id !== id));
   };
 
-  const handleEdit = useCallback((messageId: string, content: string) => {
-    setEditingMessageId(messageId);
-    setInputValue(content);
+  const handleEdit = useCallback((msg: any) => {
+    setEditingMessageId(msg.id);
+    setInputValue(msg.content);
+    
+    // Restore attachments and references
+    if (msg.metadata?.attachments) {
+      setAttachments(msg.metadata.attachments);
+    } else {
+      setAttachments([]);
+    }
+    
+    if (msg.metadata?.referenced_conv_ids) {
+      setReferencedConvIds(msg.metadata.referenced_conv_ids);
+    } else if (msg.metadata?.references) {
+      // Fallback to references if referenced_conv_ids is missing
+      setReferencedConvIds(msg.metadata.references.map((r: any) => r.id));
+    } else {
+      setReferencedConvIds([]);
+    }
   }, []);
 
   const handleCancelEdit = useCallback(() => {
     setEditingMessageId(null);
     setInputValue('');
+    setAttachments([]);
+    setReferencedConvIds([]);
   }, []);
 
   return (
