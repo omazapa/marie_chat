@@ -9,6 +9,8 @@ from opensearchpy import OpenSearch
 from app.db import opensearch_client
 from app.services.provider_factory import provider_factory
 from app.services.llm_provider import ChatMessage
+from app.services.opensearch_service import OpenSearchService
+from app.services.reference_service import ReferenceService
 
 
 class LLMService:
@@ -17,6 +19,8 @@ class LLMService:
     def __init__(self):
         self.client: OpenSearch = opensearch_client.client
         self.provider_factory = provider_factory
+        self.opensearch_service = OpenSearchService()
+        self.reference_service = ReferenceService(self.opensearch_service)
     
     # ==================== Conversation Management ====================
     
@@ -206,7 +210,7 @@ class LLMService:
         limit: int = 100,
         offset: int = 0
     ) -> list[Dict[str, Any]]:
-        """Get messages for a conversation"""
+        """Get messages for a conversation (most recent first, then reversed to chronological)"""
         try:
             # Verify conversation ownership
             conversation = self.get_conversation(conversation_id, user_id)
@@ -217,7 +221,7 @@ class LLMService:
                 "query": {
                     "term": {"conversation_id": conversation_id}
                 },
-                "sort": [{"created_at": {"order": "asc"}}],
+                "sort": [{"created_at": {"order": "desc"}}],
                 "from": offset,
                 "size": limit
             }
@@ -228,6 +232,7 @@ class LLMService:
             )
             
             messages = [hit["_source"] for hit in result["hits"]["hits"]]
+            messages.reverse()
             return messages
         except Exception as e:
             print(f"Error getting messages: {e}")
@@ -306,7 +311,8 @@ class LLMService:
         user_id: str,
         user_message: str,
         stream: bool = True,
-        attachments: Optional[List[Dict[str, Any]]] = None
+        attachments: Optional[List[Dict[str, Any]]] = None,
+        referenced_conv_ids: Optional[List[str]] = None
     ) -> AsyncGenerator[Dict[str, Any], None] | Dict[str, Any]:
         """
         Send a message and get LLM response
@@ -317,6 +323,7 @@ class LLMService:
             user_message: User's message content
             stream: Whether to stream the response
             attachments: Optional list of file attachments with extracted text
+            referenced_conv_ids: Optional list of conversation IDs to reference
         
         Returns:
             AsyncGenerator if stream=True, Dict otherwise
@@ -328,18 +335,35 @@ class LLMService:
         if not conversation:
             raise ValueError("Conversation not found or access denied")
         
-        # Save user message with attachments in metadata
+        # Save user message with attachments and references in metadata
         print(f"[SERVICE] Saving user message")
-        self.save_message(
+        saved_user_msg = self.save_message(
             conversation_id=conversation_id,
             user_id=user_id,
             role="user",
             content=user_message,
-            metadata={"attachments": attachments} if attachments else None
+            metadata={
+                "attachments": attachments,
+                "referenced_conv_ids": referenced_conv_ids
+            } if attachments or referenced_conv_ids else None
         )
+        current_msg_id = saved_user_msg["id"]
         
+        # Build context with references if any
+        if referenced_conv_ids:
+            print(f"[SERVICE] Building context for {len(referenced_conv_ids)} references")
+            user_message_with_context = self.reference_service.build_context_with_references(
+                user_message=user_message,
+                referenced_conv_ids=referenced_conv_ids,
+                user_id=user_id
+            )
+            print(f"[SERVICE] Context built, length: {len(user_message_with_context)}")
+        else:
+            user_message_with_context = user_message
+
         # Get conversation history
         messages = self.get_messages(conversation_id, user_id, limit=50)
+        print(f"[SERVICE] Retrieved {len(messages)} messages for history")
         
         # Build messages array for LLM
         llm_messages = []
@@ -353,7 +377,11 @@ class LLMService:
         
         # Add conversation history
         for msg in messages:
-            content = msg["content"]
+            # If it's the current message, use the context-enriched version
+            if msg["id"] == current_msg_id:
+                content = user_message_with_context
+            else:
+                content = msg["content"]
             
             # If message has attachments, prepend extracted text to the content for the LLM
             msg_metadata = msg.get("metadata", {})
@@ -365,12 +393,20 @@ class LLMService:
                         context_parts.append(f"--- FILE: {att['filename']} ---\n{att['extracted_text']}\n--- END FILE ---")
                 
                 if context_parts:
-                    content = "\n".join(context_parts) + "\n\nUser Question: " + content
+                    # If we already have context from references, we append the file context
+                    content = "\n".join(context_parts) + "\n\n" + content
 
             llm_messages.append({
                 "role": msg["role"],
                 "content": content
             })
+        
+        # Log the final prompt for debugging (first 500 chars of each message)
+        print(f"[DEBUG] Final LLM Messages count: {len(llm_messages)}")
+        for i, m in enumerate(llm_messages):
+            print(f"[DEBUG] Msg {i} ({m['role']}): {m['content'][:200]}...")
+            if "CONTEXTO DE CONVERSACIONES" in m['content']:
+                print(f"[DEBUG] Context found in message {i}!")
         
         # Get model settings
         model = conversation.get("model", "llama3.2")

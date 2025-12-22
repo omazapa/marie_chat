@@ -124,6 +124,7 @@ def handle_send_message(data):
     message = data.get('message')
     stream = data.get('stream', True)
     attachments = data.get('attachments', [])
+    referenced_conv_ids = data.get('referenced_conv_ids', [])
     
     if not conversation_id or not message:
         emit('error', {'message': 'conversation_id and message are required'})
@@ -132,6 +133,8 @@ def handle_send_message(data):
     print(f"💬 Message from {user_id} in conversation {conversation_id}: {message[:50]}...")
     if attachments:
         print(f"📎 With {len(attachments)} attachments")
+    if referenced_conv_ids:
+        print(f"🔗 Referencing {len(referenced_conv_ids)} conversations")
     
     # Ensure client is in the conversation room before processing
     join_room(conversation_id)
@@ -141,7 +144,8 @@ def handle_send_message(data):
     emit('message_received', {
         'conversation_id': conversation_id,
         'message': message,
-        'attachments': attachments
+        'attachments': attachments,
+        'referenced_conv_ids': referenced_conv_ids
     })
     
     print(f"[TASK] Starting background task for conversation {conversation_id}")
@@ -154,7 +158,8 @@ def handle_send_message(data):
         message=message,
         stream=stream,
         sid=request.sid,
-        attachments=attachments
+        attachments=attachments,
+        referenced_conv_ids=referenced_conv_ids
     )
     
     print(f"[STARTED] Background task started for conversation {conversation_id}")
@@ -166,7 +171,8 @@ def process_chat_message_wrapper(
     message: str,
     stream: bool,
     sid: str,
-    attachments: list = None
+    attachments: list = None,
+    referenced_conv_ids: list = None
 ):
     """Wrapper to run async function in dedicated event loop"""
     print(f"[WRAPPER] Started for conversation {conversation_id}")
@@ -175,7 +181,7 @@ def process_chat_message_wrapper(
         print(f"[LOOP] Got event loop for conversation {conversation_id}")
         # Schedule coroutine in the dedicated loop
         future = asyncio.run_coroutine_threadsafe(
-            process_chat_message_async(user_id, conversation_id, message, stream, sid, attachments),
+            process_chat_message_async(user_id, conversation_id, message, stream, sid, attachments, referenced_conv_ids),
             loop
         )
         print(f"[WAIT] Waiting for coroutine completion for conversation {conversation_id}")
@@ -197,7 +203,8 @@ async def process_chat_message_async(
     message: str,
     stream: bool,
     sid: str,
-    attachments: list = None
+    attachments: list = None,
+    referenced_conv_ids: list = None
 ):
     """Process chat message and emit responses (async version)"""
     print(f"[ASYNC] Function started for conversation {conversation_id}")
@@ -224,7 +231,8 @@ async def process_chat_message_async(
                 user_id=user_id,
                 user_message=message,
                 stream=True,
-                attachments=attachments
+                attachments=attachments,
+                referenced_conv_ids=referenced_conv_ids
             )
             print(f"[ITER] Got generator, starting iteration")
             # Now iterate over the generator

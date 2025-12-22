@@ -234,7 +234,7 @@ class OpenSearchService:
         return doc
     
     def get_conversation_messages(self, conversation_id: str, limit: int = 1000) -> List[dict]:
-        """Get messages from a conversation"""
+        """Get messages from a conversation (most recent first, then reversed to chronological)"""
         query = {
             "query": {
                 "term": {
@@ -242,10 +242,13 @@ class OpenSearchService:
                 }
             },
             "sort": [
-                {"created_at": {"order": "asc"}}
+                {"created_at": {"order": "desc"}}
             ],
             "size": limit
         }
         
         result = self.client.search(index="marie_messages", body=query)
-        return [hit["_source"] for hit in result["hits"]["hits"]]
+        messages = [hit["_source"] for hit in result["hits"]["hits"]]
+        print(f"[OPENSEARCH] Found {len(messages)} messages for conversation {conversation_id}")
+        messages.reverse()
+        return messages

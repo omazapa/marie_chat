@@ -159,17 +159,27 @@ export function useWebSocket({
 
   // Send message
   const sendMessage = useCallback(
-    (conversationId: string, message: string, stream: boolean = true, attachments: any[] = []) => {
+    (
+      conversationId: string, 
+      message: string, 
+      stream: boolean = true, 
+      attachments: any[] = [],
+      referenced_conv_ids: string[] = []
+    ) => {
       if (socketRef.current && socketRef.current.connected) {
         socketRef.current.emit('send_message', {
           conversation_id: conversationId,
           message,
           stream,
           attachments,
+          referenced_conv_ids,
         });
         console.log(`💬 Sent message to ${conversationId}:`, message.substring(0, 50));
         if (attachments.length > 0) {
           console.log(`📎 With ${attachments.length} attachments`);
+        }
+        if (referenced_conv_ids.length > 0) {
+          console.log(`🔗 Referencing ${referenced_conv_ids.length} conversations`);
         }
       } else {
         console.error('❌ Socket not connected');

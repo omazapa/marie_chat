@@ -20,7 +20,9 @@ import {
   FileOutlined,
   CloseCircleFilled,
   AudioOutlined,
-  AudioMutedOutlined
+  AudioMutedOutlined,
+  LinkOutlined,
+  LogoutOutlined
 } from '@ant-design/icons';
 import type { ConversationsProps } from '@ant-design/x';
 import type { Message as WebSocketMessage } from '@/hooks/useWebSocket';
@@ -159,6 +161,8 @@ interface ChatInputProps {
   isTranscribing: boolean;
   onStartRecording: () => void;
   onStopRecording: () => void;
+  onReferenceClick: () => void;
+  referencedCount: number;
 }
 
 const ChatInput = memo(({ 
@@ -175,7 +179,9 @@ const ChatInput = memo(({
   isRecording,
   isTranscribing,
   onStartRecording,
-  onStopRecording
+  onStopRecording,
+  onReferenceClick,
+  referencedCount
 }: ChatInputProps) => {
   const handleSubmit = (val: string) => {
     onSend(val);
@@ -229,6 +235,14 @@ const ChatInput = memo(({
                 style={{ color: isRecording ? '#ff4d4f' : '#1B4B73' }}
                 className={isRecording ? 'recording-pulse' : ''}
               />
+              <Tooltip title="Reference other conversations">
+                <Button 
+                  type="text"
+                  icon={<LinkOutlined />} 
+                  onClick={onReferenceClick}
+                  style={{ color: referencedCount > 0 ? '#1890ff' : '#1B4B73' }}
+                />
+              </Tooltip>
             </Space>
           }
           style={{
@@ -270,8 +284,10 @@ export default function ChatContainer() {
   const [selectedModel, setSelectedModel] = useState('llama3.2');
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<any[]>([]);
+  const [referencedConvIds, setReferencedConvIds] = useState<string[]>([]);
+  const [showReferenceModal, setShowReferenceModal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const { accessToken } = useAuthStore();
+  const { accessToken, user, logout: authLogout } = useAuthStore();
 
   const {
     isRecording,
@@ -411,7 +427,9 @@ export default function ChatContainer() {
     
     setInputValue('');
     const currentAttachments = [...attachments];
+    const currentReferences = [...referencedConvIds];
     setAttachments([]);
+    setReferencedConvIds([]);
     
     if (editingMessageId) {
       await editMessage(editingMessageId, content);
@@ -424,11 +442,25 @@ export default function ChatContainer() {
       const conv = await createConversation('New Chat', selectedModel, selectedProvider);
       if (conv) {
         await selectConversation(conv);
-        setTimeout(() => sendMessage(content, currentAttachments), 500);
+        setTimeout(() => sendMessage(content, currentAttachments, currentReferences), 500);
       }
     } else {
-      await sendMessage(content, currentAttachments);
+      await sendMessage(content, currentAttachments, currentReferences);
     }
+  };
+
+  const handleReferenceClick = () => {
+    setShowReferenceModal(true);
+  };
+
+  const toggleReference = (id: string) => {
+    setReferencedConvIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const removeReference = (id: string) => {
+    setReferencedConvIds(prev => prev.filter(i => i !== id));
   };
 
   const handleFileClick = () => {
@@ -598,6 +630,32 @@ export default function ChatContainer() {
           borderTop: '1px solid #f0f0f0',
           background: '#fafafa'
         }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            marginBottom: '8px'
+          }}>
+            <Space orientation="horizontal" size="small">
+              <UserAvatar />
+              <div style={{ maxWidth: '160px' }}>
+                <Text strong style={{ display: 'block', fontSize: '14px' }} ellipsis>
+                  {user?.full_name || user?.email || 'User'}
+                </Text>
+                <Text type="secondary" style={{ fontSize: '12px' }} ellipsis>
+                  {user?.email}
+                </Text>
+              </div>
+            </Space>
+            <Tooltip title="Logout">
+              <Button 
+                type="text" 
+                icon={<LogoutOutlined />} 
+                onClick={() => authLogout()}
+                danger
+              />
+            </Tooltip>
+          </div>
           <Space orientation="vertical" size={4} style={{ width: '100%' }}>
             <Text type="secondary" style={{ fontSize: '10px' }}>© 2025 ImpactU</Text>
           </Space>
@@ -743,8 +801,8 @@ export default function ChatContainer() {
               padding: '20px 24px'
             }}>
               <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-                {/* Attachments List */}
-                {attachments.length > 0 && (
+                {/* Attachments and References List */}
+                {(attachments.length > 0 || referencedConvIds.length > 0) && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
                     {attachments.map(file => (
                       <Tag 
@@ -757,6 +815,21 @@ export default function ChatContainer() {
                         {file.filename}
                       </Tag>
                     ))}
+                    {referencedConvIds.map(id => {
+                      const conv = conversations.find(c => c.id === id);
+                      return (
+                        <Tag 
+                          key={id} 
+                          closable 
+                          onClose={() => removeReference(id)}
+                          icon={<LinkOutlined />}
+                          color="blue"
+                          style={{ padding: '4px 8px', borderRadius: '6px' }}
+                        >
+                          {conv?.title || 'Conversation'}
+                        </Tag>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -783,6 +856,8 @@ export default function ChatContainer() {
                   isTranscribing={isTranscribing}
                   onStartRecording={startRecording}
                   onStopRecording={stopRecording}
+                  onReferenceClick={handleReferenceClick}
+                  referencedCount={referencedConvIds.length}
                 />
               </div>
             </div>
@@ -790,6 +865,56 @@ export default function ChatContainer() {
         )}
         </Content>
       </Layout>
+
+      {/* Reference Conversations Modal */}
+      <Modal
+        title="Reference Conversations"
+        open={showReferenceModal}
+        onOk={() => setShowReferenceModal(false)}
+        onCancel={() => setShowReferenceModal(false)}
+        width={500}
+      >
+        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+          <Text type="secondary" style={{ display: 'block', marginBottom: '16px' }}>
+            Select conversations to include as context for your next message.
+          </Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {conversations
+              .filter(c => c.id !== currentConversation?.id)
+              .map(conv => (
+                <div 
+                  key={conv.id}
+                  onClick={() => toggleReference(conv.id)}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: `1px solid ${referencedConvIds.includes(conv.id) ? '#1890ff' : '#f0f0f0'}`,
+                    background: referencedConvIds.includes(conv.id) ? '#e6f7ff' : '#ffffff',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <MessageOutlined style={{ color: referencedConvIds.includes(conv.id) ? '#1890ff' : '#8c8c8c' }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Text strong style={{ display: 'block' }} ellipsis>{conv.title}</Text>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>
+                      {new Date(conv.updated_at).toLocaleDateString()}
+                    </Text>
+                  </div>
+                  {referencedConvIds.includes(conv.id) && (
+                    <Tag color="blue">Selected</Tag>
+                  )}
+                </div>
+              ))}
+            {conversations.length <= 1 && (
+              <Empty description="No other conversations to reference" />
+            )}
+          </div>
+        </div>
+      </Modal>
 
       {/* Model Selector Modal */}
       <Modal

@@ -116,7 +116,7 @@ export function useChat(token: string | null) {
 
   // Send message
   const sendMessage = useCallback(
-    async (content: string, attachments: any[] = []) => {
+    async (content: string, attachments: any[] = [], referenced_conv_ids: string[] = []) => {
       const conv = currentConversationRef.current;
       if (!conv || !isConnected) {
         setError('Not connected to chat');
@@ -130,13 +130,16 @@ export function useChat(token: string | null) {
         user_id: 'current-user',
         role: 'user',
         content,
-        metadata: attachments.length > 0 ? { attachments } : undefined,
+        metadata: {
+          ...(attachments.length > 0 ? { attachments } : {}),
+          ...(referenced_conv_ids.length > 0 ? { referenced_conv_ids } : {}),
+        },
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, userMessage]);
 
       // Send via WebSocket
-      wsSendMessage(conv.id, content, true, attachments);
+      wsSendMessage(conv.id, content, true, attachments, referenced_conv_ids);
     },
     [isConnected, wsSendMessage]
   );
