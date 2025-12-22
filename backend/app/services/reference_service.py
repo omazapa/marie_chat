@@ -13,6 +13,9 @@ class ReferenceService:
     ) -> List[Dict]:
         """Obtener conversaciones referenciadas con sus mensajes"""
         referenced_convs = []
+        if not conversation_ids:
+            return referenced_convs
+            
         print(f"[REF_SERVICE] Fetching {len(conversation_ids)} conversations for user {user_id}")
         
         for conv_id in conversation_ids:
@@ -42,36 +45,76 @@ class ReferenceService:
             })
         
         return referenced_convs
+
+    def get_referenced_messages(
+        self,
+        message_ids: List[str],
+        user_id: str
+    ) -> List[Dict]:
+        """Obtener mensajes específicos referenciados"""
+        referenced_msgs = []
+        if not message_ids:
+            return referenced_msgs
+            
+        print(f"[REF_SERVICE] Fetching {len(message_ids)} specific messages for user {user_id}")
+        
+        for msg_id in message_ids:
+            msg = self.opensearch.get_message(msg_id)
+            if not msg:
+                print(f"[REF_SERVICE] Message {msg_id} not found")
+                continue
+            
+            if msg["user_id"] != user_id:
+                print(f"[REF_SERVICE] Message {msg_id} does not belong to user {user_id}")
+                continue
+            
+            referenced_msgs.append(msg)
+            
+        return referenced_msgs
     
     def build_context_with_references(
         self,
         user_message: str,
         referenced_conv_ids: List[str],
         user_id: str,
-        include_full_history: bool = False
+        include_full_history: bool = False,
+        referenced_msg_ids: List[str] = None
     ) -> str:
-        """Construir prompt incluyendo contexto de conversaciones referenciadas"""
-        if not referenced_conv_ids:
+        """Construir prompt incluyendo contexto de conversaciones y mensajes referenciados"""
+        if not referenced_conv_ids and not referenced_msg_ids:
             return user_message
         
         referenced_convs = self.get_referenced_conversations(
-            referenced_conv_ids,
+            referenced_conv_ids or [],
             user_id,
             max_messages_per_conv=50 if include_full_history else 20
         )
         
-        if not referenced_convs:
+        referenced_msgs = self.get_referenced_messages(
+            referenced_msg_ids or [],
+            user_id
+        )
+        
+        if not referenced_convs and not referenced_msgs:
             return user_message
         
         context_parts = [
-            "=== CONTEXTO DE CONVERSACIONES ANTERIORES REFERENCIADAS POR EL USUARIO ===\n",
+            "=== CONTEXTO DE REFERENCIAS SELECCIONADAS POR EL USUARIO ===\n",
             "INSTRUCCIONES PARA EL ASISTENTE:",
-            "1. El usuario ha adjuntado estas conversaciones previas como contexto relevante.",
-            "2. Úsalas para responder a la pregunta actual, especialmente si el usuario hace referencia a 'lo que hablamos antes' o temas específicos de estos chats.",
-            "3. Mantén la continuidad si el usuario está retomando un tema de una de estas conversaciones.",
-            "4. Si la pregunta actual no parece relacionada, prioriza la pregunta actual pero mantén el contexto en mente.\n"
+            "1. El usuario ha seleccionado elementos específicos (chats o mensajes) como contexto relevante.",
+            "2. Úsalas para responder a la pregunta actual.",
+            "3. Si hay mensajes específicos referenciados, dales prioridad ya que son puntos exactos de interés.\n"
         ]
         
+        # Agregar mensajes específicos primero
+        if referenced_msgs:
+            context_parts.append("\n--- MENSAJES ESPECÍFICOS REFERENCIADOS ---")
+            for msg in referenced_msgs:
+                role = "USUARIO" if msg.get("role") == "user" else "ASISTENTE"
+                context_parts.append(f"[{role}]: {msg.get('content', '')}")
+            context_parts.append("--- FIN DE MENSAJES ESPECÍFICOS ---\n")
+        
+        # Agregar conversaciones completas
         for conv in referenced_convs:
             context_parts.append(f"\n--- INICIO DE CONVERSACIÓN: {conv['title']} ---")
             context_parts.append(f"(ID: {conv['id']}, Mensajes incluidos: {conv['message_count']})\n")

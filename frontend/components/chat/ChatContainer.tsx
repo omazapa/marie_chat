@@ -76,7 +76,19 @@ const AssistantAvatar = () => (
   </div>
 );
 
-const MessageItem = memo(({ msg, isStreaming, onEdit }: { msg: any, isStreaming: boolean, onEdit: (msg: any) => void }) => {
+const MessageItem = memo(({ 
+  msg, 
+  isStreaming, 
+  onEdit, 
+  onReference, 
+  isReferenced 
+}: { 
+  msg: any, 
+  isStreaming: boolean, 
+  onEdit: (msg: any) => void,
+  onReference: (id: string) => void,
+  isReferenced: boolean
+}) => {
   return (
     <div style={{ marginBottom: '24px' }}>
       {/* Show thinking component BEFORE message for assistant streaming */}
@@ -111,7 +123,7 @@ const MessageItem = memo(({ msg, isStreaming, onEdit }: { msg: any, isStreaming:
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
               {msg.metadata.references.map((ref: any) => (
                 <Tag key={ref.id} icon={<LinkOutlined />} style={{ fontSize: '11px', background: '#e6f7ff', borderColor: '#91d5ff' }}>
-                  {ref.title}
+                  {ref.type === 'message' ? 'Mensaje: ' + ref.content : ref.title}
                 </Tag>
               ))}
             </div>
@@ -121,18 +133,30 @@ const MessageItem = memo(({ msg, isStreaming, onEdit }: { msg: any, isStreaming:
             avatar={msg.role === 'user' ? <UserAvatar /> : <AssistantAvatar />}
             placement={msg.role === 'user' ? 'end' : 'start'}
             typing={msg.id === 'streaming'}
-            header={msg.role === 'user' ? (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
-                <Tooltip title="Edit message">
-                  <Button 
-                    type="text" 
-                    size="small" 
-                    icon={<EditOutlined style={{ fontSize: '12px', color: '#8c8c8c' }} />} 
-                    onClick={() => onEdit(msg)}
-                  />
-                </Tooltip>
+            header={(
+              <div style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: '4px', gap: '8px' }}>
+                {msg.role === 'user' && (
+                  <Tooltip title="Edit message">
+                    <Button 
+                      type="text" 
+                      size="small" 
+                      icon={<EditOutlined style={{ fontSize: '12px', color: '#8c8c8c' }} />} 
+                      onClick={() => onEdit(msg)}
+                    />
+                  </Tooltip>
+                )}
+                {msg.id !== 'streaming' && (
+                  <Tooltip title={isReferenced ? "Remove reference" : "Reference this message"}>
+                    <Button 
+                      type="text" 
+                      size="small" 
+                      icon={<LinkOutlined style={{ fontSize: '12px', color: isReferenced ? '#1890ff' : '#8c8c8c' }} />} 
+                      onClick={() => onReference(msg.id)}
+                    />
+                  </Tooltip>
+                )}
               </div>
-            ) : null}
+            )}
             styles={{
               content: {
                 background: msg.role === 'user' ? '#1B4B73' : '#f5f5f5',
@@ -143,7 +167,8 @@ const MessageItem = memo(({ msg, isStreaming, onEdit }: { msg: any, isStreaming:
                 lineHeight: '1.6',
                 maxWidth: '100%',
                 width: (msg.content.includes('```html') || msg.content.includes('```svg')) && msg.role === 'assistant' ? '100%' : 'auto',
-                overflow: (msg.content.includes('```html') || msg.content.includes('```svg')) ? 'visible' : 'hidden'
+                overflow: (msg.content.includes('```html') || msg.content.includes('```svg')) ? 'visible' : 'hidden',
+                border: isReferenced ? '2px solid #1890ff' : 'none'
               }
             }}
           />
@@ -268,7 +293,21 @@ const ChatInput = memo(({
 
 ChatInput.displayName = 'ChatInput';
 
-const MessageList = memo(({ messages, isStreaming, onEdit, messagesEndRef }: { messages: any[], isStreaming: boolean, onEdit: (msg: any) => void, messagesEndRef: any }) => {
+const MessageList = memo(({ 
+  messages, 
+  isStreaming, 
+  onEdit, 
+  onReference,
+  referencedMsgIds,
+  messagesEndRef 
+}: { 
+  messages: any[], 
+  isStreaming: boolean, 
+  onEdit: (msg: any) => void, 
+  onReference: (id: string) => void,
+  referencedMsgIds: string[],
+  messagesEndRef: any 
+}) => {
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
       {messages.map((msg) => (
@@ -277,6 +316,8 @@ const MessageList = memo(({ messages, isStreaming, onEdit, messagesEndRef }: { m
           msg={msg} 
           isStreaming={isStreaming} 
           onEdit={onEdit} 
+          onReference={onReference}
+          isReferenced={referencedMsgIds.includes(msg.id)}
         />
       ))}
       <div ref={messagesEndRef} />
@@ -294,6 +335,7 @@ export default function ChatContainer() {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [referencedConvIds, setReferencedConvIds] = useState<string[]>([]);
+  const [referencedMsgIds, setReferencedMsgIds] = useState<string[]>([]);
   const [showReferenceModal, setShowReferenceModal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const { accessToken, user, logout: authLogout } = useAuthStore();
@@ -440,12 +482,14 @@ export default function ChatContainer() {
       const conv = conversations.find((c: any) => c.id === id);
       return { id, title: conv?.title || 'Chat' };
     });
+    const currentMsgRefs = [...referencedMsgIds];
     
     setAttachments([]);
     setReferencedConvIds([]);
+    setReferencedMsgIds([]);
     
     if (editingMessageId) {
-      await editMessage(editingMessageId, content, currentAttachments, currentReferences);
+      await editMessage(editingMessageId, content, currentAttachments, currentReferences, currentMsgRefs);
       setEditingMessageId(null);
       return;
     }
@@ -455,10 +499,10 @@ export default function ChatContainer() {
       const conv = await createConversation('New Chat', selectedModel, selectedProvider);
       if (conv) {
         await selectConversation(conv);
-        setTimeout(() => sendMessage(content, currentAttachments, currentReferences), 500);
+        setTimeout(() => sendMessage(content, currentAttachments, currentReferences, currentMsgRefs), 500);
       }
     } else {
-      await sendMessage(content, currentAttachments, currentReferences);
+      await sendMessage(content, currentAttachments, currentReferences, currentMsgRefs);
     }
   };
 
@@ -474,6 +518,16 @@ export default function ChatContainer() {
 
   const removeReference = (id: string) => {
     setReferencedConvIds(prev => prev.filter(i => i !== id));
+  };
+
+  const toggleMessageReference = (id: string) => {
+    setReferencedMsgIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const removeMessageReference = (id: string) => {
+    setReferencedMsgIds(prev => prev.filter(i => i !== id));
   };
 
   const handleFileClick = () => {
@@ -521,6 +575,12 @@ export default function ChatContainer() {
     } else {
       setReferencedConvIds([]);
     }
+
+    if (msg.metadata?.referenced_msg_ids) {
+      setReferencedMsgIds(msg.metadata.referenced_msg_ids);
+    } else {
+      setReferencedMsgIds([]);
+    }
   }, []);
 
   const handleCancelEdit = useCallback(() => {
@@ -528,6 +588,7 @@ export default function ChatContainer() {
     setInputValue('');
     setAttachments([]);
     setReferencedConvIds([]);
+    setReferencedMsgIds([]);
   }, []);
 
   return (
@@ -820,6 +881,8 @@ export default function ChatContainer() {
                   messages={chatMessages} 
                   isStreaming={isStreaming} 
                   onEdit={handleEdit} 
+                  onReference={toggleMessageReference}
+                  referencedMsgIds={referencedMsgIds}
                   messagesEndRef={messagesEndRef} 
                 />
               )}
@@ -833,7 +896,7 @@ export default function ChatContainer() {
             }}>
               <div style={{ maxWidth: '900px', margin: '0 auto' }}>
                 {/* Attachments and References List */}
-                {(attachments.length > 0 || referencedConvIds.length > 0) && (
+                {(attachments.length > 0 || referencedConvIds.length > 0 || referencedMsgIds.length > 0) && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
                     {attachments.map(file => (
                       <Tag 
@@ -858,6 +921,21 @@ export default function ChatContainer() {
                           style={{ padding: '4px 8px', borderRadius: '6px' }}
                         >
                           {conv?.title || 'Conversation'}
+                        </Tag>
+                      );
+                    })}
+                    {referencedMsgIds.map(id => {
+                      const msg = messages.find(m => m.id === id);
+                      return (
+                        <Tag 
+                          key={id} 
+                          closable 
+                          onClose={() => removeMessageReference(id)}
+                          icon={<LinkOutlined />}
+                          color="cyan"
+                          style={{ padding: '4px 8px', borderRadius: '6px' }}
+                        >
+                          Mensaje: {msg?.content?.substring(0, 20)}...
                         </Tag>
                       );
                     })}
@@ -888,7 +966,7 @@ export default function ChatContainer() {
                   onStartRecording={startRecording}
                   onStopRecording={stopRecording}
                   onReferenceClick={handleReferenceClick}
-                  referencedCount={referencedConvIds.length}
+                  referencedCount={referencedConvIds.length + referencedMsgIds.length}
                 />
               </div>
             </div>

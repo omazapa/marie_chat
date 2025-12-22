@@ -164,7 +164,8 @@ export function useWebSocket({
       message: string, 
       stream: boolean = true, 
       attachments: any[] = [],
-      referenced_conv_ids: string[] = []
+      referenced_conv_ids: string[] = [],
+      referenced_msg_ids: string[] = []
     ) => {
       if (socketRef.current && socketRef.current.connected) {
         socketRef.current.emit('send_message', {
@@ -173,6 +174,7 @@ export function useWebSocket({
           stream,
           attachments,
           referenced_conv_ids,
+          referenced_msg_ids,
         });
         console.log(`💬 Sent message to ${conversationId}:`, message.substring(0, 50));
         if (attachments.length > 0) {
@@ -180,6 +182,9 @@ export function useWebSocket({
         }
         if (referenced_conv_ids.length > 0) {
           console.log(`🔗 Referencing ${referenced_conv_ids.length} conversations`);
+        }
+        if (referenced_msg_ids.length > 0) {
+          console.log(`📍 Referencing ${referenced_msg_ids.length} specific messages`);
         }
       } else {
         console.error('❌ Socket not connected');

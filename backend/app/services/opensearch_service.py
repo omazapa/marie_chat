@@ -252,3 +252,11 @@ class OpenSearchService:
         print(f"[OPENSEARCH] Found {len(messages)} messages for conversation {conversation_id}")
         messages.reverse()
         return messages
+
+    def get_message(self, message_id: str) -> Optional[dict]:
+        """Get message by ID"""
+        try:
+            result = self.client.get(index="marie_messages", id=message_id)
+            return result["_source"]
+        except Exception:
+            return None

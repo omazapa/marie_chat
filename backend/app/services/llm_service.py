@@ -312,7 +312,8 @@ class LLMService:
         user_message: str,
         stream: bool = True,
         attachments: Optional[List[Dict[str, Any]]] = None,
-        referenced_conv_ids: Optional[List[str]] = None
+        referenced_conv_ids: Optional[List[str]] = None,
+        referenced_msg_ids: Optional[List[str]] = None
     ) -> AsyncGenerator[Dict[str, Any], None] | Dict[str, Any]:
         """
         Send a message and get LLM response
@@ -324,6 +325,7 @@ class LLMService:
             stream: Whether to stream the response
             attachments: Optional list of file attachments with extracted text
             referenced_conv_ids: Optional list of conversation IDs to reference
+            referenced_msg_ids: Optional list of message IDs to reference
         
         Returns:
             AsyncGenerator if stream=True, Dict otherwise
@@ -337,24 +339,36 @@ class LLMService:
         
         # Build context with references if any
         references_metadata = None
-        if referenced_conv_ids:
-            print(f"[SERVICE] Building context for {len(referenced_conv_ids)} references")
-            # Fetch references once to use for both metadata and context
-            ref_convs = self.reference_service.get_referenced_conversations(
-                referenced_conv_ids, 
-                user_id
-            )
+        if referenced_conv_ids or referenced_msg_ids:
+            print(f"[SERVICE] Building context for references")
             
             # Prepare metadata for the UI
-            references_metadata = [
-                {"id": c["id"], "title": c["title"]} for c in ref_convs
-            ]
+            references_metadata = []
             
-            # Build context string manually or update build_context_with_references to accept pre-fetched convs
+            if referenced_conv_ids:
+                ref_convs = self.reference_service.get_referenced_conversations(
+                    referenced_conv_ids, 
+                    user_id
+                )
+                references_metadata.extend([
+                    {"id": c["id"], "title": c["title"], "type": "conversation"} for c in ref_convs
+                ])
+            
+            if referenced_msg_ids:
+                ref_msgs = self.reference_service.get_referenced_messages(
+                    referenced_msg_ids,
+                    user_id
+                )
+                references_metadata.extend([
+                    {"id": m["id"], "content": m["content"][:50] + "...", "type": "message"} for m in ref_msgs
+                ])
+            
+            # Build context string
             user_message_with_context = self.reference_service.build_context_with_references(
                 user_message=user_message,
                 referenced_conv_ids=referenced_conv_ids,
-                user_id=user_id
+                user_id=user_id,
+                referenced_msg_ids=referenced_msg_ids
             )
             print(f"[SERVICE] Context built, length: {len(user_message_with_context)}")
         else:
@@ -370,8 +384,9 @@ class LLMService:
             metadata={
                 "attachments": attachments,
                 "referenced_conv_ids": referenced_conv_ids,
+                "referenced_msg_ids": referenced_msg_ids,
                 "references": references_metadata
-            } if attachments or referenced_conv_ids else None
+            } if attachments or referenced_conv_ids or referenced_msg_ids else None
         )
         current_msg_id = saved_user_msg["id"]
 

@@ -116,7 +116,12 @@ export function useChat(token: string | null) {
 
   // Send message
   const sendMessage = useCallback(
-    async (content: string, attachments: any[] = [], referenced_convs: { id: string, title: string }[] = []) => {
+    async (
+      content: string, 
+      attachments: any[] = [], 
+      referenced_convs: { id: string, title: string }[] = [],
+      referenced_msg_ids: string[] = []
+    ) => {
       const conv = currentConversationRef.current;
       if (!conv || !isConnected) {
         setError('Not connected to chat');
@@ -136,13 +141,14 @@ export function useChat(token: string | null) {
           ...(attachments.length > 0 ? { attachments } : {}),
           ...(referenced_convs.length > 0 ? { references: referenced_convs } : {}),
           ...(referenced_conv_ids.length > 0 ? { referenced_conv_ids } : {}),
+          ...(referenced_msg_ids.length > 0 ? { referenced_msg_ids } : {}),
         },
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, userMessage]);
 
       // Send via WebSocket
-      wsSendMessage(conv.id, content, true, attachments, referenced_conv_ids);
+      wsSendMessage(conv.id, content, true, attachments, referenced_conv_ids, referenced_msg_ids);
     },
     [isConnected, wsSendMessage]
   );
@@ -179,7 +185,13 @@ export function useChat(token: string | null) {
 
   // Edit and resend message
   const editMessage = useCallback(
-    async (messageId: string, newContent: string, attachments: any[] = [], referenced_convs: { id: string, title: string }[] = []) => {
+    async (
+      messageId: string, 
+      newContent: string, 
+      attachments: any[] = [], 
+      referenced_convs: { id: string, title: string }[] = [],
+      referenced_msg_ids: string[] = []
+    ) => {
       const conv = currentConversationRef.current;
       if (!conv || !isConnected) {
         setError('Not connected to chat');
@@ -208,7 +220,7 @@ export function useChat(token: string | null) {
         });
 
         // Send the new content
-        await sendMessage(newContent, attachments, referenced_convs);
+        await sendMessage(newContent, attachments, referenced_convs, referenced_msg_ids);
       } catch (err: any) {
         setError(err.response?.data?.error || 'Failed to edit message');
       } finally {
