@@ -3,6 +3,7 @@ LLM Provider Factory and Model Registry
 Central management for multiple LLM providers
 """
 from typing import Dict, List, Optional, Any
+from app.config import settings
 from .llm_provider import LLMProvider, ModelInfo
 from .ollama_provider import OllamaProvider
 from .huggingface_provider import HuggingFaceProvider
@@ -181,10 +182,14 @@ model_registry = ModelRegistry(provider_factory)
 def initialize_providers():
     """Initialize default providers"""
     # Register Ollama provider
-    provider_factory.register_provider('ollama', OllamaProvider)
+    provider_factory.register_provider('ollama', OllamaProvider, {
+        'base_url': settings.OLLAMA_BASE_URL
+    })
     
     # Register HuggingFace provider (requires API key)
-    provider_factory.register_provider('huggingface', HuggingFaceProvider)
+    provider_factory.register_provider('huggingface', HuggingFaceProvider, {
+        'api_key': settings.HUGGINGFACE_API_KEY
+    })
     
     print("✅ LLM Providers initialized: ollama, huggingface")
 

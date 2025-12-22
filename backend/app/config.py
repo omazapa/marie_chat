@@ -21,10 +21,10 @@ class Settings(BaseSettings):
     JWT_HEADER_TYPE: str = 'Bearer'
     
     # OpenSearch
-    OPENSEARCH_HOSTS: str = os.getenv('OPENSEARCH_HOSTS', 'https://localhost:9200')
+    OPENSEARCH_HOSTS: str = os.getenv('OPENSEARCH_HOSTS', 'http://localhost:9200')
     OPENSEARCH_USER: str = os.getenv('OPENSEARCH_USER', 'admin')
     OPENSEARCH_PASSWORD: str = os.getenv('OPENSEARCH_PASSWORD', 'Marie_Chat_2024!')
-    OPENSEARCH_USE_SSL: bool = os.getenv('OPENSEARCH_USE_SSL', 'true').lower() == 'true'
+    OPENSEARCH_USE_SSL: bool = os.getenv('OPENSEARCH_USE_SSL', 'false').lower() == 'true'
     OPENSEARCH_VERIFY_CERTS: bool = os.getenv('OPENSEARCH_VERIFY_CERTS', 'false').lower() == 'true'
     
     @property
@@ -51,6 +51,8 @@ class Settings(BaseSettings):
         'http://localhost:3000',
         'http://localhost:5173',
         'http://127.0.0.1:3000',
+        'http://localhost:5000',
+        'http://127.0.0.1:5000',
     ]
     
     # File Upload

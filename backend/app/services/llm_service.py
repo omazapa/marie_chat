@@ -3,7 +3,7 @@ LLM Service
 Manages conversations, messages, and LLM interactions
 """
 from datetime import datetime
-from typing import Dict, Any, Optional, AsyncGenerator
+from typing import Dict, Any, Optional, AsyncGenerator, List
 import uuid
 from opensearchpy import OpenSearch
 from app.db import opensearch_client
@@ -305,7 +305,8 @@ class LLMService:
         conversation_id: str,
         user_id: str,
         user_message: str,
-        stream: bool = True
+        stream: bool = True,
+        attachments: Optional[List[Dict[str, Any]]] = None
     ) -> AsyncGenerator[Dict[str, Any], None] | Dict[str, Any]:
         """
         Send a message and get LLM response
@@ -315,6 +316,7 @@ class LLMService:
             user_id: User ID
             user_message: User's message content
             stream: Whether to stream the response
+            attachments: Optional list of file attachments with extracted text
         
         Returns:
             AsyncGenerator if stream=True, Dict otherwise
@@ -326,13 +328,14 @@ class LLMService:
         if not conversation:
             raise ValueError("Conversation not found or access denied")
         
-        # Save user message
+        # Save user message with attachments in metadata
         print(f"[SERVICE] Saving user message")
         self.save_message(
             conversation_id=conversation_id,
             user_id=user_id,
             role="user",
-            content=user_message
+            content=user_message,
+            metadata={"attachments": attachments} if attachments else None
         )
         
         # Get conversation history
@@ -350,9 +353,23 @@ class LLMService:
         
         # Add conversation history
         for msg in messages:
+            content = msg["content"]
+            
+            # If message has attachments, prepend extracted text to the content for the LLM
+            msg_metadata = msg.get("metadata", {})
+            msg_attachments = msg_metadata.get("attachments", [])
+            if msg_attachments:
+                context_parts = []
+                for att in msg_attachments:
+                    if att.get("extracted_text"):
+                        context_parts.append(f"--- FILE: {att['filename']} ---\n{att['extracted_text']}\n--- END FILE ---")
+                
+                if context_parts:
+                    content = "\n".join(context_parts) + "\n\nUser Question: " + content
+
             llm_messages.append({
                 "role": msg["role"],
-                "content": msg["content"]
+                "content": content
             })
         
         # Get model settings

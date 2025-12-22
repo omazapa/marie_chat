@@ -15,7 +15,10 @@ import {
   EditOutlined, 
   DeleteOutlined, 
   ThunderboltOutlined, 
-  SettingOutlined
+  SettingOutlined,
+  PaperClipOutlined,
+  FileOutlined,
+  CloseCircleFilled
 } from '@ant-design/icons';
 import type { ConversationsProps } from '@ant-design/x';
 import type { Message as WebSocketMessage } from '@/hooks/useWebSocket';
@@ -38,6 +41,9 @@ export default function ChatContainer() {
   const [selectedProvider, setSelectedProvider] = useState('ollama');
   const [selectedModel, setSelectedModel] = useState('llama3.2');
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { accessToken } = useAuthStore();
   const {
@@ -55,6 +61,7 @@ export default function ChatContainer() {
     selectConversation,
     sendMessage,
     editMessage,
+    uploadFile,
     stopGeneration,
   } = useChat(accessToken);
 
@@ -74,6 +81,7 @@ export default function ChatContainer() {
       content: msg.content,
       role: msg.role as 'user' | 'assistant',
       status: 'success' as const,
+      metadata: msg.metadata,
     })),
     ...(isStreaming ? [{
       id: 'streaming',
@@ -138,9 +146,11 @@ export default function ChatContainer() {
   };
 
   const handleSend = async (content: string) => {
-    if (!content.trim()) return;
+    if (!content.trim() && attachments.length === 0) return;
     
     setInputValue('');
+    const currentAttachments = [...attachments];
+    setAttachments([]);
     
     if (editingMessageId) {
       await editMessage(editingMessageId, content);
@@ -153,11 +163,37 @@ export default function ChatContainer() {
       const conv = await createConversation('New Chat', selectedModel, selectedProvider);
       if (conv) {
         await selectConversation(conv);
-        setTimeout(() => sendMessage(content), 500);
+        setTimeout(() => sendMessage(content, currentAttachments), 500);
       }
     } else {
-      await sendMessage(content);
+      await sendMessage(content, currentAttachments);
     }
+  };
+
+  const handleFileClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const fileData = await uploadFile(files[i]);
+        if (fileData) {
+          setAttachments(prev => [...prev, fileData]);
+        }
+      }
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments(prev => prev.filter(a => a.file_id !== id));
   };
 
   const handleEdit = (messageId: string, content: string) => {
@@ -465,35 +501,46 @@ export default function ChatContainer() {
                           </div>
                         )}
                         {(msg.content || msg.id !== 'streaming') && (
-                          <Bubble
-                            content={<MarkdownContent content={msg.content} />}
-                            avatar={msg.role === 'user' ? <UserAvatar /> : <AssistantAvatar />}
-                            placement={msg.role === 'user' ? 'end' : 'start'}
-                            typing={msg.id === 'streaming'}
-                            header={msg.role === 'user' ? (
-                              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
-                                <Tooltip title="Edit message">
-                                  <Button 
-                                    type="text" 
-                                    size="small" 
-                                    icon={<EditOutlined style={{ fontSize: '12px', color: '#8c8c8c' }} />} 
-                                    onClick={() => handleEdit(msg.id, msg.content)}
-                                  />
-                                </Tooltip>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                            {msg.metadata?.attachments && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
+                                {msg.metadata.attachments.map((att: any) => (
+                                  <Tag key={att.file_id} icon={<FileOutlined />} style={{ fontSize: '11px' }}>
+                                    {att.filename}
+                                  </Tag>
+                                ))}
                               </div>
-                            ) : null}
-                            styles={{
-                              content: {
-                                background: msg.role === 'user' ? '#1B4B73' : '#f5f5f5',
-                                color: msg.role === 'user' ? '#ffffff' : '#262626',
-                                padding: '12px 16px',
-                                borderRadius: '12px',
-                                fontSize: '15px',
-                                lineHeight: '1.6',
-                                maxWidth: '100%'
-                              }
-                            }}
-                          />
+                            )}
+                            <Bubble
+                              content={<MarkdownContent content={msg.content} />}
+                              avatar={msg.role === 'user' ? <UserAvatar /> : <AssistantAvatar />}
+                              placement={msg.role === 'user' ? 'end' : 'start'}
+                              typing={msg.id === 'streaming'}
+                              header={msg.role === 'user' ? (
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
+                                  <Tooltip title="Edit message">
+                                    <Button 
+                                      type="text" 
+                                      size="small" 
+                                      icon={<EditOutlined style={{ fontSize: '12px', color: '#8c8c8c' }} />} 
+                                      onClick={() => handleEdit(msg.id, msg.content)}
+                                    />
+                                  </Tooltip>
+                                </div>
+                              ) : null}
+                              styles={{
+                                content: {
+                                  background: msg.role === 'user' ? '#1B4B73' : '#f5f5f5',
+                                  color: msg.role === 'user' ? '#ffffff' : '#262626',
+                                  padding: '12px 16px',
+                                  borderRadius: '12px',
+                                  fontSize: '15px',
+                                  lineHeight: '1.6',
+                                  maxWidth: '100%'
+                                }
+                              }}
+                            />
+                          </div>
                         )}
                       </div>
                     );
@@ -511,6 +558,23 @@ export default function ChatContainer() {
               padding: '20px 24px'
             }}>
               <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+                {/* Attachments List */}
+                {attachments.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                    {attachments.map(file => (
+                      <Tag 
+                        key={file.file_id} 
+                        closable 
+                        onClose={() => removeAttachment(file.file_id)}
+                        icon={<FileOutlined />}
+                        style={{ padding: '4px 8px', borderRadius: '6px' }}
+                      >
+                        {file.filename}
+                      </Tag>
+                    ))}
+                  </div>
+                )}
+
                 {editingMessageId && (
                   <div style={{ 
                     marginBottom: '8px', 
@@ -530,19 +594,37 @@ export default function ChatContainer() {
                     </Button>
                   </div>
                 )}
-                <Sender
-                  value={inputValue}
-                  onChange={setInputValue}
-                  placeholder={editingMessageId ? "Edit your message..." : "Type your message here..."}
-                  onSubmit={handleSend}
-                  onCancel={stopGeneration}
-                  loading={isStreaming}
-                  disabled={!isConnected}
-                  style={{
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                    borderRadius: '12px'
-                  }}
+                
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  style={{ display: 'none' }} 
+                  onChange={handleFileChange}
+                  multiple
                 />
+
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+                  <Button 
+                    icon={<PaperClipOutlined />} 
+                    onClick={handleFileClick}
+                    loading={isUploading}
+                    style={{ height: '44px', width: '44px', borderRadius: '12px' }}
+                  />
+                  <Sender
+                    value={inputValue}
+                    onChange={setInputValue}
+                    placeholder={editingMessageId ? "Edit your message..." : "Type your message here..."}
+                    onSubmit={handleSend}
+                    onCancel={stopGeneration}
+                    loading={isStreaming}
+                    disabled={!isConnected}
+                    style={{
+                      flex: 1,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                      borderRadius: '12px'
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </>

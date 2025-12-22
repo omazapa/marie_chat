@@ -116,7 +116,7 @@ export function useChat(token: string | null) {
 
   // Send message
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, attachments: any[] = []) => {
       const conv = currentConversationRef.current;
       if (!conv || !isConnected) {
         setError('Not connected to chat');
@@ -130,14 +130,45 @@ export function useChat(token: string | null) {
         user_id: 'current-user',
         role: 'user',
         content,
+        metadata: attachments.length > 0 ? { attachments } : undefined,
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, userMessage]);
 
       // Send via WebSocket
-      wsSendMessage(conv.id, content, true);
+      wsSendMessage(conv.id, content, true, attachments);
     },
     [isConnected, wsSendMessage]
+  );
+
+  // Upload file
+  const uploadFile = useCallback(
+    async (file: File) => {
+      if (!token) return null;
+
+      try {
+        setLoading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await axios.post(`${API_BASE}/files/upload`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        return response.data;
+      } catch (err: any) {
+        const errorMsg = err.response?.data?.error || 'Failed to upload file';
+        setError(errorMsg);
+        console.error('Error uploading file:', err);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [token]
   );
 
   // Edit and resend message
@@ -350,6 +381,7 @@ export function useChat(token: string | null) {
     selectConversation,
     sendMessage,
     editMessage,
+    uploadFile,
     setTyping,
     stopGeneration,
   };

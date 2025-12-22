@@ -29,11 +29,12 @@ def create_app():
     socketio.init_app(app)
     
     # Register blueprints
-    from app.routes import auth_bp, conversations_bp, models_bp
+    from app.routes import auth_bp, conversations_bp, models_bp, files_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(conversations_bp, url_prefix='/api/conversations')
     app.register_blueprint(models_bp, url_prefix='/api/models')
+    app.register_blueprint(files_bp, url_prefix='/api/files')
     
     # Register socket events
     from app.sockets import chat_events
