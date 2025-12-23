@@ -96,8 +96,7 @@ services:
       - "5601:5601"
     environment:
       - OPENSEARCH_HOSTS=["http://opensearch:9200"]
-      - OPENSEARCH_USERNAME=admin
-      - OPENSEARCH_PASSWORD=Marie_Chat_2024!
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
     depends_on:
       opensearch:
         condition: service_healthy
