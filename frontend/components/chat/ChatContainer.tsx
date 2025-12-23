@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Conversations, Sender, Bubble, Think, Welcome, Prompts } from '@ant-design/x';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
@@ -22,7 +23,9 @@ import {
   AudioOutlined,
   AudioMutedOutlined,
   LinkOutlined,
-  LogoutOutlined
+  LogoutOutlined,
+  SearchOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import type { ConversationsProps } from '@ant-design/x';
 import type { Message as WebSocketMessage } from '@/hooks/useWebSocket';
@@ -82,14 +85,16 @@ const MessageItem = memo(({
   onEdit, 
   onReference, 
   isReferenced,
-  onNavigate
+  onNavigate,
+  onRegenerate
 }: { 
   msg: any, 
   isStreaming: boolean, 
   onEdit: (msg: any) => void,
   onReference: (id: string) => void,
   isReferenced: boolean,
-  onNavigate: (ref: any) => void
+  onNavigate: (ref: any) => void,
+  onRegenerate?: () => void
 }) => {
   return (
     <div id={`message-${msg.id}`} style={{ marginBottom: '24px', transition: 'background-color 0.5s' }}>
@@ -154,6 +159,16 @@ const MessageItem = memo(({
                       size="small" 
                       icon={<EditOutlined style={{ fontSize: '12px', color: '#8c8c8c' }} />} 
                       onClick={() => onEdit(msg)}
+                    />
+                  </Tooltip>
+                )}
+                {msg.role === 'assistant' && onRegenerate && !isStreaming && (
+                  <Tooltip title="Regenerate response">
+                    <Button 
+                      type="text" 
+                      size="small" 
+                      icon={<ReloadOutlined style={{ fontSize: '12px', color: '#8c8c8c' }} />} 
+                      onClick={onRegenerate}
                     />
                   </Tooltip>
                 )}
@@ -352,6 +367,7 @@ const MessageList = memo(({
   referencedMsgIds,
   onNavigate,
   onFollowUp,
+  onRegenerate,
   messagesEndRef 
 }: { 
   messages: any[], 
@@ -361,6 +377,7 @@ const MessageList = memo(({
   referencedMsgIds: string[],
   onNavigate: (ref: any) => void,
   onFollowUp: (text: string) => void,
+  onRegenerate: () => void,
   messagesEndRef: any 
 }) => {
   return (
@@ -374,6 +391,7 @@ const MessageList = memo(({
             onReference={onReference}
             isReferenced={referencedMsgIds.includes(msg.id)}
             onNavigate={onNavigate}
+            onRegenerate={index === messages.length - 1 && msg.role === 'assistant' ? onRegenerate : undefined}
           />
           {/* Show follow-ups only for the last assistant message and when not streaming */}
           {msg.role === 'assistant' && 
@@ -395,7 +413,9 @@ const MessageList = memo(({
 MessageList.displayName = 'MessageList';
 
 export default function ChatContainer() {
+  const router = useRouter();
   const [inputValue, setInputValue] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState('ollama');
   const [selectedModel, setSelectedModel] = useState('llama3.2');
@@ -440,7 +460,20 @@ export default function ChatContainer() {
     editMessage,
     uploadFile,
     stopGeneration,
+    regenerateResponse,
   } = useChat(accessToken);
+
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery) return conversations;
+    return conversations.filter(conv => 
+      conv.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [conversations, searchQuery]);
+
+  const handleLogout = useCallback(() => {
+    authLogout();
+    router.push('/login');
+  }, [authLogout, router]);
 
   // Auto-scroll to bottom when messages change or streaming
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
@@ -766,11 +799,23 @@ export default function ChatContainer() {
           </Button>
         </div>
 
+        {/* Search Conversations */}
+        <div style={{ padding: '0 16px 12px 16px' }}>
+          <Input
+            placeholder="Search conversations..."
+            prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            allowClear
+            style={{ borderRadius: '8px' }}
+          />
+        </div>
+
         {/* Conversations List */}
         <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-          {conversations.length > 0 ? (
+          {filteredConversations.length > 0 ? (
             <Conversations
-              items={conversations.map((conv: Conversation) => ({
+              items={filteredConversations.map((conv: Conversation) => ({
                 key: conv.id,
                 label: conv.title,
                 timestamp: new Date(conv.updated_at).getTime(),
@@ -822,7 +867,7 @@ export default function ChatContainer() {
             }}>
               <MessageOutlined style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.3 }} />
               <Text type="secondary" style={{ display: 'block', fontSize: '14px' }}>
-                No conversations yet
+                {searchQuery ? "No conversations match your search" : "No conversations yet"}
               </Text>
             </div>
           )}
@@ -855,7 +900,7 @@ export default function ChatContainer() {
               <Button 
                 type="text" 
                 icon={<LogoutOutlined />} 
-                onClick={() => authLogout()}
+                onClick={handleLogout}
                 danger
               />
             </Tooltip>
@@ -1030,6 +1075,7 @@ export default function ChatContainer() {
                   referencedMsgIds={referencedMsgIds}
                   onNavigate={handleNavigate}
                   onFollowUp={handleSend}
+                  onRegenerate={regenerateResponse}
                   messagesEndRef={messagesEndRef} 
                 />
               )}

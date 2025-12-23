@@ -162,6 +162,49 @@ export function useChat(token: string | null) {
     [isConnected, wsSendMessage]
   );
 
+  // Regenerate response
+  const regenerateResponse = useCallback(
+    async () => {
+      const conv = currentConversationRef.current;
+      if (!conv || !isConnected) {
+        setError('Not connected to chat');
+        return;
+      }
+
+      // Find the last user message
+      const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+      if (!lastUserMsg) {
+        setError('No user message to regenerate from');
+        return;
+      }
+
+      // Remove the last assistant message from UI
+      setMessages(prev => {
+        const newMessages = [...prev];
+        if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
+          newMessages.pop();
+        }
+        return newMessages;
+      });
+
+      // Send via WebSocket with regenerate flag
+      const attachments = lastUserMsg.metadata?.attachments || [];
+      const referenced_conv_ids = lastUserMsg.metadata?.referenced_conv_ids || [];
+      const referenced_msg_ids = lastUserMsg.metadata?.referenced_msg_ids || [];
+
+      wsSendMessage(
+        conv.id, 
+        lastUserMsg.content, 
+        true, 
+        attachments, 
+        referenced_conv_ids, 
+        referenced_msg_ids,
+        true // regenerate flag
+      );
+    },
+    [isConnected, messages, wsSendMessage]
+  );
+
   // Upload file
   const uploadFile = useCallback(
     async (file: File) => {
@@ -415,5 +458,6 @@ export function useChat(token: string | null) {
     uploadFile,
     setTyping,
     stopGeneration,
+    regenerateResponse,
   };
 }

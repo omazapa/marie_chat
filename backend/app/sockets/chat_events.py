@@ -126,12 +126,15 @@ def handle_send_message(data):
     attachments = data.get('attachments', [])
     referenced_conv_ids = data.get('referenced_conv_ids', [])
     referenced_msg_ids = data.get('referenced_msg_ids', [])
+    regenerate = data.get('regenerate', False)
     
     if not conversation_id or not message:
         emit('error', {'message': 'conversation_id and message are required'})
         return
     
     print(f"💬 Message from {user_id} in conversation {conversation_id}: {message[:50]}...")
+    if regenerate:
+        print(f"🔄 Regenerating response")
     if attachments:
         print(f"📎 With {len(attachments)} attachments")
     if referenced_conv_ids:
@@ -164,7 +167,8 @@ def handle_send_message(data):
         sid=request.sid,
         attachments=attachments,
         referenced_conv_ids=referenced_conv_ids,
-        referenced_msg_ids=referenced_msg_ids
+        referenced_msg_ids=referenced_msg_ids,
+        regenerate=regenerate
     )
     
     print(f"[STARTED] Background task started for conversation {conversation_id}")
@@ -178,7 +182,8 @@ def process_chat_message_wrapper(
     sid: str,
     attachments: list = None,
     referenced_conv_ids: list = None,
-    referenced_msg_ids: list = None
+    referenced_msg_ids: list = None,
+    regenerate: bool = False
 ):
     """Wrapper to run async function in dedicated event loop"""
     print(f"[WRAPPER] Started for conversation {conversation_id}")
@@ -187,7 +192,10 @@ def process_chat_message_wrapper(
         print(f"[LOOP] Got event loop for conversation {conversation_id}")
         # Schedule coroutine in the dedicated loop
         future = asyncio.run_coroutine_threadsafe(
-            process_chat_message_async(user_id, conversation_id, message, stream, sid, attachments, referenced_conv_ids, referenced_msg_ids),
+            process_chat_message_async(
+                user_id, conversation_id, message, stream, sid, 
+                attachments, referenced_conv_ids, referenced_msg_ids, regenerate
+            ),
             loop
         )
         print(f"[WAIT] Waiting for coroutine completion for conversation {conversation_id}")
@@ -211,7 +219,8 @@ async def process_chat_message_async(
     sid: str,
     attachments: list = None,
     referenced_conv_ids: list = None,
-    referenced_msg_ids: list = None
+    referenced_msg_ids: list = None,
+    regenerate: bool = False
 ):
     """Process chat message and emit responses (async version)"""
     print(f"[ASYNC] Function started for conversation {conversation_id}")
@@ -240,7 +249,8 @@ async def process_chat_message_async(
                 stream=True,
                 attachments=attachments,
                 referenced_conv_ids=referenced_conv_ids,
-                referenced_msg_ids=referenced_msg_ids
+                referenced_msg_ids=referenced_msg_ids,
+                regenerate=regenerate
             )
             print(f"[ITER] Got generator, starting iteration")
             # Now iterate over the generator
@@ -300,7 +310,8 @@ async def process_chat_message_async(
                 stream=False,
                 attachments=attachments,
                 referenced_conv_ids=referenced_conv_ids,
-                referenced_msg_ids=referenced_msg_ids
+                referenced_msg_ids=referenced_msg_ids,
+                regenerate=regenerate
             )
             
             socketio.emit('message_response', {

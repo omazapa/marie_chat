@@ -313,7 +313,8 @@ class LLMService:
         stream: bool = True,
         attachments: Optional[List[Dict[str, Any]]] = None,
         referenced_conv_ids: Optional[List[str]] = None,
-        referenced_msg_ids: Optional[List[str]] = None
+        referenced_msg_ids: Optional[List[str]] = None,
+        regenerate: bool = False
     ) -> AsyncGenerator[Dict[str, Any], None] | Dict[str, Any]:
         """
         Send a message and get LLM response
@@ -326,11 +327,12 @@ class LLMService:
             attachments: Optional list of file attachments with extracted text
             referenced_conv_ids: Optional list of conversation IDs to reference
             referenced_msg_ids: Optional list of message IDs to reference
+            regenerate: Whether to regenerate the last response (skips saving user message)
         
         Returns:
             AsyncGenerator if stream=True, Dict otherwise
         """
-        print(f"[SERVICE] chat_completion ENTRY: conv={conversation_id[:8]}, stream={stream}")
+        print(f"[SERVICE] chat_completion ENTRY: conv={conversation_id[:8]}, stream={stream}, regenerate={regenerate}")
         # Get conversation
         conversation = self.get_conversation(conversation_id, user_id)
         print(f"[SERVICE] Got conversation")
@@ -380,20 +382,38 @@ class LLMService:
             user_message_with_context = user_message
 
         # Save user message with attachments and references in metadata
-        print(f"[SERVICE] Saving user message")
-        saved_user_msg = self.save_message(
-            conversation_id=conversation_id,
-            user_id=user_id,
-            role="user",
-            content=user_message,
-            metadata={
-                "attachments": attachments,
-                "referenced_conv_ids": referenced_conv_ids,
-                "referenced_msg_ids": referenced_msg_ids,
-                "references": references_metadata
-            } if attachments or referenced_conv_ids or referenced_msg_ids else None
-        )
-        current_msg_id = saved_user_msg["id"]
+        current_msg_id = None
+        if not regenerate:
+            print(f"[SERVICE] Saving user message")
+            saved_user_msg = self.save_message(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                role="user",
+                content=user_message,
+                metadata={
+                    "attachments": attachments,
+                    "referenced_conv_ids": referenced_conv_ids,
+                    "referenced_msg_ids": referenced_msg_ids,
+                    "references": references_metadata
+                } if attachments or referenced_conv_ids or referenced_msg_ids else None
+            )
+            current_msg_id = saved_user_msg["id"]
+        else:
+            print(f"[SERVICE] Regenerating: deleting last assistant message")
+            # Find and delete the last assistant message
+            messages = self.get_messages(conversation_id, user_id, limit=10)
+            assistant_deleted = False
+            for msg in reversed(messages):
+                if msg["role"] == "assistant" and not assistant_deleted:
+                    try:
+                        self.client.delete(index="marie_messages", id=msg["id"], refresh=True)
+                        print(f"[SERVICE] Deleted assistant message {msg['id']}")
+                        assistant_deleted = True
+                    except Exception as e:
+                        print(f"Error deleting message for regeneration: {e}")
+                elif msg["role"] == "user" and current_msg_id is None:
+                    current_msg_id = msg["id"]
+                    print(f"[SERVICE] Found last user message ID for regeneration: {current_msg_id}")
 
         # Get conversation history
         messages = self.get_messages(conversation_id, user_id, limit=50)
