@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { ConfigProvider, App } from 'antd';
-import { impactUTheme } from '@/lib/theme';
+import { marieTheme } from '@/lib/theme';
 import { ClientProviders } from '@/components/ClientProviders';
 import './globals.css';
 
@@ -26,8 +26,8 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: 'Marie - Machine-Assisted Research Intelligent Environment',
-  description: 'Machine-Assisted Research Intelligent Environment (MARIE) - Intelligent AI chat with multi-provider support, semantic search and advanced capabilities by ImpactU/CoLaV',
-  keywords: ['AI', 'Chat', 'LLM', 'OpenSearch', 'Next.js', 'Flask', 'ImpactU', 'CoLaV', 'Research Assistant', 'MARIE'],
+  description: 'Machine-Assisted Research Intelligent Environment (MARIE) - Intelligent AI chat with multi-provider support, semantic search and advanced capabilities by Omar Zapata',
+  keywords: ['AI', 'Chat', 'LLM', 'OpenSearch', 'Next.js', 'Flask', 'Omar Zapata', 'Research Assistant', 'MARIE'],
 };
 
 export default function RootLayout({

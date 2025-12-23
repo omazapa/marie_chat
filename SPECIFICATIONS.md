@@ -5,7 +5,7 @@
 # 📘 MARIE - Technical Specifications
 
 > **Machine-Assisted Research Intelligent Environment (MARIE)**  
-> Developed by ImpactU
+> Developed by **Omar Zapata**
 
 ---
 
@@ -42,7 +42,7 @@
 - ✅ **Image Generation**: Support for generating images with diffusion models (Stable Diffusion, etc.)
 - ✅ User authentication and role-based access control
 - ✅ Modern interface based on Ant Design X (RICH paradigm)
-- ✅ Consistent branding with ImpactU/CoLaV
+- ✅ Consistent branding and design
 
 ---
 
@@ -376,17 +376,17 @@
 
 ## 🎨 Design and Branding
 
-### Color Palette (Based on ImpactU/CoLaV)
+### Color Palette
 
 ```css
 :root {
-  /* Colores Primarios - Inspirados en ImpactU */
-  --color-primary: #1B4B73;        /* Azul institucional oscuro */
-  --color-primary-light: #2D6A9F;  /* Azul primario */
-  --color-primary-dark: #0F2D47;   /* Azul muy oscuro */
+  /* Primary Colors */
+  --color-primary: #1B4B73;        /* Dark institutional blue */
+  --color-primary-light: #2D6A9F;  /* Primary blue */
+  --color-primary-dark: #0F2D47;   /* Very dark blue */
   
-  /* Colores Secundarios */
-  --color-secondary: #17A589;      /* Verde/Teal CoLaV */
+  /* Secondary Colors */
+  --color-secondary: #17A589;      /* Teal */
   --color-secondary-light: #48C9B0;
   --color-secondary-dark: #0E6655;
   
@@ -4603,14 +4603,13 @@ NEXT_PUBLIC_WS_URL=ws://localhost:5000
 - [LangChain Documentation](https://python.langchain.com/)
 - [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
 - [Ollama Documentation](https://ollama.ai/)
-- [ImpactU - CoLaV](https://impactu.colav.co/)
 
 ---
 
 ## 👥 Team
 
-**Developed by:** CoLaV - University of Antioquia  
-**Contact:** grupocolav@udea.edu.co
+**Developer:** Omar Zapata  
+**Contact:** omar.zapata@example.com
 
 ---
 

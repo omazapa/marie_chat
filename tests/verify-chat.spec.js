@@ -4,7 +4,7 @@ test('Chat functionality and artifacts rendering', async ({ page }) => {
   // 1. Login
   await page.goto('http://localhost:3000/login');
   await page.fill('input[placeholder="your@email.com"]', 'test@example.com');
-  await page.fill('input[placeholder="Your password"]', 'password123');
+  await page.fill('input[placeholder="Your password"]', 'poioiulkj');
   await page.click('button:has-text("Sign in")');
   
   // Wait for navigation to chat

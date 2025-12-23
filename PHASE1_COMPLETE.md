@@ -8,7 +8,7 @@
 - ✅ Complete Next.js 15 setup with App Router
 - ✅ TypeScript configured
 - ✅ Tailwind CSS 4 integrated
-- ✅ Ant Design X 2.1.1 with custom ImpactU/CoLaV theme
+- ✅ Ant Design X 2.1.1 with custom theme
 - ✅ Complete authentication system:
   - Registration page (`/register`)
   - Login page (`/login`)
@@ -500,7 +500,7 @@ The project has a solid foundation:
 
 ---
 
-**Team:** CoLaV - University of Antioquia  
+**Developer:** Omar Zapata  
 **Date:** December 21, 2024  
-**Status:** ✅ PHASE 1 COMPLETED  
+**Status:** ✅ PHASE 1 COMPLETED
 **Next:** Phase 2 - Chat Core

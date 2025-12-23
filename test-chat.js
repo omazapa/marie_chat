@@ -30,7 +30,7 @@ async function testChat() {
     await page.goto('http://localhost:3000/login');
     
     console.log('📝 Filling login form...');
-    await page.fill('input[placeholder*="email" i]', 'grupocolav@udea.edu.co');
+    await page.fill('input[placeholder*="email" i]', 'test@example.com');
     await page.fill('input[placeholder*="password" i]', 'poioiulkj');
     
     console.log('🔐 Submitting login...');

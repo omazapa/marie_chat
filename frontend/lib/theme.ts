@@ -1,9 +1,9 @@
 import type { ThemeConfig } from 'antd';
 
-export const impactUTheme: ThemeConfig = {
+export const marieTheme: ThemeConfig = {
   token: {
-    colorPrimary: '#1B4B73',      // Azul institucional ImpactU
-    colorSuccess: '#17A589',      // Verde/Teal CoLaV
+    colorPrimary: '#1B4B73',      // Azul institucional
+    colorSuccess: '#17A589',      // Verde/Teal
     colorInfo: '#2D6A9F',         // Azul primario light
     colorWarning: '#F39C12',      // Naranja/Dorado para highlights
     colorError: '#E74C3C',        // Rojo para alertas

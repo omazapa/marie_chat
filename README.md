@@ -4,70 +4,55 @@
 
 # MARIE: Machine-Assisted Research Intelligent Environment
 
-MARIE is a state-of-the-art research assistant platform designed to provide an intelligent, extensible, and user-friendly environment for researchers and developers.
-
-## 🚀 Main Features
-
-### 1. Modern & Intelligent Chat Interface
-A clean, responsive interface built with **Next.js 16** and **React 19**, featuring:
-- **Automatic Titling**: Conversations are automatically named by the LLM based on the first interaction.
-- **Rich Content Support**: Full support for Markdown, LaTeX equations, and syntax-highlighted code blocks.
-- **Multimedia Integration**: Upload files, generate images, and use voice commands directly in the chat.
-
-![MARIE Landing Page](imgs/snapshots/landing_page.png)
-*Landing Page - Modern and clean design*
-
-![Chat Interface](imgs/snapshots/chat_interface.png)
-*Intelligent Chat Interface with auto-titling and rich content*
-
-### 2. Developer API v1
-A robust REST API that allows developers to integrate MARIE's intelligence into their own applications:
-- **API Key Management**: Secure SHA-256 hashed keys for external access.
-- **Swagger Documentation**: Interactive documentation available at \`/api/v1/docs\`.
-- **Standard Endpoints**: Chat completions, conversation management, and search history.
-
-![Developer API Docs](imgs/snapshots/api_docs.png)
-*Interactive Swagger UI for the Developer API*
-
-### 3. Advanced Admin Console
-Centralized control panel for system administrators:
-- **Dynamic Model Selection**: Real-time fetching of available models from Ollama and HuggingFace.
-- **System Configuration**: Easy management of providers, default models, and system-wide settings.
-- **User Management**: Control access and permissions for all users.
-
-![Admin Settings](imgs/snapshots/admin_settings.png)
-*Admin Console - Dynamic model and provider configuration*
-
-### 4. Multi-Model & Multi-Modal Support
-- **Ollama Integration**: Run powerful models locally for privacy and speed.
-- **HuggingFace Integration**: Access thousands of cloud-hosted models.
-- **Image Generation**: Create visual content using integrated AI models.
-- **Voice Features**: Speech-to-Text (STT) and Text-to-Speech (TTS) capabilities.
-
-## 🛠 Tech Stack
-
-- **Frontend**: Next.js 16.1.1, React 19.2.3, Ant Design 6.x, Tailwind CSS.
-- **Backend**: Flask 3.x, Python 3.12, Socket.io for real-time communication.
-- **Database**: OpenSearch 2.11 for high-performance search and storage.
-- **Infrastructure**: Docker & Docker Compose for easy deployment.
-
-## 📦 Quick Start
-
-1. **Clone the repository**:
-   \`\`\`bash
-   git clone https://github.com/omazapa/marie_chat.git
-   cd marie_chat
-   \`\`\`
-
-2. **Start with Docker**:
-   \`\`\`bash
-   docker-compose up -d
-   \`\`\`
-
-3. **Access the services**:
-   - **Frontend**: [http://localhost:3000](http://localhost:3000)
-   - **API Docs**: [http://localhost:5000/api/v1/docs](http://localhost:5000/api/v1/docs)
-   - **OpenSearch Dashboards**: [http://localhost:5601](http://localhost:5601)
+**MARIE** is a state-of-the-art research assistant platform designed to provide an intelligent, extensible, and user-friendly environment for researchers and developers. It leverages the latest advancements in Large Language Models (LLMs), vector databases, and real-time communication to deliver a seamless research experience.
 
 ---
-Developed by **ImpactU / CoLaV Team**.
+
+## 🌟 Key Capabilities
+
+### 🧠 Intelligent Conversational Interface
+Experience a modern chat environment built with **Next.js 16** and **Ant Design X**, featuring:
+- **Real-time Streaming**: Instant responses powered by WebSockets for a fluid conversation.
+- **Context-Aware History**: Intelligent conversation management with automatic titling and hybrid search (text + vector).
+- **Rich Content Rendering**: Native support for **LaTeX** equations, **Markdown**, syntax-highlighted **Code Blocks**, and **HTML Artifacts** (interactive plots, SVG, etc.).
+
+### 🛠️ Multi-Model & Multi-Modal Ecosystem
+MARIE is provider-agnostic, allowing you to switch between local and cloud models effortlessly:
+- **Local Execution**: Deep integration with **Ollama** for private and fast local inference.
+- **Cloud Power**: Support for **HuggingFace** and other external providers.
+- **Voice Integration**: Advanced **Speech-to-Text (STT)** using `faster-whisper` and **Text-to-Speech (TTS)** with `edge-tts`.
+- **Visual Intelligence**: Integrated **Image Generation** capabilities using diffusion models.
+
+### 🔌 Developer-First API (v1)
+A robust REST API designed for seamless integration into external workflows:
+- **Secure Access**: SHA-256 hashed API keys for secure authentication.
+- **Interactive Docs**: Full **Swagger/OpenAPI** documentation available at `/api/v1/docs`.
+- **Extensible Architecture**: Easily build custom tools and agents on top of the MARIE core.
+
+### ⚙️ Enterprise-Grade Admin Console
+Complete control over the environment with a powerful administration suite:
+- **White Labeling**: Customize branding, logos, colors, and welcome messages dynamically.
+- **Model Management**: Real-time configuration of LLM providers and default system models.
+- **User & Security**: Comprehensive user management, role-based access control, and system health monitoring.
+
+---
+
+## 🏗️ Technical Architecture
+
+MARIE is built on a modern, scalable stack:
+- **Frontend**: Next.js 16 (React 19), TypeScript, Ant Design X, Tailwind CSS.
+- **Backend**: Flask 3, Socket.IO (Eventlet), Python 3.12.
+- **Database**: OpenSearch 2.11 with k-NN vector search for semantic memory.
+- **Infrastructure**: Fully containerized with Docker for easy deployment.
+
+---
+
+## 📄 Documentation
+
+For detailed technical information, please refer to:
+- [Technical Specifications](SPECIFICATIONS.md)
+- [Project Status](PROJECT_STATUS.md)
+
+---
+Developed by **Omar Zapata**.
+

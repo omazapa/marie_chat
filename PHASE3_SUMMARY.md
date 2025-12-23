@@ -579,4 +579,4 @@ Created a secure external API for developers to integrate Marie into their own a
 
 *Document Version: 2.0*  
 *Last Updated: December 22, 2025*  
-*Author: Marie Development Team*
+*Author: Omar Zapata*

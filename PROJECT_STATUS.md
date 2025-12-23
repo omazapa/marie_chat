@@ -19,7 +19,7 @@
 │  ✅ TypeScript configured                                       │
 │  ✅ Tailwind CSS 4                                              │
 │  ✅ Ant Design 6.x                                              │
-│  ✅ Ant Design X 2.1.1 (ImpactU/CoLaV theme)                   │
+│  ✅ Ant Design X 2.1.1 (Custom theme)                          │
 │  ✅ Complete authentication system                              │
 │  ✅ Zustand for global state                                    │
 │  ✅ Axios with interceptors and refresh token                   │
@@ -306,7 +306,7 @@ Python 3.12:      Optional (for local dev)
 
 **Last Update:** December 23, 2025  
 **Status:** Phase 13 Completed ✅  
-**Team:** CoLaV - University of Antioquia
+**Developer:** Omar Zapata
 
 ---
 

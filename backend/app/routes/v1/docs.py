@@ -60,8 +60,8 @@ def swagger_json():
             "description": "Machine-Assisted Research Intelligent Environment (MARIE) - External REST API for developers.",
             "version": "1.0.0",
             "contact": {
-                "name": "ImpactU/CoLaV Team",
-                "url": "https://github.com/colav"
+                "name": "Omar Zapata",
+                "url": "https://github.com/omarzapata"
             }
         },
         "servers": [

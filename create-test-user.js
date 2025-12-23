@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 
-async function createCoLaVUser() {
-  console.log('🚀 Creating GrupoCoLaV user...\n');
+async function createTestUser() {
+  console.log('🚀 Creating Test user...\n');
 
   const browser = await chromium.launch({ headless: false });
   const context = await browser.newContext();
@@ -18,9 +18,9 @@ async function createCoLaVUser() {
     await page.screenshot({ path: 'test-results/01-login-page.png' });
     console.log('✅ Login page loaded');
 
-    // Fill login form with CoLaV credentials
-    console.log('\n🔐 Logging in with GrupoCoLaV credentials...');
-    console.log('   Email: grupocolav@udea.edu.co');
+    // Fill login form with test credentials
+    console.log('\n🔐 Logging in with test credentials...');
+    console.log('   Email: test@example.com');
     console.log('   Password: ********');
 
     // Wait for form to be ready
@@ -29,7 +29,7 @@ async function createCoLaVUser() {
     // Try different selectors for email input
     const emailSelector = 'input[type="email"], input[id*="email"], input[name*="email"]';
     await page.waitForSelector(emailSelector, { timeout: 5000 });
-    await page.fill(emailSelector, 'grupocolav@udea.edu.co');
+    await page.fill(emailSelector, 'test@example.com');
 
     // Try different selectors for password input
     const passwordSelector = 'input[type="password"], input[id*="password"], input[name*="password"]';
@@ -76,7 +76,7 @@ async function createCoLaVUser() {
 
       console.log('\n🎉 SUCCESS! User is ready to use Marie Chat!');
       console.log('\n📧 Login Credentials:');
-      console.log('   Email: grupocolav@udea.edu.co');
+      console.log('   Email: test@example.com');
       console.log('   Password: poioiulkj');
       console.log('\n🌐 Access at: http://localhost:3000/login');
 
@@ -102,4 +102,4 @@ async function createCoLaVUser() {
   }
 }
 
-createCoLaVUser().catch(console.error);
+createTestUser().catch(console.error);

@@ -12,7 +12,7 @@
 - ✅ **Complete Next.js 15 setup** with App Router and React 19
 - ✅ **TypeScript** configured with path aliases
 - ✅ **Tailwind CSS 4** integrated
-- ✅ **Ant Design X 2.1.1** with custom theme (ImpactU/CoLaV colors)
+- ✅ **Ant Design X 2.1.1** with custom theme
 - ✅ **Ant Design 5.x** for base components
 - ✅ **Zustand** for global state management
 - ✅ **Axios** with interceptors for automatic token refresh
@@ -365,6 +365,6 @@ The project has a solid foundation to continue with the following phases:
 
 ---
 
-**Team:** CoLaV - University of Antioquia  
+**Developer:** Omar Zapata  
 **Date:** December 21, 2024  
 **Status:** ✅ PHASE 1 COMPLETED
