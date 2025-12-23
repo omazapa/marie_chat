@@ -49,7 +49,7 @@ def create_app():
     
     @app.route('/')
     def index():
-        return {'message': 'Marie Chat API', 'version': '1.0.0', 'status': 'running'}
+        return {'message': 'Marie API', 'version': '1.0.0', 'status': 'running'}
     
     @app.route('/health')
     def health():

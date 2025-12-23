@@ -71,7 +71,7 @@ export default function AdminDashboard() {
               title={<Text type="secondary">Total Users</Text>}
               value={indices.marie_users?.docs_count || 0}
               prefix={<UserOutlined style={{ color: whiteLabel.primary_color, marginRight: '8px' }} />}
-              valueStyle={{ fontWeight: 700 }}
+              styles={{ content: { fontWeight: 700 } }}
             />
           </Card>
         </Col>
@@ -88,7 +88,7 @@ export default function AdminDashboard() {
               title={<Text type="secondary">Total Messages</Text>}
               value={indices.marie_messages?.docs_count || 0}
               prefix={<MessageOutlined style={{ color: '#17A589', marginRight: '8px' }} />}
-              valueStyle={{ fontWeight: 700 }}
+              styles={{ content: { fontWeight: 700 } }}
             />
           </Card>
         </Col>
@@ -105,7 +105,7 @@ export default function AdminDashboard() {
               title={<Text type="secondary">Conversations</Text>}
               value={indices.marie_conversations?.docs_count || 0}
               prefix={<DatabaseOutlined style={{ color: '#faad14', marginRight: '8px' }} />}
-              valueStyle={{ fontWeight: 700 }}
+              styles={{ content: { fontWeight: 700 } }}
             />
           </Card>
         </Col>

@@ -223,7 +223,7 @@ export default function SystemSettings() {
                       label="Application Name"
                       rules={[{ required: true }]}
                     >
-                      <Input placeholder="e.g. Marie Chat" />
+                      <Input placeholder="e.g. Marie" />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
@@ -275,7 +275,7 @@ export default function SystemSettings() {
                   label="Welcome Title"
                   rules={[{ required: true }]}
                 >
-                  <Input placeholder="e.g. Welcome to Marie Chat" />
+                  <Input placeholder="e.g. Welcome to Marie" />
                 </Form.Item>
                 <Form.Item 
                   name={['white_label', 'welcome_subtitle']} 

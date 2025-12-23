@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Marie Chat Backend Server
+Marie Backend Server
 """
 import eventlet
 eventlet.monkey_patch()
@@ -16,7 +16,7 @@ app = create_app()
 
 def init_app():
     """Initialize application"""
-    print("🚀 Initializing Marie Chat Backend...")
+    print("🚀 Initializing Marie Backend...")
     
     # Initialize OpenSearch indices
     try:

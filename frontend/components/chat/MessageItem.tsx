@@ -95,9 +95,9 @@ export const MessageItem = memo(({
                   padding: msg.role === 'assistant' ? '6px' : 0,
                   boxShadow: msg.role === 'assistant' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none'
                 }}
-                imgProps={{
-                  style: { objectFit: 'contain' }
-                }}
+                {...(msg.role === 'assistant' && whiteLabel.app_icon ? {
+                  imgProps: { style: { objectFit: 'contain' } }
+                } : {})}
               />
             }
             content={

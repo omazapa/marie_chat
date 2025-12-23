@@ -25,7 +25,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Marie Chat - Intelligent Conversational Assistant',
+  title: 'Marie - Intelligent Conversational Assistant',
   description: 'Intelligent AI chat with multi-provider support, semantic search and advanced capabilities by ImpactU/CoLaV',
   keywords: ['AI', 'Chat', 'LLM', 'OpenSearch', 'Next.js', 'Flask', 'ImpactU', 'CoLaV', 'Research Assistant'],
 };

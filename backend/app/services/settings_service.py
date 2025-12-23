@@ -38,11 +38,11 @@ class SettingsService:
                     }
                 },
                 "white_label": {
-                    "app_name": "Marie Chat",
+                    "app_name": "Marie",
                     "app_logo": "/imgs/marie_logo.png",
                     "app_icon": "/imgs/marie_icon.png",
                     "primary_color": "#1B4B73",
-                    "welcome_title": "Marie Chat",
+                    "welcome_title": "Marie",
                     "welcome_subtitle": "Intelligent Research Assistant"
                 },
                 "updated_at": datetime.utcnow().isoformat()
@@ -56,11 +56,11 @@ class SettingsService:
             # Ensure white_label exists for older configs
             if "white_label" not in settings:
                 settings["white_label"] = {
-                    "app_name": "Marie Chat",
+                    "app_name": "Marie",
                     "app_logo": "/imgs/marie_logo.png",
                     "app_icon": "/imgs/marie_icon.png",
                     "primary_color": "#1B4B73",
-                    "welcome_title": "Marie Chat",
+                    "welcome_title": "Marie",
                     "welcome_subtitle": "Intelligent Research Assistant"
                 }
             return settings
@@ -89,11 +89,11 @@ class SettingsService:
                     }
                 },
                 "white_label": {
-                    "app_name": "Marie Chat",
+                    "app_name": "Marie",
                     "app_logo": "/imgs/marie_logo.png",
                     "app_icon": "/imgs/marie_icon.png",
                     "primary_color": "#1B4B73",
-                    "welcome_title": "Marie Chat",
+                    "welcome_title": "Marie",
                     "welcome_subtitle": "Intelligent Research Assistant"
                 }
             }

@@ -40,9 +40,9 @@ export const AssistantAvatar: React.FC = () => {
       }} 
       size={40}
       icon={!whiteLabel.app_icon ? <RobotOutlined /> : undefined}
-      imgProps={{
-        style: { objectFit: 'contain' }
-      }}
+      {...(whiteLabel.app_icon ? {
+        imgProps: { style: { objectFit: 'contain' } }
+      } : {})}
     />
   );
 };
