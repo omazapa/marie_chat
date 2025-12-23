@@ -18,12 +18,14 @@ export interface Conversation {
   updated_at: string;
 }
 
-export function useChat(token: string | null) {
+export function useChat(token: string | null, options?: { onTranscription?: (text: string) => void }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [streamingMessage, setStreamingMessage] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [ttsAudio, setTtsAudio] = useState<{ audio: string; message_id?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updateTrigger, setUpdateTrigger] = useState(0);
@@ -97,6 +99,17 @@ export function useChat(token: string | null) {
     []
   );
 
+  const handleTranscriptionResult = useCallback((data: { text: string }) => {
+    setIsTranscribing(false);
+    if (data.text && options?.onTranscription) {
+      options.onTranscription(data.text);
+    }
+  }, [options]);
+
+  const handleTTSResult = useCallback((data: { audio: string; message_id?: string }) => {
+    setTtsAudio(data);
+  }, []);
+
   // Initialize WebSocket
   const {
     isConnected,
@@ -105,12 +118,16 @@ export function useChat(token: string | null) {
     sendMessage: wsSendMessage,
     setTyping,
     stopGeneration: wsStopGeneration,
+    transcribeAudio: wsTranscribeAudio,
+    textToSpeech: wsTextToSpeech,
   } = useWebSocket({
     token,
     onStreamStart: handleStreamStart,
     onStreamChunk: handleStreamChunk,
     onStreamEnd: handleStreamEnd,
     onMessageResponse: handleMessageResponse,
+    onTranscriptionResult: handleTranscriptionResult,
+    onTTSResult: handleTTSResult,
     onError: (err) => setError(err.message),
   });
 
@@ -436,6 +453,12 @@ export function useChat(token: string | null) {
     }
   }, [token, fetchConversations]);
 
+  // Transcribe audio
+  const transcribeAudio = useCallback((base64Audio: string, language?: string) => {
+    setIsTranscribing(true);
+    wsTranscribeAudio(base64Audio, language);
+  }, [wsTranscribeAudio]);
+
   return {
     // State
     conversations,
@@ -443,6 +466,8 @@ export function useChat(token: string | null) {
     messages,
     streamingMessage,
     isStreaming,
+    isTranscribing,
+    ttsAudio,
     loading,
     error,
     isConnected,
@@ -459,5 +484,8 @@ export function useChat(token: string | null) {
     setTyping,
     stopGeneration,
     regenerateResponse,
+    transcribeAudio,
+    textToSpeech: wsTextToSpeech,
+    setTtsAudio,
   };
 }

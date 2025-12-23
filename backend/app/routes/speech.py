@@ -14,6 +14,7 @@ def transcribe_audio():
         return jsonify({'error': 'No audio file provided'}), 400
     
     audio_file = request.files['file']
+    language = request.form.get('language') # Optional language hint
     
     # Create a temporary file to save the uploaded audio
     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(audio_file.filename)[1]) as temp_audio:
@@ -21,7 +22,7 @@ def transcribe_audio():
         temp_path = temp_audio.name
     
     try:
-        text = speech_service.transcribe(temp_path)
+        text = speech_service.transcribe(temp_path, language=language)
         return jsonify({'text': text})
     except Exception as e:
         return jsonify({'error': str(e)}), 500

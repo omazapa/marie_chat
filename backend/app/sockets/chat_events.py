@@ -7,6 +7,7 @@ from flask_socketio import emit, join_room, leave_room
 from flask_jwt_extended import decode_token
 from app import socketio
 from app.services.llm_service import llm_service
+from app.services.speech_service import speech_service
 import asyncio
 import threading
 import uuid
@@ -362,6 +363,67 @@ def handle_typing(data):
             'user_id': active_connections[request.sid]['user_id'],
             'is_typing': is_typing
         }, room=conversation_id, skip_sid=request.sid)
+
+
+@socketio.on('transcribe_audio')
+def handle_transcribe_audio(data):
+    """Transcribe audio data to text"""
+    if request.sid not in active_connections:
+        emit('error', {'message': 'Not authenticated'})
+        return
+    
+    audio_data = data.get('audio')
+    language = data.get('language') # Optional language hint
+    
+    if not audio_data:
+        emit('error', {'message': 'Audio data is required'})
+        return
+    
+    print(f"🎙️ Transcribing audio from {request.sid} (language hint: {language or 'auto'})")
+    
+    def process_transcription():
+        try:
+            text = speech_service.transcribe_base64(audio_data, language=language)
+            socketio.emit('transcription_result', {'text': text}, room=request.sid)
+        except Exception as e:
+            print(f"❌ Transcription error: {e}")
+            socketio.emit('error', {'message': f'Transcription error: {str(e)}'}, room=request.sid)
+    
+    # Run in a separate thread to avoid blocking the event loop
+    threading.Thread(target=process_transcription).start()
+
+
+@socketio.on('text_to_speech')
+def handle_text_to_speech(data):
+    """Convert text to speech"""
+    if request.sid not in active_connections:
+        emit('error', {'message': 'Not authenticated'})
+        return
+    
+    text = data.get('text')
+    voice = data.get('voice', 'es-CO-GonzaloNeural')
+    message_id = data.get('message_id') # To identify which message this audio belongs to
+    
+    if not text:
+        emit('error', {'message': 'Text is required'})
+        return
+    
+    print(f"🔊 Converting text to speech for {request.sid}")
+    
+    async def process_tts():
+        try:
+            audio_base64 = await speech_service.text_to_speech_base64(text, voice)
+            socketio.emit('tts_result', {
+                'audio': audio_base64,
+                'message_id': message_id
+            }, room=request.sid)
+        except Exception as e:
+            print(f"❌ TTS error: {e}")
+            socketio.emit('error', {'message': f'TTS error: {str(e)}'}, room=request.sid)
+    
+    # Run in the global async loop
+    loop = get_async_loop()
+    asyncio.run_coroutine_threadsafe(process_tts(), loop)
 
 
 # Error handler

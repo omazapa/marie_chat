@@ -4,9 +4,10 @@ import axios from 'axios';
 interface UseSpeechProps {
   accessToken: string | null;
   onTranscription: (text: string) => void;
+  onTranscribe?: (base64Audio: string) => void;
 }
 
-export const useSpeech = ({ accessToken, onTranscription }: UseSpeechProps) => {
+export const useSpeech = ({ accessToken, onTranscription, onTranscribe }: UseSpeechProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -26,8 +27,18 @@ export const useSpeech = ({ accessToken, onTranscription }: UseSpeechProps) => {
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await transcribeAudio(audioBlob);
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        
+        if (onTranscribe) {
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = () => {
+            const base64Audio = reader.result as string;
+            onTranscribe(base64Audio);
+          };
+        } else {
+          await transcribeAudio(audioBlob);
+        }
         
         // Stop all tracks to release the microphone
         stream.getTracks().forEach(track => track.stop());
@@ -39,7 +50,7 @@ export const useSpeech = ({ accessToken, onTranscription }: UseSpeechProps) => {
       console.error('Error accessing microphone:', error);
       alert('Could not access microphone. Please check permissions.');
     }
-  }, [accessToken]);
+  }, [accessToken, onTranscribe]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -48,12 +59,15 @@ export const useSpeech = ({ accessToken, onTranscription }: UseSpeechProps) => {
     }
   }, [isRecording]);
 
-  const transcribeAudio = async (audioBlob: Blob) => {
+  const transcribeAudio = async (audioBlob: Blob, language?: string) => {
     if (!accessToken) return;
 
     setIsTranscribing(true);
     const formData = new FormData();
-    formData.append('file', audioBlob, 'recording.webm');
+    formData.append('file', audioBlob, 'recording.wav');
+    if (language) {
+      formData.append('language', language);
+    }
 
     try {
       const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/speech/transcribe`, formData, {

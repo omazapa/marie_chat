@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = os.getenv('EMBEDDING_MODEL', 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
     EMBEDDING_DIMENSION: int = int(os.getenv('EMBEDDING_DIMENSION', '384'))
     
+    # Speech
+    WHISPER_MODEL: str = os.getenv('WHISPER_MODEL', 'base')
+    WHISPER_DEVICE: str = os.getenv('WHISPER_DEVICE', 'cpu')
+    
     # CORS
     CORS_ORIGINS: list = [
         'http://localhost:3000',

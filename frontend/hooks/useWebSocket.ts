@@ -28,6 +28,9 @@ interface UseWebSocketProps {
   onStreamChunk?: (chunk: StreamChunk) => void;
   onStreamEnd?: (data: { conversation_id: string }) => void;
   onMessageResponse?: (data: { conversation_id: string; message: Message }) => void;
+  onTranscriptionResult?: (data: { text: string }) => void;
+  onTTSResult?: (data: { audio: string; message_id?: string }) => void;
+  onUserTyping?: (data: { conversation_id: string; user_id: string; is_typing: boolean }) => void;
 }
 
 export function useWebSocket({
@@ -39,6 +42,9 @@ export function useWebSocket({
   onStreamChunk,
   onStreamEnd,
   onMessageResponse,
+  onTranscriptionResult,
+  onTTSResult,
+  onUserTyping,
 }: UseWebSocketProps) {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -93,6 +99,20 @@ export function useWebSocket({
 
     socket.on('message_received', (data) => {
       console.log('📨 Message received acknowledgment:', data);
+    });
+
+    socket.on('transcription_result', (data) => {
+      console.log('🎙️ Transcription result:', data);
+      onTranscriptionResult?.(data);
+    });
+
+    socket.on('tts_result', (data) => {
+      console.log('🔊 TTS result received');
+      onTTSResult?.(data);
+    });
+
+    socket.on('user_typing', (data) => {
+      onUserTyping?.(data);
     });
 
     // Connection handlers - AFTER message handlers
@@ -222,6 +242,33 @@ export function useWebSocket({
     []
   );
 
+  // Transcribe audio
+  const transcribeAudio = useCallback(
+    (base64Audio: string, language?: string) => {
+      if (socketRef.current && socketRef.current.connected) {
+        socketRef.current.emit('transcribe_audio', {
+          audio: base64Audio,
+          language,
+        });
+      }
+    },
+    []
+  );
+
+  // Text to speech
+  const textToSpeech = useCallback(
+    (text: string, messageId?: string, voice?: string) => {
+      if (socketRef.current && socketRef.current.connected) {
+        socketRef.current.emit('text_to_speech', {
+          text,
+          message_id: messageId,
+          voice,
+        });
+      }
+    },
+    []
+  );
+
   return {
     socket: socketRef.current,
     isConnected,
@@ -231,5 +278,7 @@ export function useWebSocket({
     sendMessage,
     setTyping,
     stopGeneration,
+    transcribeAudio,
+    textToSpeech,
   };
 }

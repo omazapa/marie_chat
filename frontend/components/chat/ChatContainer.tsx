@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Conversations, Sender, Bubble, Think, Welcome, Prompts } from '@ant-design/x';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
-import { Spin, Empty, Button, Space, Typography, Dropdown, Modal, Tag, Tooltip, Layout, Image, Menu, App, Input } from 'antd';
+import { Spin, Empty, Button, Space, Typography, Dropdown, Modal, Tag, Tooltip, Layout, Image, Menu, App, Input, Select } from 'antd';
 import { 
   SendOutlined, 
   UserOutlined, 
@@ -25,7 +25,9 @@ import {
   LinkOutlined,
   LogoutOutlined,
   SearchOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  PlayCircleOutlined,
+  PauseCircleOutlined
 } from '@ant-design/icons';
 import type { ConversationsProps } from '@ant-design/x';
 import type { Message as WebSocketMessage } from '@/hooks/useWebSocket';
@@ -127,7 +129,9 @@ const MessageItem = memo(({
   onReference, 
   isReferenced,
   onNavigate,
-  onRegenerate
+  onRegenerate,
+  onPlay,
+  isPlaying
 }: { 
   msg: any, 
   isStreaming: boolean, 
@@ -135,7 +139,9 @@ const MessageItem = memo(({
   onReference: (id: string) => void,
   isReferenced: boolean,
   onNavigate: (ref: any) => void,
-  onRegenerate?: () => void
+  onRegenerate?: () => void,
+  onPlay?: (text: string, id: string) => void,
+  isPlaying?: boolean
 }) => {
   return (
     <div id={`message-${msg.id}`} style={{ marginBottom: '24px', transition: 'background-color 0.5s' }}>
@@ -208,6 +214,16 @@ const MessageItem = memo(({
                       size="small" 
                       icon={<ReloadOutlined style={{ fontSize: '12px', color: '#8c8c8c' }} />} 
                       onClick={onRegenerate}
+                    />
+                  </Tooltip>
+                )}
+                {msg.role === 'assistant' && !isStreaming && (
+                  <Tooltip title={isPlaying ? "Stop audio" : "Play audio"}>
+                    <Button 
+                      type="text" 
+                      size="small" 
+                      icon={isPlaying ? <PauseCircleOutlined style={{ fontSize: '12px', color: '#1890ff' }} /> : <PlayCircleOutlined style={{ fontSize: '12px', color: '#8c8c8c' }} />} 
+                      onClick={() => onPlay?.(msg.content, msg.id)}
                     />
                   </Tooltip>
                 )}
@@ -407,6 +423,8 @@ const MessageList = memo(({
   onNavigate,
   onFollowUp,
   onRegenerate,
+  onPlay,
+  playingMessageId,
   messagesEndRef 
 }: { 
   messages: any[], 
@@ -417,6 +435,8 @@ const MessageList = memo(({
   onNavigate: (ref: any) => void,
   onFollowUp: (text: string) => void,
   onRegenerate: () => void,
+  onPlay: (text: string, id: string) => void,
+  playingMessageId: string | null,
   messagesEndRef: any 
 }) => {
   return (
@@ -431,6 +451,8 @@ const MessageList = memo(({
             isReferenced={referencedMsgIds.includes(msg.id)}
             onNavigate={onNavigate}
             onRegenerate={index === messages.length - 1 && msg.role === 'assistant' ? onRegenerate : undefined}
+            onPlay={onPlay}
+            isPlaying={playingMessageId === msg.id}
           />
           {/* Show follow-ups only for the last assistant message and when not streaming */}
           {msg.role === 'assistant' && 
@@ -464,30 +486,19 @@ export default function ChatContainer() {
   const [referencedMsgIds, setReferencedMsgIds] = useState<string[]>([]);
   const [showReferenceModal, setShowReferenceModal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const [selectedVoice, setSelectedVoice] = useState('es-CO-GonzaloNeural');
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { accessToken, user, logout: authLogout } = useAuthStore();
 
-  const {
-    isRecording,
-    isTranscribing,
-    startRecording,
-    stopRecording,
-  } = useSpeech({
-    accessToken,
-    onTranscription: (text) => {
-      setInputValue(prev => prev ? `${prev} ${text}` : text);
-    },
-  });
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { modal } = useApp();
   const {
     conversations,
     currentConversation,
     messages,
     streamingMessage,
     isStreaming,
+    isTranscribing: isChatTranscribing,
+    ttsAudio,
     loading,
     error,
     isConnected,
@@ -500,7 +511,39 @@ export default function ChatContainer() {
     uploadFile,
     stopGeneration,
     regenerateResponse,
-  } = useChat(accessToken);
+    transcribeAudio,
+    textToSpeech,
+    setTtsAudio,
+  } = useChat(accessToken, {
+    onTranscription: (text) => {
+      setInputValue(prev => prev ? `${prev} ${text}` : text);
+    }
+  });
+
+  const {
+    isRecording,
+    isTranscribing: isLocalTranscribing,
+    startRecording,
+    stopRecording,
+  } = useSpeech({
+    accessToken,
+    onTranscription: (text) => {
+      setInputValue(prev => prev ? `${prev} ${text}` : text);
+    },
+    onTranscribe: (base64) => {
+      // Use the language from selected voice as a hint (e.g., "es-CO-GonzaloNeural" -> "es")
+      const langCode = selectedVoice.split('-')[0];
+      transcribeAudio(base64, langCode);
+    }
+  });
+
+  // Use either local or chat transcription state
+  const isTranscribing = isLocalTranscribing || isChatTranscribing;
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { modal } = useApp();
 
   const filteredConversations = useMemo(() => {
     if (!searchQuery) return conversations;
@@ -533,6 +576,63 @@ export default function ChatContainer() {
     // Use 'smooth' only for new complete messages
     scrollToBottom(isStreaming ? 'auto' : 'smooth');
   }, [messages, streamingMessage, isStreaming]);
+
+  // Handle TTS audio result
+  useEffect(() => {
+    let isMounted = true;
+
+    if (ttsAudio && ttsAudio.audio) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+      }
+      
+      const audio = new Audio(ttsAudio.audio);
+      audioRef.current = audio;
+      
+      if (ttsAudio.message_id) {
+        setPlayingMessageId(ttsAudio.message_id);
+      }
+      
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          // Ignore AbortError as it's expected when we stop/change audio
+          if (err.name !== 'AbortError') {
+            console.error('Error playing audio:', err);
+          }
+        });
+      }
+      
+      audio.onended = () => {
+        if (isMounted) {
+          setPlayingMessageId(null);
+          setTtsAudio(null);
+        }
+      };
+    }
+
+    return () => {
+      isMounted = false;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+      }
+    };
+  }, [ttsAudio, setTtsAudio]);
+
+  const handlePlayMessage = useCallback((text: string, id: string) => {
+    if (playingMessageId === id) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+      }
+      setPlayingMessageId(null);
+      setTtsAudio(null);
+    } else {
+      textToSpeech(text, id, selectedVoice);
+    }
+  }, [playingMessageId, textToSpeech, selectedVoice, setTtsAudio]);
 
   // Format messages for Ant Design X
   const chatMessages = useMemo(() => [
@@ -1146,6 +1246,8 @@ export default function ChatContainer() {
                   onNavigate={handleNavigate}
                   onFollowUp={handleSend}
                   onRegenerate={regenerateResponse}
+                  onPlay={handlePlayMessage}
+                  playingMessageId={playingMessageId}
                   messagesEndRef={messagesEndRef} 
                 />
               )}
@@ -1307,6 +1409,28 @@ export default function ChatContainer() {
           }}
           showDetails={true}
         />
+        
+        <div style={{ marginTop: '24px', borderTop: '1px solid #f0f0f0', paddingTop: '16px' }}>
+          <Title level={5} style={{ marginBottom: '16px' }}>Voice Settings</Title>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Text type="secondary">Select the voice for Text-to-Speech:</Text>
+            <Select
+              style={{ width: '100%' }}
+              value={selectedVoice}
+              onChange={setSelectedVoice}
+              options={[
+                { label: 'Gonzalo (Colombia) - Male', value: 'es-CO-GonzaloNeural' },
+                { label: 'Salome (Colombia) - Female', value: 'es-CO-SalomeNeural' },
+                { label: 'Alvaro (Spain) - Male', value: 'es-ES-AlvaroNeural' },
+                { label: 'Elvira (Spain) - Female', value: 'es-ES-ElviraNeural' },
+                { label: 'Jorge (Mexico) - Male', value: 'es-MX-JorgeNeural' },
+                { label: 'Dalia (Mexico) - Female', value: 'es-MX-DaliaNeural' },
+                { label: 'Andrew (USA) - Male', value: 'en-US-AndrewNeural' },
+                { label: 'Emma (USA) - Female', value: 'en-US-EmmaNeural' },
+              ]}
+            />
+          </Space>
+        </div>
       </Modal>
     </Layout>
   );
