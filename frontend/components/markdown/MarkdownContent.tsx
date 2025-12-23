@@ -8,10 +8,12 @@ import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Button, Tooltip } from 'antd';
-import { CopyOutlined, CheckOutlined } from '@ant-design/icons';
+import { Button, Tooltip, Table, Typography } from 'antd';
+import { CopyOutlined, CheckOutlined, TableOutlined } from '@ant-design/icons';
 import { HTMLArtifact } from './HTMLArtifact';
 import 'katex/dist/katex.min.css';
+
+const { Text } = Typography;
 
 interface MarkdownContentProps {
   content: string;
@@ -68,6 +70,81 @@ const CodeBlock = memo(({ language, value }: { language: string; value: string }
 
 CodeBlock.displayName = 'CodeBlock';
 
+const extractText = (children: any): string => {
+  if (typeof children === 'string') return children;
+  if (typeof children === 'number') return String(children);
+  if (Array.isArray(children)) return children.map(extractText).join('');
+  if (children?.props?.children) return extractText(children.props.children);
+  return '';
+};
+
+const MarkdownTable = memo(({ children }: { children: any }) => {
+  try {
+    const childrenArray = Array.isArray(children) ? children : [children];
+    const thead = childrenArray.find((c: any) => c?.type === 'thead');
+    const tbody = childrenArray.find((c: any) => c?.type === 'tbody');
+    
+    if (!thead || !tbody) return <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '1em' }}>{children}</table>;
+
+    const headerRow = thead.props.children;
+    const headers = Array.isArray(headerRow.props.children) ? headerRow.props.children : [headerRow.props.children];
+    
+    const columns = headers.map((th: any, i: number) => {
+      const title = extractText(th.props.children);
+      return {
+        title: <Text strong>{title}</Text>,
+        dataIndex: `col${i}`,
+        key: `col${i}`,
+        sorter: (a: any, b: any) => {
+          const valA = a[`col${i}`] || '';
+          const valB = b[`col${i}`] || '';
+          return valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+        },
+        ellipsis: true,
+      };
+    });
+
+    const bodyRows = Array.isArray(tbody.props.children) ? tbody.props.children : [tbody.props.children];
+    const dataSource = bodyRows.map((tr: any, i: number) => {
+      const tds = Array.isArray(tr.props.children) ? tr.props.children : [tr.props.children];
+      const rowData: any = { key: i };
+      tds.forEach((td: any, j: number) => {
+        rowData[`col${j}`] = extractText(td.props.children);
+      });
+      return rowData;
+    });
+
+    return (
+      <div className="markdown-table-container" style={{ marginBottom: '1.5em' }}>
+        <Table 
+          columns={columns} 
+          dataSource={dataSource} 
+          size="small" 
+          pagination={dataSource.length > 8 ? { pageSize: 8, size: 'small' } : false}
+          bordered
+          scroll={{ x: 'max-content' }}
+          style={{ 
+            borderRadius: '8px', 
+            overflow: 'hidden',
+            border: '1px solid #f0f0f0'
+          }}
+        />
+      </div>
+    );
+  } catch (e) {
+    console.error('Error rendering interactive table:', e);
+    return (
+      <div style={{ overflowX: 'auto', marginBottom: '1em' }}>
+        <table className="simple-markdown-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+          {children}
+        </table>
+      </div>
+    );
+  }
+});
+
+MarkdownTable.displayName = 'MarkdownTable';
+
 export const MarkdownContent = memo(function MarkdownContent({ content, className, isStreaming }: MarkdownContentProps) {
   const components = useMemo(() => ({
     code({ node, inline, className, children, ...props }: any) {
@@ -87,6 +164,9 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
           {children}
         </code>
       );
+    },
+    table({ children }: any) {
+      return <MarkdownTable>{children}</MarkdownTable>;
     },
     // Custom rendering for math blocks if needed
     div({ node, className, children, ...props }: any) {

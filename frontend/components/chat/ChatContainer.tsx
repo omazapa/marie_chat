@@ -79,6 +79,47 @@ const AssistantAvatar = () => (
   </div>
 );
 
+const FileCard = ({ file }: { file: any }) => {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      padding: '8px 12px',
+      background: '#ffffff',
+      border: '1px solid #e8e8e8',
+      borderRadius: '8px',
+      marginBottom: '4px',
+      width: 'fit-content',
+      minWidth: '180px',
+      maxWidth: '280px',
+      boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+    }}>
+      <div style={{ 
+        width: '32px', 
+        height: '32px', 
+        borderRadius: '6px', 
+        background: '#f0f5ff', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        <FileOutlined style={{ fontSize: '16px', color: '#1677ff' }} />
+      </div>
+      <div style={{ overflow: 'hidden', flex: 1 }}>
+        <Tooltip title={file.filename}>
+          <Text strong style={{ fontSize: '12px', display: 'block' }} ellipsis>
+            {file.filename}
+          </Text>
+        </Tooltip>
+        <Text type="secondary" style={{ fontSize: '10px' }}>
+          {file.file_type?.toUpperCase() || 'FILE'} • {file.size ? `${(file.size / 1024).toFixed(1)} KB` : 'Ready'}
+        </Text>
+      </div>
+    </div>
+  );
+};
+
 const MessageItem = memo(({ 
   msg, 
   isStreaming, 
@@ -118,11 +159,9 @@ const MessageItem = memo(({
       {(msg.content || msg.id !== 'streaming') && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
           {msg.metadata?.attachments && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
               {msg.metadata.attachments.map((att: any) => (
-                <Tag key={att.file_id} icon={<FileOutlined />} style={{ fontSize: '11px' }}>
-                  {att.filename}
-                </Tag>
+                <FileCard key={att.file_id} file={att} />
               ))}
             </div>
           )}
@@ -599,7 +638,10 @@ export default function ChatContainer() {
       const conv = await createConversation('New Chat', selectedModel, selectedProvider);
       if (conv) {
         await selectConversation(conv);
-        setTimeout(() => sendMessage(content, currentAttachments, currentReferences, currentMsgRefs), 500);
+        // Use a slightly longer delay and call sendMessage directly with the captured values
+        setTimeout(() => {
+          sendMessage(content, currentAttachments, currentReferences, currentMsgRefs);
+        }, 600);
       }
     } else {
       await sendMessage(content, currentAttachments, currentReferences, currentMsgRefs);
@@ -989,9 +1031,37 @@ export default function ChatContainer() {
               <Space orientation="horizontal" size="middle">
                 <RobotOutlined style={{ fontSize: '20px', color: '#1B4B73' }} />
                 <div>
-                  <Text strong style={{ fontSize: '16px', display: 'block' }}>
-                    {currentConversation.title}
-                  </Text>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Text strong style={{ fontSize: '16px' }}>
+                      {currentConversation.title}
+                    </Text>
+                    <Tooltip title="Rename conversation">
+                      <Button 
+                        type="text" 
+                        size="small" 
+                        icon={<EditOutlined style={{ fontSize: '14px', color: '#8c8c8c' }} />} 
+                        onClick={() => {
+                          let newTitle = currentConversation.title;
+                          modal.confirm({
+                            title: 'Rename Conversation',
+                            content: (
+                              <Input 
+                                defaultValue={currentConversation.title} 
+                                onChange={(e) => newTitle = e.target.value}
+                                placeholder="Enter new title"
+                                style={{ marginTop: 16 }}
+                              />
+                            ),
+                            onOk: async () => {
+                              if (newTitle && newTitle.trim()) {
+                                await handleRenameConversation(currentConversation.id, newTitle);
+                              }
+                            },
+                          });
+                        }}
+                      />
+                    </Tooltip>
+                  </div>
                   <Space orientation="horizontal" size="small">
                     <Tag icon={<ThunderboltOutlined />} color="blue">
                       {currentConversation.provider}

@@ -128,9 +128,13 @@ def handle_send_message(data):
     referenced_msg_ids = data.get('referenced_msg_ids', [])
     regenerate = data.get('regenerate', False)
     
-    if not conversation_id or not message:
-        emit('error', {'message': 'conversation_id and message are required'})
+    if not conversation_id or (not message and not attachments and not regenerate):
+        emit('error', {'message': 'conversation_id and message (or attachments) are required'})
         return
+    
+    # If message is empty but we have attachments, provide a default message
+    if not message and attachments:
+        message = "I have uploaded some files. Please analyze them."
     
     print(f"💬 Message from {user_id} in conversation {conversation_id}: {message[:50]}...")
     if regenerate:

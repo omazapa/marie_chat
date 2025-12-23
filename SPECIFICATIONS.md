@@ -35,6 +35,7 @@
 - ✅ Hybrid search (text + vectorial) over history
 - ✅ **Speech-to-Text (STT)**: Microphone input with Whisper
 - ✅ **Text-to-Speech (TTS)**: Assistant response reading
+- ✅ **Image Generation**: Support for generating images with diffusion models (Stable Diffusion, etc.)
 - ✅ User authentication
 - ✅ Modern interface based on Ant Design X (RICH paradigm)
 - ✅ Consistent branding with ImpactU/CoLaV
@@ -96,6 +97,15 @@
 | **TTS** (coqui) | latest | Local Text-to-Speech |
 | **pyttsx3** | latest | TTS fallback (offline) |
 | **edge-tts** | latest | TTS via Microsoft Edge (free, high quality) |
+
+#### Image Generation (Diffusion Models)
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **diffusers** | latest | Library for diffusion models (Stable Diffusion, etc.) |
+| **torch** | latest | Deep learning framework |
+| **accelerate** | latest | Optimization for model loading and inference |
+| **transformers** | latest | Model utilities |
 
 #### Memory and Embeddings
 
@@ -248,6 +258,7 @@
 | RF01.10 | Reference previous conversations | High |
 | RF01.11 | Include context from referenced conversations | High |
 | RF01.12 | Search conversations to reference | Medium |
+| RF01.13 | Generate images using diffusion models | Medium |
 | RF01.13 | Conversation follow-up (follow-up questions) | High |
 | RF01.14 | Persistent conversational memory | High |
 | RF01.15 | Multilingual support in memory | High |
@@ -335,6 +346,16 @@
 | RF06.6 | Voice/language selection for TTS | Medium |
 | RF06.7 | Playback speed control | Low |
 | RF06.8 | "Continuous conversation" mode (auto-listen) | Low |
+
+### RF08 - Image Generation
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| RF08.1 | Generate images from text prompts | Medium |
+| RF08.2 | Select image generation model | Medium |
+| RF08.3 | Configure image parameters (size, steps, etc.) | Low |
+| RF08.4 | Display generated images in chat | High |
+| RF08.5 | Download generated images | Medium |
 
 ### RF07 - Advanced UX
 
@@ -575,8 +596,10 @@ marie_chat/
 │   │   │   ├── opensearch_init.py       # Inicialización índices
 │   │   │   ├── embedding_service.py     # Generación de embeddings
 │   │   │   ├── speech_service.py        # TTS/STT (Whisper + Edge TTS)
+│   │   │   ├── image_service.py         # Image generation service
 │   │   │   ├── llm_service.py           # Abstracción LLM
 │   │   │   ├── ollama_provider.py       # Proveedor Ollama
+│   │   │   ├── diffusion_provider.py    # Proveedor Diffusion (Stable Diffusion)
 │   │   │   ├── huggingface_provider.py  # Proveedor HF
 │   │   │   ├── langgraph_pipeline.py    # Pipelines LangGraph
 │   │   │   ├── auth_service.py          # Lógica de auth
