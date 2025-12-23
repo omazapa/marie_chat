@@ -9,10 +9,12 @@ import {
   InfoCircleOutlined
 } from '@ant-design/icons';
 import apiClient from '@/lib/api';
+import { useSettings } from '@/hooks/useSettings';
 
 const { Title, Text, Paragraph } = Typography;
 
 export default function SystemStats() {
+  const { whiteLabel } = useSettings();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export default function SystemStats() {
                     </Col>
                     <Col span={12}>
                       <Text type="secondary">Storage Efficiency</Text>
-                      <Progress percent={100} size="small" showInfo={false} strokeColor="#1B4B73" />
+                      <Progress percent={100} size="small" showInfo={false} strokeColor={whiteLabel.primary_color} />
                     </Col>
                   </Row>
                 </List.Item>

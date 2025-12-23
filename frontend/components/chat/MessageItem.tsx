@@ -7,6 +7,7 @@ import { Think, Bubble } from '@ant-design/x';
 import { FileCard } from './FileCard';
 import { API_URL } from '@/lib/api';
 import { MarkdownContent } from '../markdown/MarkdownContent';
+import { useSettings } from '@/hooks/useSettings';
 
 const { Text } = Typography;
 
@@ -33,6 +34,8 @@ export const MessageItem = memo(({
   onPlay,
   isPlaying
 }: MessageItemProps) => {
+  const { whiteLabel } = useSettings();
+
   return (
     <div id={`message-${msg.id}`} style={{ marginBottom: '24px', transition: 'background-color 0.5s' }}>
       {/* Show thinking component BEFORE message for assistant streaming */}
@@ -84,7 +87,7 @@ export const MessageItem = memo(({
             avatar={
               <Avatar 
                 icon={msg.role === 'user' ? <UserOutlined /> : <RobotOutlined />}
-                style={{ backgroundColor: msg.role === 'user' ? '#1B4B73' : '#52c41a' }}
+                style={{ backgroundColor: msg.role === 'user' ? whiteLabel.primary_color : '#52c41a' }}
               />
             }
             content={

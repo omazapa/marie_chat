@@ -52,7 +52,13 @@ export function RegisterForm() {
       <Card style={{ width: 450, padding: '24px 12px' }}>
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <img src={whiteLabel.app_logo} alt="Logo" style={{ width: '180px', marginBottom: '16px' }} />
+            <Image 
+              src={whiteLabel.app_logo} 
+              alt="Logo" 
+              width={180} 
+              preview={false}
+              style={{ marginBottom: '16px', objectFit: 'contain' }} 
+            />
             <Title level={3} style={{ margin: 0, color: whiteLabel.primary_color }}>
               {whiteLabel.app_name}
             </Title>

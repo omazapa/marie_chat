@@ -104,7 +104,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             icon={<SettingOutlined />}
             onClick={handleOpenModelSelector}
             block
-            style={{ marginTop: 8, color: '#1B4B73' }}
+            style={{ marginTop: 8, color: whiteLabel.primary_color }}
           >
             Configure Model
           </Button>

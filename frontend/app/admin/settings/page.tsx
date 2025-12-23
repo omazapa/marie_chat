@@ -246,6 +246,7 @@ export default function SystemSettings() {
                     >
                       <Select options={[
                         { label: 'Marie Logo (Default)', value: '/imgs/marie_logo.png' },
+                        { label: 'Marie Logo Alpha', value: '/imgs/marie_logo_alpha.png' },
                         { label: 'ImpactU Logo', value: '/imgs/impactu_logo.png' },
                       ]} />
                     </Form.Item>
@@ -258,6 +259,8 @@ export default function SystemSettings() {
                     >
                       <Select options={[
                         { label: 'Marie Icon (Default)', value: '/imgs/marie.png' },
+                        { label: 'Marie Logo Alpha (Icon)', value: '/imgs/marie_logo_alpha.png' },
+                        { label: 'ImpactU Logo (Icon)', value: '/imgs/impactu_logo.png' },
                       ]} />
                     </Form.Item>
                   </Col>

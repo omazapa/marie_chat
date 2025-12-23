@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Welcome, Prompts } from '@ant-design/x';
-import { Space, Button } from 'antd';
+import { Space, Button, Image } from 'antd';
 import { 
   RobotOutlined, 
   ThunderboltOutlined, 
@@ -33,7 +33,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSend, onNewConve
     }}>
       <Welcome
         variant="borderless"
-        icon={<img src={whiteLabel.app_logo} alt="Logo" style={{ width: '120px', marginBottom: '16px' }} />}
+        icon={<Image src={whiteLabel.app_logo} alt="Logo" width={120} preview={false} style={{ marginBottom: '16px' }} />}
         title={whiteLabel.welcome_title}
         description={whiteLabel.welcome_subtitle}
         extra={

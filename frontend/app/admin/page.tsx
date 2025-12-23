@@ -10,10 +10,12 @@ import {
   ExclamationCircleOutlined
 } from '@ant-design/icons';
 import apiClient from '@/lib/api';
+import { useSettings } from '@/hooks/useSettings';
 
 const { Title, Text } = Typography;
 
 export default function AdminDashboard() {
+  const { whiteLabel } = useSettings();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export default function AdminDashboard() {
             <Statistic
               title="Total Users"
               value={indices.marie_users?.docs_count || 0}
-              prefix={<UserOutlined style={{ color: '#1B4B73' }} />}
+              prefix={<UserOutlined style={{ color: whiteLabel.primary_color }} />}
             />
           </Card>
         </Col>

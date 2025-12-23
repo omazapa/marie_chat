@@ -5,6 +5,7 @@ import { Modal, Input, Select, Button, Typography, Space, Card, Tag, Tooltip, Sp
 import { BulbOutlined, CopyOutlined, CheckOutlined, SendOutlined } from '@ant-design/icons';
 import { usePrompts } from '@/hooks/usePrompts';
 import { useAuthStore } from '@/stores/authStore';
+import { useSettings } from '@/hooks/useSettings';
 
 const { Text, Paragraph, Title } = Typography;
 const { TextArea } = Input;
@@ -23,6 +24,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
   onApply,
   initialPrompt = ''
 }) => {
+  const { whiteLabel } = useSettings();
   const { accessToken } = useAuthStore();
   const { isOptimizing, techniques, templates, fetchTechniques, optimizePrompt } = usePrompts(accessToken);
   
@@ -70,7 +72,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
     <Modal
       title={
         <Space>
-          <BulbOutlined style={{ color: '#1B4B73' }} />
+          <BulbOutlined style={{ color: whiteLabel.primary_color }} />
           <span>Prompt Engineering Assistant</span>
         </Space>
       }

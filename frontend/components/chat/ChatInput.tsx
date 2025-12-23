@@ -12,6 +12,7 @@ import {
   CloseCircleFilled,
   BulbOutlined
 } from '@ant-design/icons';
+import { useSettings } from '@/hooks/useSettings';
 
 interface ChatInputProps {
   value: string;
@@ -54,6 +55,8 @@ export const ChatInput = memo(({
   onOptimizeClick,
   referencedCount
 }: ChatInputProps) => {
+  const { whiteLabel } = useSettings();
+
   return (
     <div style={{ position: 'relative' }}>
       {editingMessageId && (
@@ -120,7 +123,7 @@ export const ChatInput = memo(({
               <Tooltip title="Optimize prompt">
                 <Button 
                   type="text" 
-                  icon={<BulbOutlined style={{ color: '#1B4B73' }} />} 
+                  icon={<BulbOutlined style={{ color: whiteLabel.primary_color }} />} 
                   onClick={onOptimizeClick}
                   disabled={isStreaming}
                 />

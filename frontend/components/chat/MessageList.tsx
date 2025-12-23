@@ -6,6 +6,7 @@ import { PictureOutlined } from '@ant-design/icons';
 import { MessageItem } from './MessageItem';
 import { FollowUpSuggestions } from './FollowUpSuggestions';
 import { API_URL } from '@/lib/api';
+import { useSettings } from '@/hooks/useSettings';
 
 const { Text } = Typography;
 
@@ -38,6 +39,8 @@ export const MessageList = memo(({
   imageProgress,
   messagesEndRef 
 }: MessageListProps) => {
+  const { whiteLabel } = useSettings();
+
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
       {messages.map((msg, index) => (
@@ -84,7 +87,7 @@ export const MessageList = memo(({
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <PictureOutlined style={{ color: '#1B4B73' }} />
+                <PictureOutlined style={{ color: whiteLabel.primary_color }} />
                 <Text strong style={{ fontSize: '14px' }}>Generating Image...</Text>
               </div>
               
