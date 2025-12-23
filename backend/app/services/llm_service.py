@@ -14,6 +14,7 @@ from app.services.llm_provider import ChatMessage
 from app.services.opensearch_service import OpenSearchService
 from app.services.reference_service import ReferenceService
 from app.services.memory_service import memory_service
+from app.services.settings_service import settings_service
 
 
 class LLMService:
@@ -25,6 +26,7 @@ class LLMService:
         self.opensearch_service = OpenSearchService()
         self.reference_service = ReferenceService(self.opensearch_service)
         self.memory_service = memory_service
+        self.settings_service = settings_service
         # Lazy-initialize embedding model for semantic search
         self._embedding_model = None
         
@@ -46,12 +48,17 @@ class LLMService:
         self,
         user_id: str,
         title: str = "New Conversation",
-        model: str = "llama3.2",
-        provider: str = "ollama",
+        model: Optional[str] = None,
+        provider: Optional[str] = None,
         system_prompt: Optional[str] = None,
         settings: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Create a new conversation"""
+        if not model or not provider:
+            config = self.settings_service.get_settings()
+            model = model or config.get("llm", {}).get("default_model", "llama3.2")
+            provider = provider or config.get("llm", {}).get("default_provider", "ollama")
+
         conversation_id = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
         

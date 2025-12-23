@@ -7,6 +7,7 @@ import asyncio
 from typing import Optional
 from langdetect import detect, DetectorFactory
 from app.config import Settings
+from app.services.settings_service import settings_service
 
 # For consistent language detection
 DetectorFactory.seed = 0
@@ -15,19 +16,22 @@ settings = Settings()
 
 class SpeechService:
     def __init__(self):
-        self.stt_model_size = settings.WHISPER_MODEL
+        self.settings_service = settings_service
+        config = self.settings_service.get_settings()
+        
+        self.stt_model_size = config.get("stt", {}).get("model_size", settings.WHISPER_MODEL)
         self.device = settings.WHISPER_DEVICE
         self._stt_model = None
         
         # Default voices for different languages
-        self.default_voices = {
+        self.default_voices = config.get("tts", {}).get("default_voices", {
             'es': 'es-CO-GonzaloNeural',
             'en': 'en-US-AndrewNeural',
             'fr': 'fr-FR-HenriNeural',
             'de': 'de-DE-ConradNeural',
             'it': 'it-IT-DiegoNeural',
             'pt': 'pt-BR-AntonioNeural'
-        }
+        })
 
     @property
     def stt_model(self):

@@ -11,14 +11,18 @@ import threading
 from datetime import datetime
 from typing import Optional, Dict, Any
 from flask import current_app
+from app.services.settings_service import settings_service
 
 class ImageService:
     """Service for generating images using HuggingFace or local models"""
     
     def __init__(self):
+        self.settings_service = settings_service
+        config = self.settings_service.get_settings()
+        
         self.hf_token = os.getenv("HUGGINGFACE_API_KEY")
         self.base_url = "https://router.huggingface.co/hf-inference/models/"
-        self.default_model = "stabilityai/stable-diffusion-3.5-large"
+        self.default_model = config.get("image", {}).get("default_model", "stabilityai/stable-diffusion-3.5-large")
         self.local_model_id = "segmind/tiny-sd" # Much smaller and faster than SD 1.5
         self._local_pipe = None
         self._lock = threading.Lock() # Lock for concurrent generations

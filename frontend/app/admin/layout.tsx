@@ -33,7 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!isAuthenticated || user?.role !== 'admin') {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Space direction="vertical" align="center">
+        <Space orientation="vertical" align="center">
           <Spin size="large" />
           <Text type="secondary">Verifying admin access...</Text>
         </Space>
@@ -56,6 +56,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       key: '/admin/system',
       icon: <BarChartOutlined />,
       label: <Link href="/admin/system">System Stats</Link>,
+    },
+    {
+      key: '/admin/settings',
+      icon: <SettingOutlined />,
+      label: <Link href="/admin/settings">System Settings</Link>,
     },
     {
       key: 'back',
