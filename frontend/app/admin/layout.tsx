@@ -13,6 +13,7 @@ import {
 } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSettings } from '@/hooks/useSettings';
 
 const { Header, Content, Sider } = Layout;
 const { Title, Text } = Typography;
@@ -21,6 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, isAuthenticated } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
+  const { whiteLabel } = useSettings();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -73,20 +75,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <Layout style={{ minHeight: '100vh' }}>
       <Sider width={250} theme="light" style={{ borderRight: '1px solid #f0f0f0' }}>
         <div style={{ padding: '24px 16px', textAlign: 'center' }}>
-          <div style={{ 
-            width: '40px', 
-            height: '40px', 
-            borderRadius: '8px', 
-            background: '#1B4B73',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontWeight: 'bold',
-            fontSize: '20px',
-            marginBottom: '12px'
-          }}>M</div>
-          <Title level={4} style={{ margin: 0, color: '#1B4B73' }}>Marie Admin</Title>
+          <img 
+            src={whiteLabel.app_icon} 
+            alt="Logo" 
+            style={{ width: '40px', height: '40px', marginBottom: '12px', objectFit: 'contain' }} 
+          />
+          <Title level={4} style={{ margin: 0, color: whiteLabel.primary_color }}>
+            {whiteLabel.app_name.split(' ')[0]} Admin
+          </Title>
           <Text type="secondary" style={{ fontSize: '12px' }}>System Administration</Text>
         </div>
         <Menu

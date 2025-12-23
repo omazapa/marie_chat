@@ -11,6 +11,7 @@ import {
   SettingOutlined,
   PlusOutlined
 } from '@ant-design/icons';
+import { useSettings } from '@/hooks/useSettings';
 
 interface WelcomeScreenProps {
   onSend: (content: string) => void;
@@ -18,6 +19,8 @@ interface WelcomeScreenProps {
 }
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSend, onNewConversation }) => {
+  const { whiteLabel } = useSettings();
+
   return (
     <div style={{ 
       flex: 1, 
@@ -30,9 +33,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSend, onNewConve
     }}>
       <Welcome
         variant="borderless"
-        icon={<RobotOutlined style={{ fontSize: '64px', color: '#1B4B73' }} />}
-        title="Marie Chat"
-        description="Your intelligent research assistant. How can I help you today?"
+        icon={<img src={whiteLabel.app_logo} alt="Logo" style={{ width: '120px', marginBottom: '16px' }} />}
+        title={whiteLabel.welcome_title}
+        description={whiteLabel.welcome_subtitle}
         extra={
           <Space orientation="vertical" size="large" style={{ width: '100%', marginTop: 24, alignItems: 'center' }}>
             <Prompts
@@ -50,7 +53,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSend, onNewConve
                 { key: '1', label: 'What is ImpactU?', icon: <ThunderboltOutlined /> },
                 { key: '2', label: 'How to analyze research data?', icon: <MessageOutlined /> },
                 { key: '3', label: 'Explain RAG technology', icon: <RobotOutlined /> },
-                { key: '4', label: 'How to use references in Marie Chat?', icon: <LinkOutlined /> },
+                { key: '4', label: `How to use references in ${whiteLabel.app_name}?`, icon: <LinkOutlined /> },
                 { key: '5', label: 'Tell me about the available LLM models', icon: <SettingOutlined /> },
               ]}
               onItemClick={(info) => onSend(info.data.label as string)}

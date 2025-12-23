@@ -6,6 +6,7 @@ import { Form, Input, Button, Card, Typography, Space, Checkbox, App, Image } fr
 import { MailOutlined, LockOutlined } from '@ant-design/icons';
 import apiClient from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { useSettings } from '@/hooks/useSettings';
 import type { LoginResponse } from '@/types';
 
 const { Title, Text, Link } = Typography;
@@ -16,6 +17,7 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const { setAuth } = useAuthStore();
   const { message } = useApp();
+  const { whiteLabel } = useSettings();
 
   // Prefetch chat page to improve perceived performance
   useState(() => {
@@ -31,7 +33,7 @@ export function LoginForm() {
       });
 
       setAuth(response.data);
-      message.success('Welcome back!');
+      message.success(`Welcome back to ${whiteLabel.app_name}!`);
       router.push('/chat');
     } catch (error: any) {
       console.error('Login error:', error);
@@ -49,16 +51,17 @@ export function LoginForm() {
       alignItems: 'center', 
       minHeight: '100vh',
       background: '#f5f7f9',
-      backgroundImage: 'radial-gradient(#1B4B73 0.5px, transparent 0.5px)',
+      backgroundImage: `radial-gradient(${whiteLabel.primary_color} 0.5px, transparent 0.5px)`,
       backgroundSize: '20px 20px'
     }}>
       <Card style={{ width: 450, padding: '24px 12px' }}>
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <Title level={3} style={{ margin: 0, color: '#1B4B73' }}>
-              Marie Chat
+            <img src={whiteLabel.app_logo} alt="Logo" style={{ width: '180px', marginBottom: '16px' }} />
+            <Title level={3} style={{ margin: 0, color: whiteLabel.primary_color }}>
+              {whiteLabel.app_name}
             </Title>
-            <Text type="secondary">Intelligent Research Assistant</Text>
+            <Text type="secondary">{whiteLabel.welcome_subtitle}</Text>
           </div>
 
           <Form

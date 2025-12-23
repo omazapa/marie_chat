@@ -37,6 +37,14 @@ class SettingsService:
                         'pt': 'pt-BR-AntonioNeural'
                     }
                 },
+                "white_label": {
+                    "app_name": "Marie Chat",
+                    "app_logo": "/imgs/marie_logo.png",
+                    "app_icon": "/imgs/marie.png",
+                    "primary_color": "#1B4B73",
+                    "welcome_title": "Marie Chat",
+                    "welcome_subtitle": "Intelligent Research Assistant"
+                },
                 "updated_at": datetime.utcnow().isoformat()
             })
 
@@ -44,7 +52,18 @@ class SettingsService:
         """Get system-wide settings"""
         try:
             res = self.client.get(index=self.index_name, id="system_config")
-            return res["_source"]
+            settings = res["_source"]
+            # Ensure white_label exists for older configs
+            if "white_label" not in settings:
+                settings["white_label"] = {
+                    "app_name": "Marie Chat",
+                    "app_logo": "/imgs/marie_logo.png",
+                    "app_icon": "/imgs/marie.png",
+                    "primary_color": "#1B4B73",
+                    "welcome_title": "Marie Chat",
+                    "welcome_subtitle": "Intelligent Research Assistant"
+                }
+            return settings
         except Exception:
             # Return defaults if not found
             return {
@@ -68,6 +87,14 @@ class SettingsService:
                         'it': 'it-IT-DiegoNeural',
                         'pt': 'pt-BR-AntonioNeural'
                     }
+                },
+                "white_label": {
+                    "app_name": "Marie Chat",
+                    "app_logo": "/imgs/marie_logo.png",
+                    "app_icon": "/imgs/marie.png",
+                    "primary_color": "#1B4B73",
+                    "welcome_title": "Marie Chat",
+                    "welcome_subtitle": "Intelligent Research Assistant"
                 }
             }
 

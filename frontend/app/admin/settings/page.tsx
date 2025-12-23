@@ -23,7 +23,8 @@ import {
   MessageOutlined, 
   PictureOutlined, 
   AudioOutlined,
-  GlobalOutlined
+  GlobalOutlined,
+  BgColorsOutlined
 } from '@ant-design/icons';
 import apiClient from '@/lib/api';
 
@@ -202,6 +203,83 @@ export default function SystemSettings() {
                     </Form.Item>
                   </Col>
                 </Row>
+              </Card>
+            </TabPane>
+
+            <TabPane 
+              tab={<span><BgColorsOutlined /> White Label</span>} 
+              key="white_label"
+            >
+              <Card variant="borderless">
+                <Title level={4}>Branding & Appearance</Title>
+                <Paragraph type="secondary">
+                  Customize the application name, logos, and welcome messages.
+                </Paragraph>
+                
+                <Row gutter={24}>
+                  <Col span={12}>
+                    <Form.Item 
+                      name={['white_label', 'app_name']} 
+                      label="Application Name"
+                      rules={[{ required: true }]}
+                    >
+                      <Input placeholder="e.g. Marie Chat" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item 
+                      name={['white_label', 'primary_color']} 
+                      label="Primary Color"
+                      rules={[{ required: true }]}
+                    >
+                      <Input type="color" style={{ height: '40px' }} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Row gutter={24}>
+                  <Col span={12}>
+                    <Form.Item 
+                      name={['white_label', 'app_logo']} 
+                      label="Main Logo Path"
+                      rules={[{ required: true }]}
+                    >
+                      <Select options={[
+                        { label: 'Marie Logo (Default)', value: '/imgs/marie_logo.png' },
+                        { label: 'ImpactU Logo', value: '/imgs/impactu_logo.png' },
+                      ]} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item 
+                      name={['white_label', 'app_icon']} 
+                      label="App Icon Path"
+                      rules={[{ required: true }]}
+                    >
+                      <Select options={[
+                        { label: 'Marie Icon (Default)', value: '/imgs/marie.png' },
+                      ]} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Divider />
+
+                <Title level={4}>Welcome Screen</Title>
+                <Form.Item 
+                  name={['white_label', 'welcome_title']} 
+                  label="Welcome Title"
+                  rules={[{ required: true }]}
+                >
+                  <Input placeholder="e.g. Welcome to Marie Chat" />
+                </Form.Item>
+                <Form.Item 
+                  name={['white_label', 'welcome_subtitle']} 
+                  label="Welcome Subtitle"
+                  rules={[{ required: true }]}
+                >
+                  <Input.TextArea rows={2} placeholder="e.g. Your intelligent research assistant" />
+                </Form.Item>
               </Card>
             </TabPane>
           </Tabs>

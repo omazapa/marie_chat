@@ -3,6 +3,7 @@ import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { ConfigProvider, App } from 'antd';
 import { impactUTheme } from '@/lib/theme';
+import { ClientProviders } from '@/components/ClientProviders';
 import './globals.css';
 
 const inter = Inter({
@@ -37,13 +38,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${plusJakarta.variable} ${jetbrainsMono.variable}`}>
       <body suppressHydrationWarning>
-        <AntdRegistry>
-          <ConfigProvider theme={impactUTheme}>
-            <App>
-              {children}
-            </App>
-          </ConfigProvider>
-        </AntdRegistry>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
       </body>
     </html>
   );

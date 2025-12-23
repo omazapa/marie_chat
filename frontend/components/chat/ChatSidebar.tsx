@@ -5,7 +5,8 @@ import { Layout, Button, Input, Typography, Space, Tooltip, App } from 'antd';
 import { PlusOutlined, SettingOutlined, SearchOutlined, MessageOutlined, EditOutlined, DeleteOutlined, LogoutOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { Conversations } from '@ant-design/x';
 import Link from 'next/link';
-import { UserAvatar } from './UserAvatar'; // Assuming this exists or I'll create it
+import { UserAvatar } from './UserAvatar';
+import { useSettings } from '@/hooks/useSettings';
 
 const { Sider } = Layout;
 const { Text } = Typography;
@@ -42,6 +43,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   isConnected,
 }) => {
   const { modal } = App.useApp();
+  const { whiteLabel } = useSettings();
 
   return (
     <Sider 
@@ -58,18 +60,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         {/* Sidebar Header */}
         <div style={{ padding: '20px 16px', borderBottom: '1px solid #f0f0f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-            <div style={{ 
-              width: '32px', 
-              height: '32px', 
-              borderRadius: '8px', 
-              background: '#1B4B73',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: 'bold'
-            }}>M</div>
-            <Text strong style={{ fontSize: '18px', color: '#1B4B73' }}>Marie Chat</Text>
+            <img 
+              src={whiteLabel.app_icon} 
+              alt="Logo" 
+              style={{ width: '32px', height: '32px', objectFit: 'contain' }} 
+            />
+            <Text strong style={{ fontSize: '18px', color: whiteLabel.primary_color }}>
+              {whiteLabel.app_name}
+            </Text>
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
