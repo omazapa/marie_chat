@@ -81,7 +81,7 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
                   { key: '1', label: 'What is ImpactU?', icon: <ThunderboltOutlined /> },
                   { key: '2', label: 'How to analyze research data?', icon: <MessageOutlined /> },
                   { key: '3', label: 'Explain RAG technology', icon: <RobotOutlined /> },
-                  { key: '4', label: `How to use references in ${whiteLabel.app_name}?`, icon: <LinkOutlined /> },
+                  { key: '4', label: `How to use references in ${whiteLabel.app_name.replace(/\s*Chat/i, '')}?`, icon: <LinkOutlined /> },
                   { key: '5', label: 'Tell me about the available LLM models', icon: <SettingOutlined /> },
                 ]}
                 onItemClick={(info) => handleSend(info.data.label as string)}
@@ -143,7 +143,7 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
                 { key: '1', label: 'What is ImpactU?', icon: <ThunderboltOutlined /> },
                 { key: '2', label: 'How to analyze research data?', icon: <MessageOutlined /> },
                 { key: '3', label: 'Explain RAG technology', icon: <RobotOutlined /> },
-                { key: '4', label: `How to use references in ${whiteLabel.app_name}?`, icon: <LinkOutlined /> },
+                { key: '4', label: `How to use references in ${whiteLabel.app_name.replace(/\s*Chat/i, '')}?`, icon: <LinkOutlined /> },
                 { key: '5', label: 'Tell me about the available LLM models', icon: <SettingOutlined /> },
               ]}
               onItemClick={(info) => handleSend(info.data.label as string)}

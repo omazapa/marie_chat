@@ -28,7 +28,7 @@ export function RegisterForm() {
       });
 
       setAuth(response.data);
-      message.success(`Registration successful! Welcome to ${whiteLabel.app_name}`);
+      message.success(`Registration successful! Welcome to ${whiteLabel.app_name.replace(/\s*Chat/i, '')}`);
       router.push('/chat');
     } catch (error: any) {
       console.error('Register error:', error);
@@ -55,12 +55,12 @@ export function RegisterForm() {
             <Image 
               src={whiteLabel.app_logo} 
               alt="Logo" 
-              width={180} 
+              width={240} 
               preview={false}
               style={{ marginBottom: '16px', objectFit: 'contain' }} 
             />
             <Title level={3} style={{ margin: 0, color: whiteLabel.primary_color }}>
-              {whiteLabel.app_name}
+              {whiteLabel.app_name.replace(/\s*Chat/i, '')}
             </Title>
             <Text type="secondary">{whiteLabel.welcome_subtitle}</Text>
           </div>

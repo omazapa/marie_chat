@@ -75,7 +75,7 @@ export default function AdminDashboard() {
             <Statistic
               title="System Health"
               value={stats?.cluster_health?.toUpperCase()}
-              valueStyle={{ color: stats?.cluster_health === 'green' ? '#52c41a' : '#faad14' }}
+              styles={{ content: { color: stats?.cluster_health === 'green' ? '#52c41a' : '#faad14' } }}
               prefix={stats?.cluster_health === 'green' ? <CheckCircleOutlined /> : <ExclamationCircleOutlined />}
             />
           </Card>

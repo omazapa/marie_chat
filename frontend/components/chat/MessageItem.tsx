@@ -86,8 +86,12 @@ export const MessageItem = memo(({
           <Bubble
             avatar={
               <Avatar 
-                icon={msg.role === 'user' ? <UserOutlined /> : <RobotOutlined />}
-                style={{ backgroundColor: msg.role === 'user' ? whiteLabel.primary_color : '#52c41a' }}
+                src={msg.role === 'assistant' ? whiteLabel.app_icon : undefined}
+                icon={msg.role === 'user' ? <UserOutlined /> : undefined}
+                style={{ 
+                  backgroundColor: msg.role === 'user' ? whiteLabel.primary_color : '#ffffff',
+                  border: msg.role === 'assistant' ? '1px solid #f0f0f0' : 'none'
+                }}
               />
             }
             content={

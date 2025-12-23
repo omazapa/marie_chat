@@ -19,8 +19,8 @@ interface SettingsContextType {
 
 const defaultWhiteLabel: WhiteLabelSettings = {
   app_name: 'Marie Chat',
-  app_logo: '/imgs/marie_logo.png',
-  app_icon: '/imgs/marie.png',
+  app_logo: '/imgs/marie_logo_alpha.png',
+  app_icon: '/imgs/marie_logo_alpha.png',
   primary_color: '#1B4B73',
   welcome_title: 'Marie Chat',
   welcome_subtitle: 'Intelligent Research Assistant',

@@ -66,7 +66,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               style={{ width: '32px', height: '32px', objectFit: 'contain' }} 
             />
             <Text strong style={{ fontSize: '18px', color: whiteLabel.primary_color }}>
-              {whiteLabel.app_name}
+              {whiteLabel.app_name.replace(/\s*Chat/i, '')}
             </Text>
           </div>
           

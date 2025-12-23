@@ -4,8 +4,10 @@ import React from 'react';
 import { Avatar } from 'antd';
 import { UserOutlined, RobotOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/stores/authStore';
+import { useSettings } from '@/hooks/useSettings';
 
 export const UserAvatar: React.FC = () => {
+  const { whiteLabel } = useSettings();
   const { user } = useAuthStore();
   
   if (!user) return <Avatar icon={<UserOutlined />} />;
@@ -16,7 +18,7 @@ export const UserAvatar: React.FC = () => {
 
   return (
     <Avatar 
-      style={{ backgroundColor: '#1B4B73', verticalAlign: 'middle' }} 
+      style={{ backgroundColor: whiteLabel.primary_color, verticalAlign: 'middle' }} 
       size="large"
     >
       {initials}
@@ -24,10 +26,14 @@ export const UserAvatar: React.FC = () => {
   );
 };
 
-export const AssistantAvatar: React.FC = () => (
-  <Avatar 
-    style={{ backgroundColor: '#ffffff', color: '#1B4B73', border: '1px solid #f0f0f0' }} 
-    size="large"
-    icon={<RobotOutlined />}
-  />
-);
+export const AssistantAvatar: React.FC = () => {
+  const { whiteLabel } = useSettings();
+  return (
+    <Avatar 
+      src={whiteLabel.app_icon}
+      style={{ backgroundColor: '#ffffff', color: whiteLabel.primary_color, border: '1px solid #f0f0f0' }} 
+      size="large"
+      icon={!whiteLabel.app_icon ? <RobotOutlined /> : undefined}
+    />
+  );
+};
