@@ -1,0 +1,227 @@
+'use client';
+
+import React from 'react';
+import { Layout, Button, Input, Typography, Space, Tooltip, App } from 'antd';
+import { PlusOutlined, SettingOutlined, SearchOutlined, MessageOutlined, EditOutlined, DeleteOutlined, LogoutOutlined } from '@ant-design/icons';
+import { Conversations } from '@ant-design/x';
+import { UserAvatar } from './UserAvatar'; // Assuming this exists or I'll create it
+
+const { Sider } = Layout;
+const { Text } = Typography;
+
+interface ChatSidebarProps {
+  loading: boolean;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  filteredConversations: any[];
+  currentConversation: any;
+  handleNewConversation: () => void;
+  handleOpenModelSelector: () => void;
+  handleSelectConversation: (id: string) => void;
+  handleRenameConversation: (id: string, title: string) => void;
+  handleDeleteConversation: (id: string) => void;
+  handleLogout: () => void;
+  user: any;
+  isConnected: boolean;
+}
+
+export const ChatSidebar: React.FC<ChatSidebarProps> = ({
+  loading,
+  searchQuery,
+  setSearchQuery,
+  filteredConversations,
+  currentConversation,
+  handleNewConversation,
+  handleOpenModelSelector,
+  handleSelectConversation,
+  handleRenameConversation,
+  handleDeleteConversation,
+  handleLogout,
+  user,
+  isConnected,
+}) => {
+  const { modal } = App.useApp();
+
+  return (
+    <Sider 
+      width={300} 
+      theme="light" 
+      style={{ 
+        borderRight: '1px solid #f0f0f0',
+        height: '100vh',
+        position: 'relative',
+        zIndex: 10
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        {/* Sidebar Header */}
+        <div style={{ padding: '20px 16px', borderBottom: '1px solid #f0f0f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ 
+              width: '32px', 
+              height: '32px', 
+              borderRadius: '8px', 
+              background: '#1B4B73',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontWeight: 'bold'
+            }}>M</div>
+            <Text strong style={{ fontSize: '18px', color: '#1B4B73' }}>Marie Chat</Text>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ 
+              width: '8px', 
+              height: '8px', 
+              borderRadius: '50%',
+              background: isConnected ? '#52c41a' : '#ff4d4f',
+            }} />
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              {isConnected ? 'System Online' : 'System Offline'}
+            </Text>
+          </div>
+        </div>
+
+        {/* New Conversation Button */}
+        <div style={{ padding: '16px' }}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleNewConversation}
+            disabled={loading}
+            block
+            size="large"
+            style={{
+              height: '44px',
+              fontWeight: 600
+            }}
+          >
+            New Conversation
+          </Button>
+          <Button
+            type="text"
+            icon={<SettingOutlined />}
+            onClick={handleOpenModelSelector}
+            block
+            style={{ marginTop: 8, color: '#1B4B73' }}
+          >
+            Configure Model
+          </Button>
+        </div>
+
+        {/* Search Conversations */}
+        <div style={{ padding: '0 16px 12px 16px' }}>
+          <Input
+            placeholder="Search conversations..."
+            prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            allowClear
+            style={{ borderRadius: '8px' }}
+          />
+        </div>
+
+        {/* Conversations List */}
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+          {filteredConversations.length > 0 ? (
+            <Conversations
+              items={filteredConversations.map((conv: any) => ({
+                key: conv.id,
+                label: conv.title,
+                timestamp: new Date(conv.updated_at).getTime(),
+              }))}
+              activeKey={currentConversation?.id}
+              onActiveChange={handleSelectConversation}
+              menu={(info: any) => ({
+                items: [
+                  {
+                    key: 'rename',
+                    label: 'Rename',
+                    icon: <EditOutlined />,
+                    onClick: () => {
+                      let newTitle = info.label;
+                      modal.confirm({
+                        title: 'Rename Conversation',
+                        content: (
+                          <Input 
+                            defaultValue={info.label} 
+                            onChange={(e) => newTitle = e.target.value}
+                            placeholder="Enter new title"
+                            style={{ marginTop: 16 }}
+                          />
+                        ),
+                        onOk: async () => {
+                          if (newTitle && newTitle.trim()) {
+                            handleRenameConversation(info.key, newTitle);
+                          }
+                        },
+                      });
+                    },
+                  },
+                  {
+                    key: 'delete',
+                    label: 'Delete',
+                    icon: <DeleteOutlined />,
+                    danger: true,
+                    onClick: () => handleDeleteConversation(info.key),
+                  },
+                ],
+              })}
+              style={{ height: '100%', overflow: 'auto' }}
+            />
+          ) : (
+            <div style={{ 
+              padding: '40px 20px', 
+              textAlign: 'center',
+              color: '#8c8c8c'
+            }}>
+              <MessageOutlined style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.3 }} />
+              <Text type="secondary" style={{ display: 'block', fontSize: '14px' }}>
+                {searchQuery ? "No conversations match your search" : "No conversations yet"}
+              </Text>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar Footer */}
+        <div style={{ 
+          padding: '16px 20px', 
+          borderTop: '1px solid #f0f0f0',
+          background: '#fafafa'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            marginBottom: '8px'
+          }}>
+            <Space orientation="horizontal" size="small">
+              <UserAvatar />
+              <div style={{ maxWidth: '160px' }}>
+                <Text strong style={{ display: 'block', fontSize: '14px' }} ellipsis>
+                  {user?.full_name || user?.email || 'User'}
+                </Text>
+                <Text type="secondary" style={{ fontSize: '12px' }} ellipsis>
+                  {user?.email}
+                </Text>
+              </div>
+            </Space>
+            <Tooltip title="Logout">
+              <Button 
+                type="text" 
+                icon={<LogoutOutlined />} 
+                onClick={handleLogout}
+                danger
+              />
+            </Tooltip>
+          </div>
+          <Space orientation="vertical" size={4} style={{ width: '100%' }}>
+            <Text type="secondary" style={{ fontSize: '10px' }}>© 2025 ImpactU</Text>
+          </Space>
+        </div>
+      </div>
+    </Sider>
+  );
+};

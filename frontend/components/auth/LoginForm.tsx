@@ -17,6 +17,11 @@ export function LoginForm() {
   const { setAuth } = useAuthStore();
   const { message } = useApp();
 
+  // Prefetch chat page to improve perceived performance
+  useState(() => {
+    router.prefetch('/chat');
+  });
+
   const onFinish = async (values: any) => {
     setLoading(true);
     try {

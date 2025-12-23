@@ -1,0 +1,160 @@
+'use client';
+
+import React, { memo } from 'react';
+import { Typography, Tag, Tooltip, Button, Space } from 'antd';
+import { LinkOutlined, RobotOutlined, UserOutlined, EditOutlined, ReloadOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons';
+import { Think, Bubble } from '@ant-design/x';
+import dynamic from 'next/dynamic';
+import { FileCard } from './FileCard';
+
+const { Text } = Typography;
+
+const MarkdownContent = dynamic(() => import('../markdown/MarkdownContent').then(mod => mod.MarkdownContent), {
+  loading: () => <div style={{ padding: '8px', color: '#8c8c8c' }}>Loading renderer...</div>,
+  ssr: false
+});
+
+interface MessageItemProps {
+  msg: any;
+  isStreaming: boolean;
+  onEdit: (msg: any) => void;
+  onReference: (id: string) => void;
+  isReferenced: boolean;
+  onNavigate: (ref: any) => void;
+  onRegenerate?: () => void;
+  onPlay?: (text: string, id: string) => void;
+  isPlaying?: boolean;
+}
+
+export const MessageItem = memo(({ 
+  msg, 
+  isStreaming, 
+  onEdit, 
+  onReference, 
+  isReferenced,
+  onNavigate,
+  onRegenerate,
+  onPlay,
+  isPlaying
+}: MessageItemProps) => {
+  return (
+    <div id={`message-${msg.id}`} style={{ marginBottom: '24px', transition: 'background-color 0.5s' }}>
+      {/* Show thinking component BEFORE message for assistant streaming */}
+      {msg.role === 'assistant' && msg.id === 'streaming' && isStreaming && msg.content.length < 50 && (
+        <div style={{ marginBottom: '12px', marginLeft: '52px' }}>
+          <Think
+            title="Thinking..."
+            loading={true}
+            defaultExpanded={true}
+            blink={true}
+          >
+            <div style={{ fontSize: '13px', color: '#8c8c8c', lineHeight: '1.8' }}>
+              <div>• Processing your query</div>
+              <div>• Searching knowledge base</div>
+              <div>• Generating contextual response</div>
+            </div>
+          </Think>
+        </div>
+      )}
+      {(msg.content || msg.id !== 'streaming') && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+          {msg.metadata?.attachments && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+              {msg.metadata.attachments.map((att: any) => (
+                <FileCard key={att.file_id} file={att} />
+              ))}
+            </div>
+          )}
+          {msg.metadata?.references && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
+              {msg.metadata.references.map((ref: any) => (
+                <Tag 
+                  key={ref.id} 
+                  icon={<LinkOutlined />} 
+                  style={{ 
+                    fontSize: '11px', 
+                    background: '#e6f7ff', 
+                    borderColor: '#91d5ff',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => onNavigate(ref)}
+                >
+                  {ref.type === 'message' ? 'Message: ' + ref.content : ref.title}
+                </Tag>
+              ))}
+            </div>
+          )}
+          <Bubble
+            avatar={{ 
+              icon: msg.role === 'user' ? <UserOutlined /> : <RobotOutlined />,
+              style: { backgroundColor: msg.role === 'user' ? '#1B4B73' : '#52c41a' }
+            }}
+            content={
+              <div style={{ minWidth: '40px' }}>
+                <MarkdownContent content={msg.content} />
+              </div>
+            }
+            styles={{
+              content: {
+                backgroundColor: msg.role === 'user' ? '#f0f5ff' : '#ffffff',
+                border: msg.role === 'user' ? 'none' : '1px solid #f0f0f0',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+              }
+            }}
+            footer={
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', width: '100%' }}>
+                <Text type="secondary" style={{ fontSize: '11px' }}>
+                  {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                </Text>
+                <Space size={4}>
+                  {onPlay && msg.content && (
+                    <Tooltip title={isPlaying ? "Stop" : "Listen"}>
+                      <Button 
+                        type="text" 
+                        size="small" 
+                        icon={isPlaying ? <PauseCircleOutlined style={{ color: '#1890ff' }} /> : <PlayCircleOutlined />} 
+                        onClick={() => onPlay(msg.content, msg.id)}
+                      />
+                    </Tooltip>
+                  )}
+                  <Tooltip title={isReferenced ? "Referenced" : "Reference this"}>
+                    <Button 
+                      type="text" 
+                      size="small" 
+                      icon={<LinkOutlined style={{ color: isReferenced ? '#1890ff' : undefined }} />} 
+                      onClick={() => onReference(msg.id)}
+                    />
+                  </Tooltip>
+                  {msg.role === 'user' && (
+                    <Tooltip title="Edit message">
+                      <Button 
+                        type="text" 
+                        size="small" 
+                        icon={<EditOutlined />} 
+                        onClick={() => onEdit(msg)}
+                      />
+                    </Tooltip>
+                  )}
+                  {onRegenerate && (
+                    <Tooltip title="Regenerate response">
+                      <Button 
+                        type="text" 
+                        size="small" 
+                        icon={<ReloadOutlined />} 
+                        onClick={onRegenerate}
+                      />
+                    </Tooltip>
+                  )}
+                </Space>
+              </div>
+            }
+          />
+        </div>
+      )}
+    </div>
+  );
+});
+
+MessageItem.displayName = 'MessageItem';
