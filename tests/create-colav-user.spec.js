@@ -39,7 +39,7 @@ test.describe('Create GrupoCoLaV User', () => {
       console.log('✅ Redirected to chat page');
       
       // Verify we're in the chat interface
-      await expect(page.locator('text=Marie Chat')).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('heading', { name: 'Marie', exact: true })).toBeVisible({ timeout: 5000 });
       
       console.log('\n📧 User Details:');
       console.log(`Email: ${COLAV_USER.email}`);
@@ -75,9 +75,9 @@ test.describe('Create GrupoCoLaV User', () => {
     console.log('✅ Redirected to chat page');
 
     // Verify chat interface is loaded
-    await expect(page.locator('text=Marie Chat')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Marie', exact: true })).toBeVisible();
 
-    console.log('\n🎉 User is ready to use Marie Chat!');
+    console.log('\n🎉 User is ready to use Marie!');
   });
 
   test('should verify user exists via API', async ({ request }) => {
@@ -120,7 +120,7 @@ test.describe('Create GrupoCoLaV User', () => {
     await page.waitForTimeout(2000);
 
     // Create new conversation
-    await page.click('button:has-text("New Conversation"), button:has-text("Start New Chat")');
+    await page.click('button:has-text("New Conversation")');
     await page.waitForTimeout(2000);
 
     console.log('✅ Conversation created successfully!');

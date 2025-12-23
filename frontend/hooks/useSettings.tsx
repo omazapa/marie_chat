@@ -10,6 +10,7 @@ interface WhiteLabelSettings {
   primary_color: string;
   welcome_title: string;
   welcome_subtitle: string;
+  registration_enabled: boolean;
 }
 
 interface SettingsContextType {
@@ -23,7 +24,8 @@ const defaultWhiteLabel: WhiteLabelSettings = {
   app_icon: '/imgs/marie_icon.png',
   primary_color: '#1B4B73',
   welcome_title: 'Marie',
-  welcome_subtitle: 'Intelligent Research Assistant',
+  welcome_subtitle: 'Machine-Assisted Research Intelligent Environment',
+  registration_enabled: false,
 };
 
 const SettingsContext = createContext<SettingsContextType>({

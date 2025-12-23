@@ -17,6 +17,13 @@ export function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const { setAuth } = useAuthStore();
   const { message } = useApp();
+  const { whiteLabel, loading: settingsLoading } = useSettings();
+
+  // Redirect if registration is disabled
+  if (!settingsLoading && !whiteLabel.registration_enabled) {
+    router.replace('/login');
+    return null;
+  }
 
   const onFinish = async (values: any) => {
     setLoading(true);

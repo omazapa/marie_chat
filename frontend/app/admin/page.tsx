@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Statistic, List, Typography, Tag, Spin, Alert, Space } from 'antd';
+import { Row, Col, Card, Statistic, Typography, Tag, Spin, Alert, Space } from 'antd';
 import { 
   UserOutlined, 
   MessageOutlined, 
@@ -135,23 +135,24 @@ export default function AdminDashboard() {
             variant="borderless"
             style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)', borderRadius: '12px', height: '100%' }}
           >
-            <List
-              itemLayout="horizontal"
-              dataSource={Object.entries(indices)}
-              renderItem={([name, data]: [string, any]) => (
-                <List.Item>
-                  <List.Item.Meta
-                    title={<Text strong>{name}</Text>}
-                    description={`Documents: ${data.docs_count.toLocaleString()}`}
-                  />
-                  <div style={{ textAlign: 'right' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {Object.entries(indices).map(([name, data]: [string, any], index, arr) => (
+                <React.Fragment key={name}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <Text strong style={{ display: 'block' }}>{name}</Text>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>
+                        Documents: {data.docs_count.toLocaleString()}
+                      </Text>
+                    </div>
                     <Tag color="blue" style={{ borderRadius: '4px' }}>
                       {(data.store_size_bytes / (1024 * 1024)).toFixed(2)} MB
                     </Tag>
                   </div>
-                </List.Item>
-              )}
-            />
+                  {index < arr.length - 1 && <div style={{ height: '1px', background: '#f0f0f0' }} />}
+                </React.Fragment>
+              ))}
+            </div>
           </Card>
         </Col>
         <Col xs={24} lg={8}>
@@ -160,7 +161,7 @@ export default function AdminDashboard() {
             variant="borderless"
             style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)', borderRadius: '12px', height: '100%' }}
           >
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <Space orientation="vertical" style={{ width: '100%' }} size="middle">
               <Link href="/admin/users" style={{ width: '100%' }}>
                 <Card hoverable size="small" style={{ borderRadius: '8px', border: '1px solid #f0f0f0' }}>
                   <Space>

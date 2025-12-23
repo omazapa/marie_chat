@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-test.describe('Marie Chat - Authentication and Chat', () => {
+test.describe('Marie - Authentication and Chat', () => {
   
   test('Registration, Login and Chat access', async ({ page }) => {
     const timestamp = Date.now();

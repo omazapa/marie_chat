@@ -673,7 +673,7 @@ export default function ChatContainer() {
             <div style={{ 
               borderTop: '1px solid #E2E8F0',
               background: '#ffffff',
-              padding: '20px 24px'
+              padding: '16px 24px'
             }}>
               <div style={{ maxWidth: '900px', margin: '0 auto' }}>
                 {/* Attachments and References List */}

@@ -30,7 +30,6 @@ export const AssistantAvatar: React.FC = () => {
   const { whiteLabel } = useSettings();
   return (
     <Avatar 
-      src={whiteLabel.app_icon}
       style={{ 
         backgroundColor: '#ffffff', 
         color: whiteLabel.primary_color, 
@@ -39,10 +38,9 @@ export const AssistantAvatar: React.FC = () => {
         boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
       }} 
       size={40}
-      icon={!whiteLabel.app_icon ? <RobotOutlined /> : undefined}
-      {...(whiteLabel.app_icon ? {
-        imgProps: { style: { objectFit: 'contain' } }
-      } : {})}
+      icon={whiteLabel.app_icon ? (
+        <img src={whiteLabel.app_icon} style={{ objectFit: 'contain', width: '100%', height: '100%' }} alt="Assistant" />
+      ) : <RobotOutlined />}
     />
   );
 };

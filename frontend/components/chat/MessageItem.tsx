@@ -86,8 +86,11 @@ export const MessageItem = memo(({
           <Bubble
             avatar={
               <Avatar 
-                src={msg.role === 'assistant' ? whiteLabel.app_icon : undefined}
-                icon={msg.role === 'user' ? <UserOutlined /> : undefined}
+                icon={msg.role === 'assistant' ? (
+                  whiteLabel.app_icon ? (
+                    <img src={whiteLabel.app_icon} style={{ objectFit: 'contain', width: '100%', height: '100%' }} alt="Assistant" />
+                  ) : <RobotOutlined />
+                ) : <UserOutlined />}
                 size={40}
                 style={{ 
                   backgroundColor: msg.role === 'user' ? whiteLabel.primary_color : '#ffffff',
@@ -95,9 +98,6 @@ export const MessageItem = memo(({
                   padding: msg.role === 'assistant' ? '6px' : 0,
                   boxShadow: msg.role === 'assistant' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none'
                 }}
-                {...(msg.role === 'assistant' && whiteLabel.app_icon ? {
-                  imgProps: { style: { objectFit: 'contain' } }
-                } : {})}
               />
             }
             content={

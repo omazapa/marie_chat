@@ -10,7 +10,7 @@ test('Edit and resend message functionality', async ({ page }) => {
   await page.waitForURL('**/chat', { timeout: 30000 });
   await page.waitForTimeout(2000);
   
-  const newConvButton = page.getByRole('button', { name: 'Start New Chat' });
+  const newConvButton = page.getByRole('button', { name: 'New Conversation' });
   await newConvButton.click();
   
   const input = page.getByPlaceholder('Type your message here...');

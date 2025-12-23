@@ -43,7 +43,8 @@ class SettingsService:
                     "app_icon": "/imgs/marie_icon.png",
                     "primary_color": "#1B4B73",
                     "welcome_title": "Marie",
-                    "welcome_subtitle": "Intelligent Research Assistant"
+                    "welcome_subtitle": "Machine-Assisted Research Intelligent Environment",
+                    "registration_enabled": false
                 },
                 "updated_at": datetime.utcnow().isoformat()
             })
@@ -61,8 +62,11 @@ class SettingsService:
                     "app_icon": "/imgs/marie_icon.png",
                     "primary_color": "#1B4B73",
                     "welcome_title": "Marie",
-                    "welcome_subtitle": "Intelligent Research Assistant"
+                    "welcome_subtitle": "Machine-Assisted Research Intelligent Environment",
+                    "registration_enabled": False
                 }
+            elif "registration_enabled" not in settings["white_label"]:
+                settings["white_label"]["registration_enabled"] = False
             return settings
         except Exception:
             # Return defaults if not found
@@ -94,7 +98,8 @@ class SettingsService:
                     "app_icon": "/imgs/marie_icon.png",
                     "primary_color": "#1B4B73",
                     "welcome_title": "Marie",
-                    "welcome_subtitle": "Intelligent Research Assistant"
+                    "welcome_subtitle": "Machine-Assisted Research Intelligent Environment",
+                    "registration_enabled": False
                 }
             }
 

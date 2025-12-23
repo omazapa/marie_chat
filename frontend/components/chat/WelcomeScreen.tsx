@@ -28,25 +28,25 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSend, onNewConve
       flex: 1, 
       display: 'flex', 
       flexDirection: 'column',
-      justifyContent: 'center', 
+      justifyContent: 'flex-start', 
       alignItems: 'center',
-      padding: '40px',
+      padding: '80px 40px 40px 40px',
       background: '#ffffff',
       maxWidth: '800px',
       margin: '0 auto'
     }}>
-      <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '24px' }}>
         <Image 
           src={whiteLabel.app_logo} 
           alt="Logo" 
-          width={180} 
+          width={160} 
           preview={false} 
-          style={{ marginBottom: '24px' }} 
+          style={{ marginBottom: '16px' }} 
         />
-        <Title level={1} style={{ margin: '0 0 8px 0', fontWeight: 800 }}>
+        <Title level={1} style={{ margin: '0 0 4px 0', fontWeight: 800, fontSize: '32px' }}>
           {whiteLabel.welcome_title}
         </Title>
-        <Paragraph type="secondary" style={{ fontSize: '18px', maxWidth: '600px', margin: '0 auto' }}>
+        <Paragraph type="secondary" style={{ fontSize: '16px', maxWidth: '600px', margin: '0 auto' }}>
           {whiteLabel.welcome_subtitle}
         </Paragraph>
       </div>
@@ -75,25 +75,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSend, onNewConve
           ]}
           onItemClick={(info) => onSend(info.data.label as string)}
         />
-        
-        <div style={{ textAlign: 'center', marginTop: '32px' }}>
-          <Button
-            type="primary"
-            size="large"
-            icon={<PlusOutlined />}
-            onClick={onNewConversation}
-            style={{ 
-              height: 54, 
-              padding: '0 40px', 
-              borderRadius: '27px',
-              fontSize: '16px',
-              fontWeight: 600,
-              boxShadow: `0 4px 14px ${whiteLabel.primary_color}40`
-            }}
-          >
-            Start New Conversation
-          </Button>
-        </div>
       </div>
     </div>
   );

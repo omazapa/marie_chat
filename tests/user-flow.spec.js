@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-test.describe('Marie Chat - User Flow', () => {
+test.describe('Marie - User Flow', () => {
   
   test('Complete flow: New user registration', async ({ page }) => {
     await page.goto('/register');

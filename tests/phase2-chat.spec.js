@@ -51,7 +51,7 @@ test.describe('Phase 2: Chat Core Functionality', () => {
     await page.waitForLoadState('networkidle');
 
     // Check for main chat container
-    await expect(page.locator('text=Marie Chat')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Marie', exact: true })).toBeVisible();
     
     // Check for connection status
     const connectionStatus = page.locator('text=/Connected|Disconnected/');
@@ -186,11 +186,10 @@ test.describe('Phase 2: Chat Core Functionality', () => {
     await page.waitForLoadState('networkidle');
 
     // Check for welcome message
-    const welcomeText = page.locator('text=/Welcome to Marie Chat/i');
-    await expect(welcomeText).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Marie', exact: true })).toBeVisible();
 
-    // Check for start chat button
-    await expect(page.locator('button:has-text("Start New Chat")')).toBeVisible();
+    // Check for new conversation button in sidebar
+    await expect(page.locator('button:has-text("New Conversation")')).toBeVisible();
 
     console.log('✅ Welcome screen displayed');
   });
@@ -202,7 +201,7 @@ test.describe('Phase 2: Chat Core Functionality', () => {
     await page.waitForLoadState('networkidle');
 
     // Create or select a conversation
-    await page.click('button:has-text("Start New Chat")');
+    await page.click('button:has-text("New Conversation")');
     await page.waitForTimeout(2000);
 
     // Find message input

@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-test.describe('Marie Chat - Backend Services', () => {
+test.describe('Marie - Backend Services', () => {
   
   test('Backend health check responds correctly', async ({ request }) => {
     const response = await request.get('http://localhost:5000/health');

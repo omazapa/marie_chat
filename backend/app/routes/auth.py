@@ -9,6 +9,7 @@ from flask_jwt_extended import (
 from pydantic import ValidationError
 from app.schemas.auth import RegisterRequest, LoginRequest, RefreshTokenRequest, UserResponse, LoginResponse
 from app.services.opensearch_service import OpenSearchService
+from app.services.settings_service import settings_service
 
 
 auth_bp = Blueprint('auth', __name__)
@@ -18,6 +19,11 @@ opensearch_service = OpenSearchService()
 @auth_bp.route('/register', methods=['POST'])
 def register():
     """Register a new user"""
+    # Check if registration is enabled
+    config = settings_service.get_settings()
+    if not config.get('white_label', {}).get('registration_enabled', False):
+        return jsonify({'error': 'Registration is currently disabled'}), 403
+
     try:
         data = RegisterRequest(**request.get_json())
     except ValidationError as e:

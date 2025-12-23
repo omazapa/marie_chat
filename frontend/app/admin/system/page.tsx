@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Typography, List, Tag, Spin, Alert, Divider, Progress, Space } from 'antd';
+import { Card, Row, Col, Typography, Tag, Spin, Alert, Divider, Progress, Space } from 'antd';
 import { 
   CloudServerOutlined, 
   HddOutlined, 
@@ -67,12 +67,10 @@ export default function SystemStats() {
 
         <Col span={24}>
           <Card title={<Space><HddOutlined /> Storage & Indices</Space>} variant="borderless">
-            <List
-              itemLayout="vertical"
-              dataSource={Object.entries(stats.indices || {})}
-              renderItem={([name, data]: [string, any]) => (
-                <List.Item>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {Object.entries(stats.indices || {}).map(([name, data]: [string, any], index, arr) => (
+                <div key={name}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <Text strong style={{ fontSize: '16px' }}>{name}</Text>
                     <Tag color="blue">{(data.store_size_bytes / (1024 * 1024)).toFixed(2)} MB</Tag>
                   </div>
@@ -86,28 +84,32 @@ export default function SystemStats() {
                       <Progress percent={100} size="small" showInfo={false} strokeColor={whiteLabel.primary_color} />
                     </Col>
                   </Row>
-                </List.Item>
-              )}
-            />
+                  {index < arr.length - 1 && <div style={{ height: '1px', background: '#f0f0f0', marginTop: '24px' }} />}
+                </div>
+              ))}
+            </div>
           </Card>
         </Col>
 
         <Col span={24}>
           <Card title={<Space><InfoCircleOutlined /> System Environment</Space>} variant="borderless">
-            <List size="small">
-              <List.Item>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
                 <Text strong>Backend Framework:</Text> <Text>Flask 3.x</Text>
-              </List.Item>
-              <List.Item>
+              </div>
+              <div style={{ height: '1px', background: '#f0f0f0' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
                 <Text strong>Database:</Text> <Text>OpenSearch 2.11</Text>
-              </List.Item>
-              <List.Item>
-                <Text strong>Frontend:</Text> <Text>Next.js 15.1 (React 19)</Text>
-              </List.Item>
-              <List.Item>
+              </div>
+              <div style={{ height: '1px', background: '#f0f0f0' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                <Text strong>Frontend:</Text> <Text>Next.js 16.1 (React 19)</Text>
+              </div>
+              <div style={{ height: '1px', background: '#f0f0f0' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
                 <Text strong>Deployment:</Text> <Text>Docker Compose</Text>
-              </List.Item>
-            </List>
+              </div>
+            </div>
           </Card>
         </Col>
       </Row>

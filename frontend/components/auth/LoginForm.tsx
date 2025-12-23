@@ -123,12 +123,14 @@ export function LoginForm() {
             </Form.Item>
           </Form>
 
-          <div style={{ textAlign: 'center' }}>
-            <Text type="secondary">
-              Don&apos;t have an account?{' '}
-              <Link href="/register">Sign up</Link>
-            </Text>
-          </div>
+          {whiteLabel.registration_enabled && (
+            <div style={{ textAlign: 'center' }}>
+              <Text type="secondary">
+                Don&apos;t have an account?{' '}
+                <Link href="/register">Sign up</Link>
+              </Text>
+            </div>
+          )}
         </Space>
       </Card>
     </div>
