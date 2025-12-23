@@ -42,7 +42,7 @@ export default function AdminDashboard() {
     <div>
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} className="stats-card">
+          <Card variant="borderless" className="stats-card">
             <Statistic
               title="Total Users"
               value={indices.marie_users?.docs_count || 0}
@@ -51,7 +51,7 @@ export default function AdminDashboard() {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} className="stats-card">
+          <Card variant="borderless" className="stats-card">
             <Statistic
               title="Total Messages"
               value={indices.marie_messages?.docs_count || 0}
@@ -60,7 +60,7 @@ export default function AdminDashboard() {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} className="stats-card">
+          <Card variant="borderless" className="stats-card">
             <Statistic
               title="Conversations"
               value={indices.marie_conversations?.docs_count || 0}
@@ -69,7 +69,7 @@ export default function AdminDashboard() {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} className="stats-card">
+          <Card variant="borderless" className="stats-card">
             <Statistic
               title="System Health"
               value={stats?.cluster_health?.toUpperCase()}
@@ -82,7 +82,7 @@ export default function AdminDashboard() {
 
       <Row gutter={[16, 16]} style={{ marginTop: '24px' }}>
         <Col span={24}>
-          <Card title="Index Storage Usage" bordered={false}>
+          <Card title="Index Storage Usage" variant="borderless">
             <List
               itemLayout="horizontal"
               dataSource={Object.entries(indices)}

@@ -33,7 +33,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!isAuthenticated || user?.role !== 'admin') {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spin size="large" tip="Verifying admin access..." />
+        <Space direction="vertical" align="center">
+          <Spin size="large" />
+          <Text type="secondary">Verifying admin access...</Text>
+        </Space>
       </div>
     );
   }

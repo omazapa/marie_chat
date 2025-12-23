@@ -39,7 +39,7 @@ export default function SystemStats() {
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
       <Row gutter={[24, 24]}>
         <Col span={24}>
-          <Card title={<Space><CloudServerOutlined /> Cluster Information</Space>} bordered={false}>
+          <Card title={<Space><CloudServerOutlined /> Cluster Information</Space>} variant="borderless">
             <Row gutter={24}>
               <Col span={8}>
                 <Text type="secondary">Status</Text>
@@ -64,7 +64,7 @@ export default function SystemStats() {
         </Col>
 
         <Col span={24}>
-          <Card title={<Space><HddOutlined /> Storage & Indices</Space>} bordered={false}>
+          <Card title={<Space><HddOutlined /> Storage & Indices</Space>} variant="borderless">
             <List
               itemLayout="vertical"
               dataSource={Object.entries(stats.indices || {})}
@@ -91,7 +91,7 @@ export default function SystemStats() {
         </Col>
 
         <Col span={24}>
-          <Card title={<Space><InfoCircleOutlined /> System Environment</Space>} bordered={false}>
+          <Card title={<Space><InfoCircleOutlined /> System Environment</Space>} variant="borderless">
             <List size="small">
               <List.Item>
                 <Text strong>Backend Framework:</Text> <Text>Flask 3.x</Text>

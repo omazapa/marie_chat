@@ -94,4 +94,43 @@ class AdminService:
             print(f"Error updating user role: {e}")
             return False
 
+    def delete_user(self, user_id: str) -> bool:
+        """Delete a user and all their associated data"""
+        try:
+            # 1. Delete user's messages
+            self.client.delete_by_query(
+                index="marie_messages",
+                body={"query": {"term": {"user_id": user_id}}},
+                refresh=True
+            )
+            
+            # 2. Delete user's conversations
+            self.client.delete_by_query(
+                index="marie_conversations",
+                body={"query": {"term": {"user_id": user_id}}},
+                refresh=True
+            )
+            
+            # 3. Delete user's API keys
+            self.client.delete_by_query(
+                index="marie_api_keys",
+                body={"query": {"term": {"user_id": user_id}}},
+                refresh=True
+            )
+            
+            # 4. Delete user's memory
+            self.client.delete_by_query(
+                index="marie_memory",
+                body={"query": {"term": {"user_id": user_id}}},
+                refresh=True
+            )
+            
+            # 5. Delete the user document
+            self.client.delete(index="marie_users", id=user_id, refresh=True)
+            
+            return True
+        except Exception as e:
+            print(f"Error deleting user {user_id}: {e}")
+            return False
+
 admin_service = AdminService()

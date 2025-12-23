@@ -49,3 +49,12 @@ def update_user_role(user_id):
     if success:
         return jsonify({'message': 'User role updated successfully'}), 200
     return jsonify({'error': 'Failed to update user role'}), 500
+
+@admin_bp.route('/users/<user_id>', methods=['DELETE'])
+@admin_required
+def delete_user(user_id):
+    """Delete user and all data"""
+    success = admin_service.delete_user(user_id)
+    if success:
+        return jsonify({'message': 'User and all associated data deleted successfully'}), 200
+    return jsonify({'error': 'Failed to delete user'}), 500

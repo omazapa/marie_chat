@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Table, Tag, Space, Button, Typography, Card, App, Switch, Select, Tooltip } from 'antd';
+import { Table, Tag, Space, Button, Typography, Card, App, Switch, Select, Tooltip, Modal } from 'antd';
 import { 
   UserOutlined, 
   SafetyCertificateOutlined,
   StopOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
+  DeleteOutlined,
+  ExclamationCircleOutlined
 } from '@ant-design/icons';
 import apiClient from '@/lib/api';
 import type { User } from '@/types';
@@ -16,7 +18,7 @@ const { Title, Text } = Typography;
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -52,6 +54,26 @@ export default function UserManagement() {
     } catch (err) {
       message.error('Failed to update user role');
     }
+  };
+
+  const handleDeleteUser = (userId: string, email: string) => {
+    modal.confirm({
+      title: 'Are you sure you want to delete this user?',
+      icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
+      content: `This will permanently delete the user ${email} and all their associated data (conversations, messages, etc.). This action cannot be undone.`,
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          await apiClient.delete(`/admin/users/${userId}`);
+          message.success('User deleted successfully');
+          setUsers(prev => prev.filter(u => u.id !== userId));
+        } catch (err) {
+          message.error('Failed to delete user');
+        }
+      },
+    });
   };
 
   const columns = [
@@ -117,10 +139,24 @@ export default function UserManagement() {
       key: 'created_at',
       render: (date: string) => new Date(date).toLocaleDateString(),
     },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (record: User) => (
+        <Tooltip title="Delete User">
+          <Button 
+            type="text" 
+            danger 
+            icon={<DeleteOutlined />} 
+            onClick={() => handleDeleteUser(record.id, record.email)}
+          />
+        </Tooltip>
+      ),
+    },
   ];
 
   return (
-    <Card bordered={false}>
+    <Card variant="borderless">
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={4} style={{ margin: 0 }}>User Management</Title>
         <Button type="primary" onClick={fetchUsers} loading={loading}>Refresh</Button>
