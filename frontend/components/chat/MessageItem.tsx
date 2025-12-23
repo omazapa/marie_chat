@@ -88,9 +88,15 @@ export const MessageItem = memo(({
               <Avatar 
                 src={msg.role === 'assistant' ? whiteLabel.app_icon : undefined}
                 icon={msg.role === 'user' ? <UserOutlined /> : undefined}
+                size={40}
                 style={{ 
                   backgroundColor: msg.role === 'user' ? whiteLabel.primary_color : '#ffffff',
-                  border: msg.role === 'assistant' ? '1px solid #f0f0f0' : 'none'
+                  border: msg.role === 'assistant' ? '1px solid #f0f0f0' : 'none',
+                  padding: msg.role === 'assistant' ? '6px' : 0,
+                  boxShadow: msg.role === 'assistant' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none'
+                }}
+                imgProps={{
+                  style: { objectFit: 'contain' }
                 }}
               />
             }

@@ -39,8 +39,8 @@ class SettingsService:
                 },
                 "white_label": {
                     "app_name": "Marie Chat",
-                    "app_logo": "/imgs/marie_logo_alpha.png",
-                    "app_icon": "/imgs/marie_logo_alpha.png",
+                    "app_logo": "/imgs/marie_logo.png",
+                    "app_icon": "/imgs/marie_icon.png",
                     "primary_color": "#1B4B73",
                     "welcome_title": "Marie Chat",
                     "welcome_subtitle": "Intelligent Research Assistant"
@@ -58,7 +58,7 @@ class SettingsService:
                 settings["white_label"] = {
                     "app_name": "Marie Chat",
                     "app_logo": "/imgs/marie_logo.png",
-                    "app_icon": "/imgs/marie.png",
+                    "app_icon": "/imgs/marie_icon.png",
                     "primary_color": "#1B4B73",
                     "welcome_title": "Marie Chat",
                     "welcome_subtitle": "Intelligent Research Assistant"
@@ -91,7 +91,7 @@ class SettingsService:
                 "white_label": {
                     "app_name": "Marie Chat",
                     "app_logo": "/imgs/marie_logo.png",
-                    "app_icon": "/imgs/marie.png",
+                    "app_icon": "/imgs/marie_icon.png",
                     "primary_color": "#1B4B73",
                     "welcome_title": "Marie Chat",
                     "welcome_subtitle": "Intelligent Research Assistant"

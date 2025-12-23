@@ -31,9 +31,18 @@ export const AssistantAvatar: React.FC = () => {
   return (
     <Avatar 
       src={whiteLabel.app_icon}
-      style={{ backgroundColor: '#ffffff', color: whiteLabel.primary_color, border: '1px solid #f0f0f0' }} 
-      size="large"
+      style={{ 
+        backgroundColor: '#ffffff', 
+        color: whiteLabel.primary_color, 
+        border: '1px solid #f0f0f0',
+        padding: '6px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+      }} 
+      size={40}
       icon={!whiteLabel.app_icon ? <RobotOutlined /> : undefined}
+      imgProps={{
+        style: { objectFit: 'contain' }
+      }}
     />
   );
 };
