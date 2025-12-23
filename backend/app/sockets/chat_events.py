@@ -96,6 +96,11 @@ def handle_join_conversation(data):
     
     join_room(conversation_id)
     print(f"📥 Client {request.sid} joined conversation {conversation_id}")
+    
+    # Debug: list rooms for this client
+    from flask_socketio import rooms
+    print(f"🔍 Client {request.sid} is now in rooms: {rooms()}")
+    
     emit('joined_conversation', {'conversation_id': conversation_id})
 
 

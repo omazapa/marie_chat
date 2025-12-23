@@ -117,6 +117,42 @@ INDICES = {
             "number_of_replicas": 1
         }
     },
+    
+    "marie_memory": {
+        "mappings": {
+            "properties": {
+                "id": {"type": "keyword"},
+                "user_id": {"type": "keyword"},
+                "content": {
+                    "type": "text",
+                    "analyzer": "standard"
+                },
+                "content_vector": {
+                    "type": "knn_vector",
+                    "dimension": 384,
+                    "method": {
+                        "name": "hnsw",
+                        "space_type": "cosinesimil",
+                        "engine": "lucene",
+                        "parameters": {
+                            "ef_construction": 128,
+                            "m": 16
+                        }
+                    }
+                },
+                "memory_type": {"type": "keyword"},
+                "importance": {"type": "integer"},
+                "metadata": {"type": "object", "enabled": True},
+                "created_at": {"type": "date"},
+                "updated_at": {"type": "date"},
+            }
+        },
+        "settings": {
+            "number_of_shards": 1,
+            "number_of_replicas": 1,
+            "index.knn": True
+        }
+    },
 }
 
 

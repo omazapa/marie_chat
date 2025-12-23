@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     
     # Speech
     WHISPER_MODEL: str = os.getenv('WHISPER_MODEL', 'base')
-    WHISPER_DEVICE: str = os.getenv('WHISPER_DEVICE', 'cpu')
+    WHISPER_DEVICE: str = os.getenv('WHISPER_DEVICE', 'auto')
     
     # CORS
     CORS_ORIGINS: list = [
@@ -57,6 +57,8 @@ class Settings(BaseSettings):
         'http://127.0.0.1:3000',
         'http://localhost:5000',
         'http://127.0.0.1:5000',
+        'http://0.0.0.0:3000',
+        '*' # Allow all for development to avoid Network Error
     ]
     
     # File Upload

@@ -33,8 +33,13 @@ class SpeechService:
     def stt_model(self):
         if self._stt_model is None:
             # Initialize model lazily
-            print(f"🎙️ Initializing Whisper model: {self.stt_model_size} on {self.device}")
-            self._stt_model = WhisperModel(self.stt_model_size, device=self.device, compute_type="int8")
+            device = self.device
+            if device == "auto":
+                import torch
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+            
+            print(f"🎙️ Initializing Whisper model: {self.stt_model_size} on {device}")
+            self._stt_model = WhisperModel(self.stt_model_size, device=device, compute_type="float16" if device == "cuda" else "int8")
         return self._stt_model
 
     def transcribe(self, audio_path: str, language: Optional[str] = None) -> str:

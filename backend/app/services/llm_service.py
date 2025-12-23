@@ -13,6 +13,7 @@ from app.services.provider_factory import provider_factory
 from app.services.llm_provider import ChatMessage
 from app.services.opensearch_service import OpenSearchService
 from app.services.reference_service import ReferenceService
+from app.services.memory_service import memory_service
 
 
 class LLMService:
@@ -23,6 +24,7 @@ class LLMService:
         self.provider_factory = provider_factory
         self.opensearch_service = OpenSearchService()
         self.reference_service = ReferenceService(self.opensearch_service)
+        self.memory_service = memory_service
         # Lazy-initialize embedding model for semantic search
         self._embedding_model = None
         
@@ -31,9 +33,11 @@ class LLMService:
         """Lazy-initialize embedding model for semantic search"""
         if self._embedding_model is None:
             print("🧠 Loading embedding model (paraphrase-multilingual-MiniLM-L12-v2)...")
+            import torch
+            device = "cuda" if torch.cuda.is_available() else "cpu"
             # paraphrase-multilingual-MiniLM-L12-v2 has 384 dimensions
-            self._embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-            print("✅ Embedding model loaded")
+            self._embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', device=device)
+            print(f"✅ Embedding model loaded on {device}")
         return self._embedding_model
     
     # ==================== Conversation Management ====================
@@ -145,6 +149,13 @@ class LLMService:
                         ]
                     }
                 },
+                "highlight": {
+                    "fields": {
+                        "title": {}
+                    },
+                    "pre_tags": ["<mark>"],
+                    "post_tags": ["</mark>"]
+                },
                 "sort": [{"_score": {"order": "desc"}}, {"updated_at": {"order": "desc"}}],
                 "from": offset,
                 "size": limit
@@ -155,7 +166,13 @@ class LLMService:
                 body=query
             )
             
-            return [hit["_source"] for hit in result["hits"]["hits"]]
+            hits = []
+            for hit in result["hits"]["hits"]:
+                conv = hit["_source"]
+                if "highlight" in hit and "title" in hit["highlight"]:
+                    conv["highlight_title"] = hit["highlight"]["title"][0]
+                hits.append(conv)
+            return hits
         except Exception as e:
             print(f"Error searching conversations: {e}")
             return []
@@ -193,6 +210,13 @@ class LLMService:
                             }
                         ]
                     }
+                },
+                "highlight": {
+                    "fields": {
+                        "content": {}
+                    },
+                    "pre_tags": ["<mark>"],
+                    "post_tags": ["</mark>"]
                 }
             }
             
@@ -217,6 +241,11 @@ class LLMService:
             for hit in result["hits"]["hits"]:
                 msg = hit["_source"]
                 msg["_score"] = hit["_score"]
+                
+                # Add highlight if available
+                if "highlight" in hit and "content" in hit["highlight"]:
+                    msg["highlight"] = hit["highlight"]["content"][0]
+                
                 hits.append(msg)
                 
             return hits
@@ -555,6 +584,22 @@ class LLMService:
                 "content": conversation["system_prompt"]
             })
         
+        # Retrieve relevant memories and add to context
+        memories = self.memory_service.retrieve_memories(user_id, user_message)
+        if memories:
+            memory_context = "--- INFORMACIÓN RECORDADA DEL USUARIO ---\n"
+            for mem in memories:
+                memory_context += f"- {mem['content']}\n"
+            memory_context += "------------------------------------------\n\n"
+            
+            if llm_messages and llm_messages[0]["role"] == "system":
+                llm_messages[0]["content"] = memory_context + llm_messages[0]["content"]
+            else:
+                llm_messages.insert(0, {
+                    "role": "system",
+                    "content": memory_context + "Eres Marie, una asistente de investigación inteligente."
+                })
+        
         # Add conversation history
         for msg in messages:
             # If it's the current message, use the context-enriched version
@@ -681,6 +726,11 @@ class LLMService:
             metadata=metadata
         )
         
+        # Extract and save memories in background
+        import asyncio
+        user_msg = chat_messages[-1].content if chat_messages else ""
+        asyncio.create_task(self._extract_and_save_memories(user_id, user_msg, result.content))
+        
         return assistant_message
     
     async def _stream_completion(
@@ -756,6 +806,11 @@ class LLMService:
                     tokens_used=total_tokens,
                     metadata=metadata
                 )
+                
+                # Extract and save memories in background
+                import asyncio
+                user_msg = chat_messages[-1].content if chat_messages else ""
+                asyncio.create_task(self._extract_and_save_memories(user_id, user_msg, full_content))
                 
                 # Yield follow-ups in a final special chunk if they exist
                 if follow_ups:
@@ -850,6 +905,44 @@ class LLMService:
         except Exception as e:
             print(f"Error generating follow-ups: {e}")
             return []
+
+    async def _extract_and_save_memories(self, user_id: str, user_msg: str, assistant_msg: str):
+        """Use LLM to extract facts from the interaction and save to memory"""
+        prompt = f"""
+        Extract important facts, user preferences, or entities from the following interaction.
+        Only extract information that is worth remembering for future conversations.
+        Format each fact as a single concise sentence in Spanish.
+        If no important information is found, return "NONE".
+        
+        User: {user_msg}
+        Assistant: {assistant_msg}
+        
+        Facts:
+        """
+        
+        try:
+            # Use a fast model for extraction
+            provider = self.provider_factory.get_provider("ollama")
+            # We use a non-streaming call for simplicity
+            response_text = ""
+            async for chunk in provider.chat_completion(
+                model="llama3.2",
+                messages=[ChatMessage(role="user", content=prompt)],
+                temperature=0.1,
+                max_tokens=500
+            ):
+                response_text += chunk.content
+            
+            if "NONE" in response_text.upper():
+                return
+            
+            facts = [f.strip("- ").strip() for f in response_text.split("\n") if f.strip()]
+            for fact in facts:
+                if fact and len(fact) > 5 and "NONE" not in fact.upper():
+                    self.memory_service.save_memory(user_id, fact)
+                    print(f"🧠 Saved memory: {fact}")
+        except Exception as e:
+            print(f"Error extracting memories: {e}")
 
 
 # Global instance
