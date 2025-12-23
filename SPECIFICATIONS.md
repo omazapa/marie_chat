@@ -4437,6 +4437,18 @@ for await (const chunk of client.chatStream("Explica Python")) {
   - [ ] Production environment variables
   - [ ] Complete documentation (User API + Developer API)
 
+### Phase 11: Prompt Engineering Assistant (Days 18-19)
+- [ ] **Backend Prompt Assistant**
+  - [ ] Prompt Engineering Service (`PromptService`)
+  - [ ] Library of prompt techniques (Chain of Thought, Few-Shot, Tree of Thoughts, etc.)
+  - [ ] Endpoint `/api/prompts/optimize` to refine user prompts
+  - [ ] Integration with LLM to generate optimized prompts
+- [ ] **Frontend Prompt Widget**
+  - [ ] `PromptOptimizer` component (floating widget or sidebar tool)
+  - [ ] Interactive wizard to guide the user through prompt creation
+  - [ ] Templates for different use cases (Creative, Technical, Academic)
+  - [ ] One-click "Apply to Chat" functionality
+
 ---
 
 ## 🐳 Deployment

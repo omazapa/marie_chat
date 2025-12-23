@@ -541,12 +541,42 @@ All objectives achieved:
 
 ---
 
-**Phase 3 Status**: ✅ **COMPLETE**  
-**Next Phase**: Phase 4 - Advanced Rendering  
-**Estimated Start**: Immediately available
+**Phase 10 Status**: ✅ **COMPLETE**  
+**Next Phase**: Maintenance & Scaling  
+**Estimated Start**: Q1 2026
 
 ---
 
-*Document Version: 1.0*  
-*Last Updated: December 21, 2024*  
+## 🚀 Phase 9: Advanced Memory
+
+Implemented a long-term memory system using vector search (RAG) to store and retrieve user facts, preferences, and entities.
+
+**Key Components**:
+- **MemoryService**: Manages the `marie_memory` index in OpenSearch.
+- **Fact Extraction**: Uses `llama3.2` to extract structured facts from conversations.
+- **Context Enrichment**: Automatically injects relevant memories into the LLM prompt.
+
+## 🛠️ Phase 10: Developer API
+
+Created a secure external API for developers to integrate Marie Chat into their own applications.
+
+**Key Components**:
+- **APIKeyService**: Lifecycle management for API keys (SHA-256 hashing).
+- **V1 Routes**: `/api/v1/chat/completions` endpoint (OpenAI-compatible).
+- **SSE Support**: Real-time streaming for external clients.
+- **Authentication**: `X-API-Key` header validation.
+
+---
+
+## 🐛 Bug Fixes & Refactoring
+
+- **Modularization**: Refactored `ChatContainer.tsx` into `ChatSidebar`, `MessageArea`, `ChatInput`, and `WelcomeScreen`.
+- **Performance**: Implemented lazy loading for heavy components.
+- **UI Fixes**: Resolved `ReferenceError` for `Space` and fixed `orientation` vs `direction` props in Ant Design components.
+- **Search Highlighting**: Added `<mark>` tag support for hybrid search results.
+
+---
+
+*Document Version: 2.0*  
+*Last Updated: December 22, 2025*  
 *Author: Marie Chat Development Team*

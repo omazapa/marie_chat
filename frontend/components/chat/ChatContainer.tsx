@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
-import { Spin, Button, Space, Typography, Tag, Tooltip, Layout, App, Input } from 'antd';
+import { Spin, Button, Typography, Tag, Tooltip, Layout, App, Input } from 'antd';
 import { 
   RobotOutlined, 
   EditOutlined, 
@@ -22,29 +21,12 @@ import { ChatSidebar } from './ChatSidebar';
 import { MessageArea } from './MessageArea';
 import { ChatInput } from './ChatInput';
 import { WelcomeScreen } from './WelcomeScreen';
-
-// Lazy load heavy components
-const ModelSelector = dynamic(() => import('./ModelSelector'), {
-  loading: () => <Spin size="small" />,
-  ssr: false
-});
-
-const ReferenceModal = dynamic(() => import('./modals/ReferenceModal').then(mod => mod.ReferenceModal), {
-  ssr: false
-});
-
-const ImageGenerationModal = dynamic(() => import('./modals/ImageGenerationModal').then(mod => mod.ImageGenerationModal), {
-  ssr: false
-});
-
-const ModelSettingsModal = dynamic(() => import('./modals/ModelSettingsModal').then(mod => mod.ModelSettingsModal), {
-  ssr: false
-});
-
-const MarkdownContent = dynamic(() => import('../markdown/MarkdownContent').then(mod => mod.MarkdownContent), {
-  loading: () => <div style={{ padding: '8px', color: '#8c8c8c' }}>Loading renderer...</div>,
-  ssr: false
-});
+import ModelSelector from './ModelSelector';
+import { ImageGenerationModal } from './modals/ImageGenerationModal';
+import { ReferenceModal } from './modals/ReferenceModal';
+import { ModelSettingsModal } from './modals/ModelSettingsModal';
+import { PromptOptimizer } from './PromptOptimizer';
+import { MarkdownContent } from '../markdown/MarkdownContent';
 
 const { Title, Text, Link } = Typography;
 const { Sider, Content } = Layout;
@@ -73,6 +55,7 @@ export default function ChatContainer() {
   const [showImageModal, setShowImageModal] = useState(false);
   const [imagePrompt, setImagePrompt] = useState('');
   const [selectedImageModel, setSelectedImageModel] = useState('stabilityai/stable-diffusion-3.5-large');
+  const [showPromptOptimizer, setShowPromptOptimizer] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState('es-CO-GonzaloNeural');
@@ -114,6 +97,9 @@ export default function ChatContainer() {
     search,
     searchResults,
     isSearching,
+    imageProgress,
+    setImageProgress,
+    setMessages,
   } = useChat(accessToken, chatOptions);
 
   const {
@@ -378,22 +364,60 @@ export default function ChatContainer() {
   }, [fetchImageModels]);
 
   const handleGenerateImage = useCallback(async () => {
-    if (!imagePrompt.trim() || !currentConversation) return;
+    if (!imagePrompt.trim()) return;
+    
+    const prompt = imagePrompt;
+    const model = selectedImageModel;
+    const convId = currentConversation?.id;
+    
+    setShowImageModal(false);
+    setImagePrompt('');
     
     const result = await generateImage({
-      prompt: imagePrompt,
-      model: selectedImageModel,
-      conversation_id: currentConversation.id
+      prompt,
+      model,
+      conversation_id: convId,
+      text_model: selectedModel,
+      text_provider: selectedProvider
     });
     
-    if (result) {
-      setShowImageModal(false);
-      setImagePrompt('');
-      // The message is saved in the backend and will be received via WebSocket
-      // or we can manually fetch messages
-      fetchMessages(currentConversation.id);
+    if (result && result.conversation_id) {
+      console.log('✅ Image generation started:', result);
+      
+      // Set initial progress state so the user sees something immediately
+      setImageProgress({
+        conversation_id: result.conversation_id,
+        progress: 0,
+        step: 0,
+        total_steps: 15, // Default or estimate
+        message: 'Starting generation...'
+      });
+      
+      // Switch to the conversation immediately so the user sees the progress
+      if (!currentConversation || currentConversation.id !== result.conversation_id) {
+        await selectConversation(result.conversation_id);
+      }
+
+      // Optimistically add the user message to the chat list
+      // This ensures it appears in the "chat field" as requested
+      const modelParts = model.split('/');
+      const displayModel = modelParts[modelParts.length - 1] || model || "default";
+      const userMessage = {
+        id: `temp-${Date.now()}`,
+        conversation_id: result.conversation_id,
+        user_id: user?.id || 'user',
+        role: 'user',
+        content: `Generate an image using ${displayModel}: ${prompt}`,
+        created_at: new Date().toISOString()
+      };
+      
+      setMessages(prev => {
+        // Avoid duplicates if fetchMessages already got it
+        if (prev.some(m => m.content === userMessage.content)) return prev;
+        return [...prev, userMessage];
+      });
     }
-  }, [imagePrompt, selectedImageModel, currentConversation, generateImage, fetchMessages]);
+  }, [imagePrompt, selectedImageModel, selectedModel, selectedProvider, currentConversation, generateImage, selectConversation, user, setMessages, setImageProgress]);
 
   const toggleReference = (id: string) => {
     setReferencedConvIds(prev => 
@@ -552,94 +576,100 @@ export default function ChatContainer() {
             </div>
           )}
 
-        {!currentConversation ? (
-          <WelcomeScreen 
-            onSend={handleSend} 
-            onNewConversation={handleNewConversation} 
-          />
-        ) : (
-          <div key={currentConversation.id} style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minWidth: 0 }}>
-            {/* Chat Header with Model Info */}
-            <div style={{
-              padding: '16px 24px',
-              borderBottom: '1px solid #E2E8F0',
-              background: '#ffffff',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <Space orientation="horizontal" size="middle">
-                <RobotOutlined style={{ fontSize: '20px', color: '#1B4B73' }} />
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Text strong style={{ fontSize: '16px' }}>
-                      {currentConversation.title}
-                    </Text>
-                    <Tooltip title="Rename conversation">
-                      <Button 
-                        type="text" 
-                        size="small" 
-                        icon={<EditOutlined style={{ fontSize: '14px', color: '#8c8c8c' }} />} 
-                        onClick={() => {
-                          let newTitle = currentConversation.title;
-                          modal.confirm({
-                            title: 'Rename Conversation',
-                            content: (
-                              <Input 
-                                defaultValue={currentConversation.title} 
-                                onChange={(e) => newTitle = e.target.value}
-                                placeholder="Enter new title"
-                                style={{ marginTop: 16 }}
-                              />
-                            ),
-                            onOk: async () => {
-                              if (newTitle && newTitle.trim()) {
-                                await handleRenameConversation(currentConversation.id, newTitle);
-                              }
-                            },
-                          });
-                        }}
-                      />
-                    </Tooltip>
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minWidth: 0 }}>
+            {!currentConversation ? (
+              <WelcomeScreen 
+                onSend={handleSend} 
+                onNewConversation={handleNewConversation} 
+              />
+            ) : (
+              <div key={currentConversation.id} style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                {/* Chat Header with Model Info */}
+                <div style={{
+                  padding: '16px 24px',
+                  borderBottom: '1px solid #E2E8F0',
+                  background: '#ffffff',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <RobotOutlined style={{ fontSize: '20px', color: '#1B4B73' }} />
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Text strong style={{ fontSize: '16px' }}>
+                          {currentConversation.title}
+                        </Text>
+                        <Tooltip title="Rename conversation">
+                          <Button 
+                            type="text" 
+                            size="small" 
+                            icon={<EditOutlined style={{ fontSize: '14px', color: '#8c8c8c' }} />} 
+                            onClick={() => {
+                              let newTitle = currentConversation.title;
+                              modal.confirm({
+                                title: 'Rename Conversation',
+                                content: (
+                                  <Input 
+                                    defaultValue={currentConversation.title} 
+                                    onChange={(e) => newTitle = e.target.value}
+                                    placeholder="Enter new title"
+                                    style={{ marginTop: 16 }}
+                                  />
+                                ),
+                                onOk: async () => {
+                                  if (newTitle && newTitle.trim()) {
+                                    await handleRenameConversation(currentConversation.id, newTitle);
+                                  }
+                                },
+                              });
+                            }}
+                          />
+                        </Tooltip>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                        <Tag icon={<ThunderboltOutlined />} color="blue">
+                          {currentConversation.provider}
+                        </Tag>
+                        <Tag color="cyan">{currentConversation.model}</Tag>
+                      </div>
+                    </div>
                   </div>
-                  <Space orientation="horizontal" size="small">
-                    <Tag icon={<ThunderboltOutlined />} color="blue">
-                      {currentConversation.provider}
-                    </Tag>
-                    <Tag color="cyan">{currentConversation.model}</Tag>
-                  </Space>
+                  <Tooltip title="Change model">
+                    <Button
+                      icon={<SettingOutlined />}
+                      onClick={handleChangeModel}
+                      size="small"
+                      type="text"
+                    >
+                      Change Model
+                    </Button>
+                  </Tooltip>
                 </div>
-              </Space>
-              <Tooltip title="Change model">
-                <Button
-                  icon={<SettingOutlined />}
-                  onClick={handleChangeModel}
-                  size="small"
-                  type="text"
-                >
-                  Change Model
-                </Button>
-              </Tooltip>
-            </div>
 
-            {/* Messages Area */}
-            <MessageArea 
-              scrollContainerRef={scrollContainerRef}
-              isStreaming={isStreaming}
-              loading={loading}
-              chatMessages={chatMessages}
-              handleEdit={handleEdit}
-              toggleMessageReference={toggleMessageReference}
-              referencedMsgIds={referencedMsgIds}
-              handleNavigate={handleNavigate}
-              handleSend={handleSend}
-              regenerateResponse={regenerateResponse}
-              handlePlayMessage={handlePlayMessage}
-              playingMessageId={playingMessageId}
-              messagesEndRef={messagesEndRef}
-            />
+                {/* Messages Area */}
+                <MessageArea 
+                  currentConversation={currentConversation}
+                  scrollContainerRef={scrollContainerRef}
+                  isStreaming={isStreaming}
+                  streamingMessage={streamingMessage}
+                  loading={loading}
+                  chatMessages={chatMessages}
+                  handleEdit={handleEdit}
+                  toggleMessageReference={toggleMessageReference}
+                  referencedMsgIds={referencedMsgIds}
+                  handleNavigate={handleNavigate}
+                  handleSend={handleSend}
+                  regenerateResponse={regenerateResponse}
+                  handlePlayMessage={handlePlayMessage}
+                  playingMessageId={playingMessageId}
+                  imageProgress={imageProgress}
+                  messagesEndRef={messagesEndRef}
+                />
+              </div>
+            )}
 
-            {/* Input Area */}
+            {/* Input Area - Always visible */}
             <div style={{ 
               borderTop: '1px solid #E2E8F0',
               background: '#ffffff',
@@ -718,12 +748,12 @@ export default function ChatContainer() {
                   onStopRecording={stopRecording}
                   onReferenceClick={handleReferenceClick}
                   onImageClick={handleOpenImageModal}
+                  onOptimizeClick={() => setShowPromptOptimizer(true)}
                   referencedCount={referencedConvIds.length + referencedMsgIds.length}
                 />
               </div>
             </div>
           </div>
-        )}
         </Content>
       </Layout>
 
@@ -780,6 +810,14 @@ export default function ChatContainer() {
           setSelectedVoice={setSelectedVoice}
         />
       )}
+
+      {/* Prompt Optimizer Modal */}
+      <PromptOptimizer
+        visible={showPromptOptimizer}
+        onClose={() => setShowPromptOptimizer(false)}
+        onApply={(optimized) => setInputValue(optimized)}
+        initialPrompt={inputValue}
+      />
     </Layout>
   );
 }

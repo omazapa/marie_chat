@@ -1,8 +1,8 @@
 'use client';
 
 import React, { memo } from 'react';
-import { Spin, Empty, Typography } from 'antd';
-import { RobotOutlined, ThunderboltOutlined, MessageOutlined, LinkOutlined, SettingOutlined } from '@ant-design/icons';
+import { Spin, Empty, Typography, Progress, Card } from 'antd';
+import { RobotOutlined, ThunderboltOutlined, MessageOutlined, LinkOutlined, SettingOutlined, PictureOutlined } from '@ant-design/icons';
 import { Welcome, Prompts } from '@ant-design/x';
 import { MessageList } from './MessageList'; // I'll extract this too
 
@@ -22,6 +22,7 @@ interface MessageAreaProps {
   regenerateResponse: () => void;
   handlePlayMessage: (text: string, id: string) => void;
   playingMessageId: string | null;
+  imageProgress?: { progress: number; step: number; total_steps: number; preview?: string } | null;
   messagesEndRef: React.RefObject<HTMLDivElement>;
   scrollContainerRef: React.RefObject<HTMLDivElement>;
 }
@@ -40,6 +41,7 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
   regenerateResponse,
   handlePlayMessage,
   playingMessageId,
+  imageProgress,
   messagesEndRef,
   scrollContainerRef,
 }) => {
@@ -110,7 +112,7 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
           }}>
             <Spin size="large" />
           </div>
-        ) : chatMessages.length === 0 ? (
+        ) : (chatMessages.length === 0 && !imageProgress) ? (
           <div style={{ 
             display: 'flex',
             flexDirection: 'column',
@@ -156,6 +158,7 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
             onRegenerate={regenerateResponse}
             onPlay={handlePlayMessage}
             playingMessageId={playingMessageId}
+            imageProgress={imageProgress}
             messagesEndRef={messagesEndRef} 
           />
         )}

@@ -48,6 +48,14 @@ a {
   word-break: break-word;
 }
 
+/* Search Highlighting */
+mark {
+  background-color: #fff566;
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
 .markdown-content p {
   margin-bottom: 1em;
 }

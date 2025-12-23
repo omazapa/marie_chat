@@ -31,6 +31,15 @@ interface UseWebSocketProps {
   onTranscriptionResult?: (data: { text: string }) => void;
   onTTSResult?: (data: { audio: string; message_id?: string }) => void;
   onUserTyping?: (data: { conversation_id: string; user_id: string; is_typing: boolean }) => void;
+  onImageProgress?: (data: { 
+    conversation_id: string; 
+    step: number; 
+    total_steps: number; 
+    progress: number; 
+    preview?: string;
+    image_url?: string;
+    message?: string;
+  }) => void;
 }
 
 export function useWebSocket({
@@ -45,6 +54,7 @@ export function useWebSocket({
   onTranscriptionResult,
   onTTSResult,
   onUserTyping,
+  onImageProgress,
 }: UseWebSocketProps) {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -63,6 +73,7 @@ export function useWebSocket({
     onTranscriptionResult,
     onTTSResult,
     onUserTyping,
+    onImageProgress,
   });
 
   // Update handlers ref when they change
@@ -78,6 +89,7 @@ export function useWebSocket({
       onTranscriptionResult,
       onTTSResult,
       onUserTyping,
+      onImageProgress,
     };
   }, [
     onConnected,
@@ -90,6 +102,7 @@ export function useWebSocket({
     onTranscriptionResult,
     onTTSResult,
     onUserTyping,
+    onImageProgress,
   ]);
 
   // Keep ref in sync with state
@@ -156,6 +169,11 @@ export function useWebSocket({
       handlersRef.current.onUserTyping?.(data);
     });
 
+    socket.on('image_progress', (data) => {
+      console.log('🖼️ Socket event: image_progress', data);
+      handlersRef.current.onImageProgress?.(data);
+    });
+
     // Connection handlers - AFTER message handlers
     socket.on('connect', () => {
       console.log('✅ WebSocket connected');
@@ -186,10 +204,18 @@ export function useWebSocket({
 
     // Set socket ref AFTER all handlers are registered
     socketRef.current = socket;
+    
+    // Expose socket for debugging
+    if (typeof window !== 'undefined') {
+      (window as any).socket = socket;
+    }
 
     // Cleanup
     return () => {
       socket.disconnect();
+      if (typeof window !== 'undefined') {
+        delete (window as any).socket;
+      }
     };
   }, [token]);
 

@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Modal, Input, Typography, Tag, Empty, Title } from 'antd';
+import { Modal, Input, Typography, Tag, Empty } from 'antd';
 import { SearchOutlined, MessageOutlined, LinkOutlined } from '@ant-design/icons';
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
 interface ReferenceModalProps {
   open: boolean;
@@ -89,9 +89,16 @@ export const ReferenceModal: React.FC<ReferenceModalProps> = ({
                         {new Date(msg.created_at).toLocaleDateString()}
                       </Text>
                     </div>
-                    <Text style={{ fontSize: '13px', display: 'block' }} ellipsis={{ rows: 2 }}>
-                      {msg.content}
-                    </Text>
+                    {msg.highlight ? (
+                      <div 
+                        style={{ fontSize: '13px', display: 'block', color: 'rgba(0, 0, 0, 0.85)' }}
+                        dangerouslySetInnerHTML={{ __html: msg.highlight }}
+                      />
+                    ) : (
+                      <Text style={{ fontSize: '13px', display: 'block' }} ellipsis={{ rows: 2 }}>
+                        {msg.content}
+                      </Text>
+                    )}
                     {referencedMsgIds.includes(msg.id) && (
                       <div style={{ textAlign: 'right', marginTop: '4px' }}>
                         <Tag color="cyan">Selected</Tag>

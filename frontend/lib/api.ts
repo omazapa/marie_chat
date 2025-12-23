@@ -1,7 +1,8 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/stores/authStore';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+console.log('🌐 API_URL configured as:', API_URL);
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -17,6 +18,8 @@ apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const { accessToken } = useAuthStore.getState();
     
+    console.log(`🚀 Axios Request: ${config.method?.toUpperCase()} ${config.url}`);
+    
     if (accessToken && config.headers) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
@@ -24,14 +27,19 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error: AxiosError) => {
+    console.error('❌ Axios Request Error:', error);
     return Promise.reject(error);
   }
 );
 
 // Response interceptor to handle token refresh
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(`✅ Axios Response: ${response.status} ${response.config.url}`);
+    return response;
+  },
   async (error: AxiosError) => {
+    console.error(`❌ Axios Response Error: ${error.message} (${error.config?.url})`);
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
     // If error is 401 and we haven't tried to refresh yet

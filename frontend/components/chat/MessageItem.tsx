@@ -1,18 +1,14 @@
 'use client';
 
 import React, { memo } from 'react';
-import { Typography, Tag, Tooltip, Button, Space } from 'antd';
+import { Typography, Tag, Tooltip, Button, Space, Image, Avatar } from 'antd';
 import { LinkOutlined, RobotOutlined, UserOutlined, EditOutlined, ReloadOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons';
 import { Think, Bubble } from '@ant-design/x';
-import dynamic from 'next/dynamic';
 import { FileCard } from './FileCard';
+import { API_URL } from '@/lib/api';
+import { MarkdownContent } from '../markdown/MarkdownContent';
 
 const { Text } = Typography;
-
-const MarkdownContent = dynamic(() => import('../markdown/MarkdownContent').then(mod => mod.MarkdownContent), {
-  loading: () => <div style={{ padding: '8px', color: '#8c8c8c' }}>Loading renderer...</div>,
-  ssr: false
-});
 
 interface MessageItemProps {
   msg: any;
@@ -85,13 +81,56 @@ export const MessageItem = memo(({
             </div>
           )}
           <Bubble
-            avatar={{ 
-              icon: msg.role === 'user' ? <UserOutlined /> : <RobotOutlined />,
-              style: { backgroundColor: msg.role === 'user' ? '#1B4B73' : '#52c41a' }
-            }}
+            avatar={
+              <Avatar 
+                icon={msg.role === 'user' ? <UserOutlined /> : <RobotOutlined />}
+                style={{ backgroundColor: msg.role === 'user' ? '#1B4B73' : '#52c41a' }}
+              />
+            }
             content={
               <div style={{ minWidth: '40px' }}>
                 <MarkdownContent content={msg.content} />
+                {msg.metadata?.type === 'image_generation' && msg.metadata?.image?.url && (
+                  <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ 
+                      borderRadius: '12px', 
+                      overflow: 'hidden',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                      border: '1px solid #f0f0f0',
+                      maxWidth: '400px',
+                      background: '#fff'
+                    }}>
+                      <img 
+                        src={`${API_URL}${msg.metadata.image.url}`} 
+                        alt={msg.metadata.image.prompt || 'Generated image'}
+                        style={{ 
+                          width: '100%',
+                          display: 'block',
+                          objectFit: 'cover'
+                        }}
+                        onError={(e) => {
+                          console.error('❌ Image load error for URL:', `${API_URL}${msg.metadata.image.url}`, e);
+                        }}
+                      />
+                      <div style={{ padding: '12px', borderTop: '1px solid #f0f0f0' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                          <div>
+                            <Text type="secondary" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Prompt</Text>
+                            <div style={{ fontSize: '13px', color: '#262626', lineHeight: '1.4' }}>{msg.metadata.image.prompt}</div>
+                          </div>
+                          <div style={{ marginTop: '4px' }}>
+                            <Text type="secondary" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Model</Text>
+                            <div>
+                              <Tag color="blue" style={{ fontSize: '11px', borderRadius: '4px', margin: 0 }}>
+                                {msg.metadata.image.model}
+                              </Tag>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             }
             styles={{

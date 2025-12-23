@@ -129,7 +129,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             <Conversations
               items={filteredConversations.map((conv: any) => ({
                 key: conv.id,
-                label: conv.title,
+                label: conv.highlight_title ? (
+                  <span dangerouslySetInnerHTML={{ __html: conv.highlight_title }} />
+                ) : conv.title,
                 timestamp: new Date(conv.updated_at).getTime(),
               }))}
               activeKey={currentConversation?.id}

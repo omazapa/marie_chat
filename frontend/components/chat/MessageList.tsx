@@ -1,8 +1,13 @@
 'use client';
 
 import React, { memo } from 'react';
+import { Progress, Card, Space, Typography, Image } from 'antd';
+import { PictureOutlined } from '@ant-design/icons';
 import { MessageItem } from './MessageItem';
 import { FollowUpSuggestions } from './FollowUpSuggestions';
+import { API_URL } from '@/lib/api';
+
+const { Text } = Typography;
 
 interface MessageListProps {
   messages: any[];
@@ -15,6 +20,7 @@ interface MessageListProps {
   onRegenerate: () => void;
   onPlay: (text: string, id: string) => void;
   playingMessageId: string | null;
+  imageProgress?: { progress: number; step: number; total_steps: number; preview?: string } | null;
   messagesEndRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -29,6 +35,7 @@ export const MessageList = memo(({
   onRegenerate,
   onPlay,
   playingMessageId,
+  imageProgress,
   messagesEndRef 
 }: MessageListProps) => {
   return (
@@ -58,6 +65,74 @@ export const MessageList = memo(({
           )}
         </div>
       ))}
+
+      {imageProgress && (
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'flex-start', 
+          marginBottom: '16px',
+          padding: '0 16px'
+        }}>
+          <Card 
+            size="small" 
+            style={{ 
+              width: '300px', 
+              borderRadius: '12px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+              border: '1px solid #f0f0f0'
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <PictureOutlined style={{ color: '#1B4B73' }} />
+                <Text strong style={{ fontSize: '14px' }}>Generating Image...</Text>
+              </div>
+              
+              {imageProgress.preview && (
+                <img 
+                  src={imageProgress.preview} 
+                  alt="Preview" 
+                  style={{ 
+                    width: '100%', 
+                    borderRadius: '8px', 
+                    filter: 'blur(2px)'
+                  }} 
+                />
+              )}
+
+              {imageProgress.progress === 100 && (imageProgress as any).image_url && (
+                <img 
+                  src={`${API_URL}${(imageProgress as any).image_url}`} 
+                  alt="Generated" 
+                  style={{ 
+                    width: '100%', 
+                    borderRadius: '8px'
+                  }} 
+                  onError={(e) => {
+                    console.error('❌ Progress image load error:', `${API_URL}${(imageProgress as any).image_url}`);
+                  }}
+                />
+              )}
+              
+              <div style={{ width: '100%' }}>
+                <Progress 
+                  percent={imageProgress.progress} 
+                  size="small" 
+                  status="active"
+                  strokeColor={{
+                    '0%': '#108ee9',
+                    '100%': '#87d068',
+                  }}
+                />
+                <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                  Step {imageProgress.step} of {imageProgress.total_steps}
+                </Text>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
       <div ref={messagesEndRef} />
     </div>
   );

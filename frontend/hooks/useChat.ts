@@ -26,6 +26,15 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
   const [ttsAudio, setTtsAudio] = useState<{ audio: string; message_id?: string } | null>(null);
   const [searchResults, setSearchResults] = useState<{ conversations: Conversation[]; messages: Message[] }>({ conversations: [], messages: [] });
   const [isSearching, setIsSearching] = useState(false);
+  const [imageProgress, setImageProgress] = useState<{ 
+    conversation_id: string; 
+    progress: number; 
+    step: number; 
+    total_steps: number; 
+    preview?: string;
+    image_url?: string;
+    message?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updateTrigger, setUpdateTrigger] = useState(0);
@@ -92,8 +101,40 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
 
   const handleMessageResponse = useCallback(
     (data: { conversation_id: string; message: Message }) => {
+      console.log('📩 Message response received in useChat:', data);
       if (currentConversationRef.current?.id === data.conversation_id) {
-        setMessages((prev) => [...prev, data.message]);
+        setMessages((prev) => {
+          // Check if message already exists
+          const exists = prev.some(m => m.id === data.message.id);
+          if (exists) {
+            console.log('⚠️ Message already exists, updating:', data.message.id);
+            return prev.map(m => m.id === data.message.id ? data.message : m);
+          }
+          console.log('✅ Adding new message to state:', data.message.id);
+          return [...prev, data.message];
+        });
+        // Clear image progress when the final message arrives
+        setImageProgress(null);
+      } else {
+        console.warn(`⚠️ Message response for different conversation: ${data.conversation_id}. Current: ${currentConversationRef.current?.id}`);
+      }
+    },
+    []
+  );
+
+  const handleImageProgress = useCallback(
+    (data: { 
+      conversation_id: string; 
+      step: number; 
+      total_steps: number; 
+      progress: number; 
+      preview?: string;
+      image_url?: string;
+      message?: string;
+    }) => {
+      console.log(`🖼️ Image progress: ${data.progress}% for ${data.conversation_id}. Current: ${currentConversationRef.current?.id}`);
+      if (currentConversationRef.current?.id === data.conversation_id) {
+        setImageProgress(data);
       }
     },
     []
@@ -128,6 +169,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     onMessageResponse: handleMessageResponse,
     onTranscriptionResult: handleTranscriptionResult,
     onTTSResult: handleTTSResult,
+    onImageProgress: handleImageProgress,
     onError: (err) => setError(err.message),
   });
 
@@ -172,6 +214,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, userMessage]);
+      setImageProgress(null);
 
       // Send via WebSocket
       wsSendMessage(conv.id, content, true, attachments, referenced_conv_ids, referenced_msg_ids);
@@ -444,7 +487,41 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
 
   // Select and join a conversation
   const selectConversation = useCallback(
-    async (conversation: Conversation) => {
+    async (conversationOrId: Conversation | string) => {
+      let conversation: Conversation | null = null;
+
+      if (typeof conversationOrId === 'string') {
+        // Try to find in existing conversations
+        conversation = conversations.find(c => c.id === conversationOrId) || null;
+        
+        // If not found, we might need to fetch it or create a partial one
+        if (!conversation) {
+          try {
+            const response = await apiClient.get(`/conversations/${conversationOrId}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            conversation = response.data;
+          } catch (err) {
+            console.error('Error fetching conversation by ID:', err);
+            // Fallback: create a partial conversation object if we can't fetch it
+            conversation = {
+              id: conversationOrId,
+              title: 'New Conversation',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              message_count: 0,
+              model: 'unknown',
+              provider: 'unknown',
+              user_id: ''
+            } as Conversation;
+          }
+        }
+      } else {
+        conversation = conversationOrId;
+      }
+
+      if (!conversation) return;
+
       // Leave current conversation
       if (currentConversation) {
         wsLeaveConversation(currentConversation.id);
@@ -462,8 +539,11 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       
       // Fetch messages
       await fetchMessages(conversation.id);
+      
+      // Refresh conversation list to ensure the new one is there
+      fetchConversations();
     },
-    [currentConversation, wsJoinConversation, wsLeaveConversation, fetchMessages]
+    [currentConversation, conversations, token, wsJoinConversation, wsLeaveConversation, fetchMessages, fetchConversations]
   );
 
   // Load conversations on mount
@@ -490,6 +570,8 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     ttsAudio,
     searchResults,
     isSearching,
+    imageProgress,
+    setImageProgress,
     loading,
     error,
     isConnected,
@@ -511,5 +593,6 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     textToSpeech: wsTextToSpeech,
     setTtsAudio,
     search,
+    setMessages,
   };
 }

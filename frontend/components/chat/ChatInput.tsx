@@ -9,7 +9,8 @@ import {
   AudioMutedOutlined, 
   LinkOutlined, 
   PictureOutlined,
-  CloseCircleFilled
+  CloseCircleFilled,
+  MagicWandOutlined
 } from '@ant-design/icons';
 
 interface ChatInputProps {
@@ -29,6 +30,7 @@ interface ChatInputProps {
   onStopRecording: () => void;
   onReferenceClick: () => void;
   onImageClick: () => void;
+  onOptimizeClick: () => void;
   referencedCount: number;
 }
 
@@ -49,6 +51,7 @@ export const ChatInput = memo(({
   onStopRecording,
   onReferenceClick,
   onImageClick,
+  onOptimizeClick,
   referencedCount
 }: ChatInputProps) => {
   return (
@@ -111,6 +114,14 @@ export const ChatInput = memo(({
                   type="text" 
                   icon={<PictureOutlined />} 
                   onClick={onImageClick}
+                  disabled={isStreaming}
+                />
+              </Tooltip>
+              <Tooltip title="Optimize prompt">
+                <Button 
+                  type="text" 
+                  icon={<MagicWandOutlined style={{ color: '#1B4B73' }} />} 
+                  onClick={onOptimizeClick}
                   disabled={isStreaming}
                 />
               </Tooltip>

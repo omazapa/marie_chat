@@ -1,7 +1,6 @@
 'use client';
 
 import { memo, useMemo, useState, useCallback } from 'react';
-import dynamic from 'next/dynamic';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -12,12 +11,7 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Button, Tooltip, Table, Typography, Spin } from 'antd';
 import { CopyOutlined, CheckOutlined, TableOutlined } from '@ant-design/icons';
 import 'katex/dist/katex.min.css';
-
-// Lazy load HTMLArtifact
-const HTMLArtifact = dynamic(() => import('./HTMLArtifact').then(mod => mod.HTMLArtifact), {
-  loading: () => <Spin size="small" />,
-  ssr: false
-});
+import { HTMLArtifact } from './HTMLArtifact';
 
 const { Text } = Typography;
 

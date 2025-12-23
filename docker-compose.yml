@@ -28,6 +28,7 @@ services:
     volumes:
       - ./backend:/app
       - ./backend/uploads:/app/uploads
+      - hf_cache:/root/.cache/huggingface
     environment:
       - FLASK_ENV=development
       - OPENSEARCH_HOSTS=http://opensearch:9200
@@ -37,6 +38,17 @@ services:
       - OPENSEARCH_VERIFY_CERTS=false
       - JWT_SECRET_KEY=dev-secret-key-change-in-production
       - OLLAMA_BASE_URL=http://ollama:11434
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY:-}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     depends_on:
       opensearch:
         condition: service_healthy
@@ -113,6 +125,8 @@ volumes:
   opensearch_data:
     driver: local
   ollama_data:
+    driver: local
+  hf_cache:
     driver: local
 
 networks:

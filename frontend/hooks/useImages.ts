@@ -13,6 +13,7 @@ export interface GeneratedImage {
   prompt: string;
   model: string;
   created_at: string;
+  conversation_id?: string;
 }
 
 export function useImages(token: string | null) {
@@ -34,6 +35,8 @@ export function useImages(token: string | null) {
     prompt: string;
     model?: string;
     conversation_id?: string;
+    text_model?: string;
+    text_provider?: string;
     negative_prompt?: string;
     width?: number;
     height?: number;
@@ -44,7 +47,9 @@ export function useImages(token: string | null) {
     setError(null);
     
     try {
-      const response = await apiClient.post('/images/generate', params);
+      const response = await apiClient.post('/images/generate', params, {
+        timeout: 300000 // 5 minutes for local generation
+      });
       return response.data as GeneratedImage;
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Failed to generate image';
