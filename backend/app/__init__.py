@@ -29,7 +29,7 @@ def create_app():
     socketio.init_app(app)
     
     # Register blueprints
-    from app.routes import auth_bp, conversations_bp, models_bp, files_bp, speech_bp, images_bp, api_keys_bp
+    from app.routes import auth_bp, conversations_bp, models_bp, files_bp, speech_bp, images_bp, api_keys_bp, prompts_bp
     from app.routes.v1.chat import v1_chat_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -39,6 +39,7 @@ def create_app():
     app.register_blueprint(speech_bp, url_prefix='/api/speech')
     app.register_blueprint(images_bp, url_prefix='/api/images')
     app.register_blueprint(api_keys_bp, url_prefix='/api/api-keys')
+    app.register_blueprint(prompts_bp, url_prefix='/api/prompts')
     app.register_blueprint(v1_chat_bp, url_prefix='/api/v1/chat')
     
     # Register socket events
