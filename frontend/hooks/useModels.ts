@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-
-const API_BASE = 'http://localhost:5000/api';
+import apiClient from '../lib/api';
 
 export interface ModelInfo {
   id: string;
@@ -50,9 +48,8 @@ export function useModels(token: string | null) {
         setLoading(true);
         setError(null);
 
-        const response = await axios.get<ModelsResponse>(
-          `${API_BASE}/models${forceRefresh ? '?refresh=true' : ''}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+        const response = await apiClient.get<ModelsResponse>(
+          `/models${forceRefresh ? '?refresh=true' : ''}`
         );
 
         setModels(response.data.models);
@@ -79,9 +76,8 @@ export function useModels(token: string | null) {
       if (!token) return [];
 
       try {
-        const response = await axios.get<{ provider: string; models: ModelInfo[] }>(
-          `${API_BASE}/models/${provider}${forceRefresh ? '?refresh=true' : ''}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+        const response = await apiClient.get<{ provider: string; models: ModelInfo[] }>(
+          `/models/${provider}${forceRefresh ? '?refresh=true' : ''}`
         );
 
         return response.data.models;
@@ -99,9 +95,8 @@ export function useModels(token: string | null) {
       if (!token) return null;
 
       try {
-        const response = await axios.get<ModelInfo>(
-          `${API_BASE}/models/${provider}/${modelId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+        const response = await apiClient.get<ModelInfo>(
+          `/models/${provider}/${modelId}`
         );
 
         return response.data;
@@ -119,9 +114,8 @@ export function useModels(token: string | null) {
       if (!token || !query.trim()) return [];
 
       try {
-        const response = await axios.get<{ query: string; results: Array<{ provider: string; model: ModelInfo }> }>(
-          `${API_BASE}/models/search?q=${encodeURIComponent(query)}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+        const response = await apiClient.get<{ query: string; results: Array<{ provider: string; model: ModelInfo }> }>(
+          `/models/search?q=${encodeURIComponent(query)}`
         );
 
         return response.data.results;
@@ -138,9 +132,8 @@ export function useModels(token: string | null) {
     if (!token) return;
 
     try {
-      const response = await axios.get<{ providers: string[] }>(
-        `${API_BASE}/models/providers`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await apiClient.get<{ providers: string[] }>(
+        '/models/providers'
       );
 
       setProviders(response.data.providers);
@@ -154,9 +147,8 @@ export function useModels(token: string | null) {
     if (!token) return;
 
     try {
-      const response = await axios.get<Record<string, ProviderHealth>>(
-        `${API_BASE}/models/providers/health`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await apiClient.get<Record<string, ProviderHealth>>(
+        '/models/providers/health'
       );
 
       setProvidersHealth(response.data);

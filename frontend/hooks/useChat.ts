@@ -1,8 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import axios from 'axios';
+import apiClient from '../lib/api';
 import { useWebSocket, Message, StreamChunk } from './useWebSocket';
-
-const API_BASE = 'http://localhost:5000/api';
 
 export interface Conversation {
   id: string;
@@ -234,9 +232,8 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await axios.post(`${API_BASE}/files/upload`, formData, {
+        const response = await apiClient.post('/files/upload', formData, {
           headers: {
-            Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
           },
         });
@@ -276,11 +273,9 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       try {
         setLoading(true);
         // Truncate conversation at this message (inclusive)
-        await axios.post(`${API_BASE}/conversations/${conv.id}/messages/truncate`, {
+        await apiClient.post(`/conversations/${conv.id}/messages/truncate`, {
           timestamp: messageToEdit.created_at,
           inclusive: true
-        }, {
-          headers: { Authorization: `Bearer ${token}` }
         });
 
         // Remove messages from state
@@ -307,9 +302,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
 
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE}/conversations`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiClient.get('/conversations');
       setConversations(response.data.conversations || []);
       setError(null);
     } catch (err: any) {
@@ -329,14 +322,13 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
 
     setIsSearching(true);
     try {
-      const response = await axios.get(`${API_BASE}/conversations/search`, {
+      const response = await apiClient.get('/conversations/search', {
         params: {
           q: query,
           scope,
           conversation_id: conversationId,
           limit: 20
-        },
-        headers: { Authorization: `Bearer ${token}` }
+        }
       });
 
       if (scope === 'messages') {
@@ -361,10 +353,9 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
 
       try {
         setLoading(true);
-        const response = await axios.post(
-          `${API_BASE}/conversations`,
-          { title, model, provider },
-          { headers: { Authorization: `Bearer ${token}` } }
+        const response = await apiClient.post(
+          '/conversations',
+          { title, model, provider }
         );
         const newConversation = response.data;
         setConversations((prev) => [newConversation, ...prev]);
@@ -388,9 +379,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       if (!token) return false;
 
       try {
-        await axios.delete(`${API_BASE}/conversations/${conversationId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await apiClient.delete(`/conversations/${conversationId}`);
         setConversations((prev) => prev.filter((c) => c.id !== conversationId));
         if (currentConversation?.id === conversationId) {
           setCurrentConversation(null);
@@ -413,9 +402,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       if (!token) return false;
 
       try {
-        await axios.patch(`${API_BASE}/conversations/${conversationId}`, updates, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await apiClient.patch(`/conversations/${conversationId}`, updates);
         setConversations((prev) =>
           prev.map((c) => (c.id === conversationId ? { ...c, ...updates } : c))
         );
@@ -440,9 +427,8 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
 
       try {
         setLoading(true);
-        const response = await axios.get(
-          `${API_BASE}/conversations/${conversationId}/messages`,
-          { headers: { Authorization: `Bearer ${token}` } }
+        const response = await apiClient.get(
+          `/conversations/${conversationId}/messages`
         );
         setMessages(response.data.messages || []);
         setError(null);

@@ -1,7 +1,5 @@
 import { useState, useCallback } from 'react';
-import axios from 'axios';
-
-const API_BASE = 'http://localhost:5000/api';
+import apiClient from '../lib/api';
 
 export interface ImageModel {
   id: string;
@@ -25,9 +23,7 @@ export function useImages(token: string | null) {
   const fetchImageModels = useCallback(async () => {
     if (!token) return;
     try {
-      const response = await axios.get(`${API_BASE}/images/models`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await apiClient.get('/images/models');
       setImageModels(response.data.models);
     } catch (err) {
       console.error('Error fetching image models:', err);
@@ -48,9 +44,7 @@ export function useImages(token: string | null) {
     setError(null);
     
     try {
-      const response = await axios.post(`${API_BASE}/images/generate`, params, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await apiClient.post('/images/generate', params);
       return response.data as GeneratedImage;
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Failed to generate image';

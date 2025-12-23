@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import axios from 'axios';
+import apiClient from '../lib/api';
 
 interface UseSpeechProps {
   accessToken: string | null;
@@ -70,9 +70,8 @@ export const useSpeech = ({ accessToken, onTranscription, onTranscribe }: UseSpe
     }
 
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/speech/transcribe`, formData, {
+      const response = await apiClient.post('/speech/transcribe', formData, {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'multipart/form-data',
         },
       });
