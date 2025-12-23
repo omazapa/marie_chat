@@ -531,6 +531,7 @@ export default function ChatContainer() {
     loading,
     error,
     isConnected,
+    fetchMessages,
     createConversation,
     deleteConversation,
     updateConversation,

@@ -510,6 +510,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
 
     // Actions
     fetchConversations,
+    fetchMessages,
     createConversation,
     deleteConversation,
     updateConversation,
