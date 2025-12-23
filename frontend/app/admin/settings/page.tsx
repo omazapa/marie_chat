@@ -24,9 +24,12 @@ import {
   PictureOutlined, 
   AudioOutlined,
   GlobalOutlined,
-  BgColorsOutlined
+  BgColorsOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import apiClient from '@/lib/api';
+import { useModels } from '@/hooks/useModels';
+import { useAuthStore } from '@/stores/authStore';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -35,6 +38,12 @@ export default function SystemSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { message } = App.useApp();
+  
+  const { accessToken } = useAuthStore();
+  const { models, loading: loadingModels, fetchModels } = useModels(accessToken);
+
+  // Watch provider to update model list
+  const selectedProvider = Form.useWatch(['llm', 'default_provider'], form);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -105,7 +114,18 @@ export default function SystemSettings() {
                       <Col span={12}>
                         <Form.Item 
                           name={['llm', 'default_provider']} 
-                          label="Default Provider"
+                          label={
+                            <Space>
+                              Default Provider
+                              <Button 
+                                type="link" 
+                                size="small" 
+                                icon={<ReloadOutlined spin={loadingModels} />} 
+                                onClick={() => fetchModels(true)}
+                                title="Refresh models"
+                              />
+                            </Space>
+                          }
                           rules={[{ required: true }]}
                         >
                           <Select options={[
@@ -117,10 +137,26 @@ export default function SystemSettings() {
                       <Col span={12}>
                         <Form.Item 
                           name={['llm', 'default_model']} 
-                          label="Default Model Name"
+                          label="Default Model"
                           rules={[{ required: true }]}
                         >
-                          <Input placeholder="e.g. llama3.2, mistral, etc." />
+                          <Select 
+                            showSearch
+                            allowClear
+                            placeholder="Select a model"
+                            loading={loadingModels}
+                            options={
+                              selectedProvider && models[selectedProvider]
+                                ? models[selectedProvider].map(m => ({
+                                    value: m.id,
+                                    label: m.name || m.id
+                                  }))
+                                : []
+                            }
+                            notFoundContent={
+                              loadingModels ? <Spin size="small" /> : "No models found for this provider"
+                            }
+                          />
                         </Form.Item>
                       </Col>
                     </Row>
