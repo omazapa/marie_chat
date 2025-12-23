@@ -42,6 +42,7 @@ class APIKeyService:
             "user_id": user_id,
             "name": name,
             "key_hash": key_hash,
+            "key_prefix": raw_key[:8],
             "is_active": True,
             "last_used_at": None,
             "usage_count": 0,
@@ -111,7 +112,9 @@ class APIKeyService:
         if not api_key:
             return None
             
+        api_key = api_key.strip()
         key_hash = self._hash_key(api_key)
+        print(f"🔑 Validating key: {api_key[:10]}... Hash: {key_hash}")
         
         query = {
             "query": {
@@ -127,9 +130,11 @@ class APIKeyService:
         try:
             result = self.client.search(index=self.index, body=query)
             if not result["hits"]["hits"]:
+                print(f"❌ Key not found in database: {key_hash}")
                 return None
                 
             key_doc = result["hits"]["hits"][0]["_source"]
+            print(f"✅ Key found: {key_doc['name']}")
             
             # Check expiration
             expires_at = datetime.fromisoformat(key_doc["expires_at"])
@@ -141,11 +146,11 @@ class APIKeyService:
                 index=self.index,
                 id=key_doc["id"],
                 body={
-                    "doc": {
-                        "last_used_at": datetime.utcnow().isoformat()
-                    },
                     "script": {
-                        "source": "ctx._source.usage_count += 1"
+                        "source": "ctx._source.usage_count += 1; ctx._source.last_used_at = params.now",
+                        "params": {
+                            "now": datetime.utcnow().isoformat()
+                        }
                     }
                 }
             )

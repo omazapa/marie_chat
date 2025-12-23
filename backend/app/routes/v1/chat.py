@@ -42,7 +42,7 @@ def chat_completions():
     if not conversation_id:
         conv = llm_service.create_conversation(
             user_id=user_id,
-            title=f"API: {user_message[:30]}...",
+            title="New Conversation",
             model=model
         )
         conversation_id = conv['id']

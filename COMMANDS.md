@@ -1,4 +1,5 @@
-# 🛠️ Marie Chat - Useful Commands
+# 🛠️ MARIE - Useful Commands
+> **Machine-Assisted Research Intelligent Environment (MARIE)**
 
 Quick reference guide for development, debugging, and Docker operations.
 

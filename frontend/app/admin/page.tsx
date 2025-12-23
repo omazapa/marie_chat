@@ -42,7 +42,7 @@ export default function AdminDashboard() {
   }, []);
 
   if (loading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
-  if (error) return <Alert message="Error" description={error} type="error" showIcon />;
+  if (error) return <Alert title="Error" description={error} type="error" showIcon />;
 
   const indices = stats?.indices || {};
   

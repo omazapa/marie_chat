@@ -86,7 +86,7 @@ export default function ModelSelector({
   if (error) {
     return (
       <Alert
-        message="Error loading models"
+        title="Error loading models"
         description={error}
         type="error"
         showIcon

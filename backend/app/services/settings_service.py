@@ -44,7 +44,7 @@ class SettingsService:
                     "primary_color": "#1B4B73",
                     "welcome_title": "Marie",
                     "welcome_subtitle": "Machine-Assisted Research Intelligent Environment",
-                    "registration_enabled": false
+                    "registration_enabled": False
                 },
                 "updated_at": datetime.utcnow().isoformat()
             })

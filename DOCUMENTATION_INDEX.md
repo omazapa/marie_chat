@@ -1,4 +1,5 @@
-# 📚 Marie Chat - Documentation Index
+# 📚 MARIE - Documentation Index
+> **Machine-Assisted Research Intelligent Environment (MARIE)**
 
 ## 🎯 Main Documents
 
@@ -10,30 +11,14 @@
 - Basic testing
 - Troubleshooting
 
-### 2. [PHASE1_SUMMARY.md](PHASE1_SUMMARY.md) - Phase 1 Summary ✅
-**Complete executive summary**
-- Everything implemented
-- Files created
-- Technology stack
-- Manual tests
-- Validation checklist
-
-### 3. [PHASE1_COMPLETE.md](PHASE1_COMPLETE.md) - Phase 1 Details 📋
-**Detailed technical documentation**
-- Complete implementation
-- API usage examples
-- Detailed troubleshooting
-- Project structure
-- Next steps
-
-### 4. [PROJECT_STATUS.md](PROJECT_STATUS.md) - Project Status 📊
+### 2. [PROJECT_STATUS.md](PROJECT_STATUS.md) - Project Status 📊
 **Visual project dashboard**
 - Status of each component
 - Progress of all phases
 - File structure
 - Quick testing
 
-### 5. [COMMANDS.md](COMMANDS.md) - Useful Commands 🛠️
+### 3. [COMMANDS.md](COMMANDS.md) - Useful Commands 🛠️
 **Command reference**
 - Docker and Docker Compose
 - OpenSearch
@@ -43,11 +28,27 @@
 - Git
 - Debugging
 
-### 6. [SPECIFICATIONS.md](SPECIFICATIONS.md) - Complete Specifications 📖
+### 4. [SPECIFICATIONS.md](SPECIFICATIONS.md) - Complete Specifications 📖
 **Complete design document**
 - System architecture
 - All components
-- All phases (1-10)
+- All phases (1-11)
+
+### 5. [PHASE1_SUMMARY.md](PHASE1_SUMMARY.md) - Phase 1 Summary ✅
+**Complete executive summary**
+- Everything implemented
+- Files created
+- Technology stack
+- Manual tests
+- Validation checklist
+
+### 6. [PHASE1_COMPLETE.md](PHASE1_COMPLETE.md) - Phase 1 Details 📋
+**Detailed technical documentation**
+- Complete implementation
+- API usage examples
+- Detailed troubleshooting
+- Project structure
+- Next steps
 - Diagrams
 - Complete technology stack
 - Detailed development plan

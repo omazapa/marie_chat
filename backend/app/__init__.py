@@ -31,6 +31,9 @@ def create_app():
     # Register blueprints
     from app.routes import auth_bp, conversations_bp, models_bp, files_bp, speech_bp, images_bp, api_keys_bp, prompts_bp, admin_bp, settings_bp
     from app.routes.v1.chat import v1_chat_bp
+    from app.routes.v1.conversations import v1_conversations_bp
+    from app.routes.v1.search import v1_search_bp
+    from app.routes.v1.docs import v1_docs_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(conversations_bp, url_prefix='/api/conversations')
@@ -43,6 +46,9 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(settings_bp, url_prefix='/api/admin/settings')
     app.register_blueprint(v1_chat_bp, url_prefix='/api/v1/chat')
+    app.register_blueprint(v1_conversations_bp, url_prefix='/api/v1/conversations')
+    app.register_blueprint(v1_search_bp, url_prefix='/api/v1/search')
+    app.register_blueprint(v1_docs_bp, url_prefix='/api/v1/docs')
     
     # Register socket events
     from app.sockets import chat_events

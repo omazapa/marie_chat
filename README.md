@@ -1,9 +1,16 @@
-# Marie Chat - Development Quick Start
+# MARIE - Development Quick Start
+> **Machine-Assisted Research Intelligent Environment (MARIE)**
 
 ## Prerequisites
 - Docker and Docker Compose installed
 - At least 4GB RAM available for containers
 - Ports 3000, 5000, 9200, 5601, 11434 available
+
+## Tech Stack (v2.0)
+- **Frontend:** Next.js 16.1.1, React 19.2.3, Ant Design 6.x, Ant Design X 2.1.1
+- **Backend:** Flask 3.x, Python 3.12
+- **Database:** OpenSearch 2.11
+- **AI:** Ollama, HuggingFace, Faster-Whisper, Edge-TTS
 
 ## Quick Start
 

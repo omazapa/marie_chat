@@ -1,7 +1,7 @@
 # Phase 5: Voice Features - Completion Summary
 
 ## Overview
-Phase 5 focused on integrating voice capabilities into Marie Chat, enabling users to interact with the AI using speech (Speech-to-Text) and receive spoken responses (Text-to-Speech).
+Phase 5 focused on integrating voice capabilities into Marie, enabling users to interact with the AI using speech (Speech-to-Text) and receive spoken responses (Text-to-Speech).
 
 ## Features Implemented
 

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Layout, Button, Input, Typography, Space, Tooltip, App } from 'antd';
-import { PlusOutlined, SettingOutlined, SearchOutlined, MessageOutlined, EditOutlined, DeleteOutlined, LogoutOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { PlusOutlined, SettingOutlined, SearchOutlined, MessageOutlined, EditOutlined, DeleteOutlined, LogoutOutlined, SafetyCertificateOutlined, KeyOutlined } from '@ant-design/icons';
 import { Conversations } from '@ant-design/x';
 import Link from 'next/link';
 import { UserAvatar } from './UserAvatar';
@@ -261,6 +261,19 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               </Button>
             </Link>
           )}
+
+          <Link href="/settings/keys" style={{ width: '100%', display: 'block', marginBottom: '8px' }}>
+            <Button 
+              icon={<KeyOutlined />} 
+              block 
+              size="small"
+              style={{ 
+                fontSize: '12px'
+              }}
+            >
+              Developer API Keys
+            </Button>
+          </Link>
 
           <Space orientation="vertical" size={4} style={{ width: '100%' }}>
             <Text type="secondary" style={{ fontSize: '10px' }}>© 2025 ImpactU</Text>

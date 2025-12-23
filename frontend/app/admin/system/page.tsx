@@ -35,7 +35,7 @@ export default function SystemStats() {
   }, []);
 
   if (loading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
-  if (error) return <Alert message="Error" description={error} type="error" showIcon />;
+  if (error) return <Alert title="Error" description={error} type="error" showIcon />;
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>

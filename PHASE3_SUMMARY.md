@@ -558,7 +558,7 @@ Implemented a long-term memory system using vector search (RAG) to store and ret
 
 ## 🛠️ Phase 10: Developer API
 
-Created a secure external API for developers to integrate Marie Chat into their own applications.
+Created a secure external API for developers to integrate Marie into their own applications.
 
 **Key Components**:
 - **APIKeyService**: Lifecycle management for API keys (SHA-256 hashing).
@@ -579,4 +579,4 @@ Created a secure external API for developers to integrate Marie Chat into their 
 
 *Document Version: 2.0*  
 *Last Updated: December 22, 2025*  
-*Author: Marie Chat Development Team*
+*Author: Marie Development Team*

@@ -650,6 +650,11 @@ class LLMService:
                 } if attachments or referenced_conv_ids or referenced_msg_ids else None
             )
             current_msg_id = saved_user_msg["id"]
+            
+            # Generate title if it's the first message and title is default
+            if conversation.get("message_count", 0) == 0 and conversation.get("title") == "New Conversation":
+                import asyncio
+                asyncio.create_task(self.generate_conversation_title(conversation_id, user_id, user_message))
         else:
             print(f"[SERVICE] Regenerating: deleting last assistant message")
             # Find and delete the last assistant message
@@ -1040,6 +1045,64 @@ class LLMService:
                     print(f"🧠 Saved memory: {fact}")
         except Exception as e:
             print(f"Error extracting memories: {e}")
+
+    async def generate_conversation_title(
+        self,
+        conversation_id: str,
+        user_id: str,
+        user_message: str
+    ) -> str:
+        """Generate a concise title for the conversation based on the first message"""
+        try:
+            # Get conversation to determine provider
+            conversation = self.get_conversation(conversation_id, user_id)
+            if not conversation:
+                return "New Conversation"
+            
+            provider_name = conversation.get('provider', 'ollama')
+            model = conversation.get('model', 'llama3.2')
+            
+            provider = self.provider_factory.get_provider(provider_name)
+            if not provider:
+                return "New Conversation"
+            
+            # Create a prompt for title generation
+            title_prompt = (
+                f"Genera un título muy conciso (máximo 5 palabras) en español para una conversación que comienza con este mensaje: \"{user_message}\". "
+                "Responde ÚNICAMENTE con el título, sin comillas, sin punto al final y sin texto adicional."
+            )
+            
+            title = ""
+            async for chunk in provider.chat_completion(
+                model=model,
+                messages=[ChatMessage(role="user", content=title_prompt)],
+                stream=False,
+                temperature=0.7,
+                max_tokens=50
+            ):
+                title += chunk.content
+            
+            title = title.strip().strip('"').strip("'")
+            if title:
+                # Update conversation title
+                self.client.update(
+                    index="marie_conversations",
+                    id=conversation_id,
+                    body={
+                        "doc": {
+                            "title": title,
+                            "updated_at": datetime.utcnow().isoformat()
+                        }
+                    },
+                    refresh=True
+                )
+                print(f"✨ Generated title for {conversation_id}: {title}")
+                return title
+            
+            return "New Conversation"
+        except Exception as e:
+            print(f"Error generating conversation title: {e}")
+            return "New Conversation"
 
 
 # Global instance
