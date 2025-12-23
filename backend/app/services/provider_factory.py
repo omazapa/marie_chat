@@ -3,6 +3,7 @@ LLM Provider Factory and Model Registry
 Central management for multiple LLM providers
 """
 from typing import Dict, List, Optional, Any
+import concurrent.futures
 from app.config import settings
 from .llm_provider import LLMProvider, ModelInfo
 from .ollama_provider import OllamaProvider
@@ -45,10 +46,28 @@ class ProviderFactory:
         return list(self._providers.keys())
     
     def get_all_health_status(self) -> Dict[str, Dict[str, Any]]:
-        """Get health status of all providers"""
+        """Get health status of all providers in parallel"""
         health_status = {}
-        for name, provider in self._providers.items():
-            health_status[name] = provider.health_check()
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(self._providers) or 1) as executor:
+            # Create a map of future to provider name
+            future_to_name = {
+                executor.submit(provider.health_check): name 
+                for name, provider in self._providers.items()
+            }
+            
+            for future in concurrent.futures.as_completed(future_to_name):
+                name = future_to_name[future]
+                try:
+                    health_status[name] = future.result()
+                except Exception as e:
+                    health_status[name] = {
+                        'provider': name,
+                        'status': 'error',
+                        'available': False,
+                        'error': str(e)
+                    }
+                    
         return health_status
 
 
@@ -63,7 +82,7 @@ class ModelRegistry:
     
     def list_all_models(self, force_refresh: bool = False) -> Dict[str, List[ModelInfo]]:
         """
-        List all models from all providers
+        List all models from all providers in parallel
         
         Args:
             force_refresh: Force refresh of cached models
@@ -74,26 +93,39 @@ class ModelRegistry:
         import time
         
         all_models = {}
+        providers_to_fetch = []
         
+        # Check cache first
         for provider_name in self.provider_factory.list_providers():
-            # Check cache
             if not force_refresh and provider_name in self._model_cache:
                 last_refresh = self._last_refresh.get(provider_name, 0)
                 if time.time() - last_refresh < self._cache_ttl:
                     all_models[provider_name] = self._model_cache[provider_name]
                     continue
             
-            # Fetch from provider
-            provider = self.provider_factory.get_provider(provider_name)
-            if provider:
+            providers_to_fetch.append(provider_name)
+            
+        if not providers_to_fetch:
+            return all_models
+            
+        # Fetch remaining providers in parallel
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(providers_to_fetch)) as executor:
+            future_to_name = {}
+            for name in providers_to_fetch:
+                provider = self.provider_factory.get_provider(name)
+                if provider:
+                    future_to_name[executor.submit(provider.list_models)] = name
+            
+            for future in concurrent.futures.as_completed(future_to_name):
+                name = future_to_name[future]
                 try:
-                    models = provider.list_models()
-                    self._model_cache[provider_name] = models
-                    self._last_refresh[provider_name] = time.time()
-                    all_models[provider_name] = models
+                    models = future.result()
+                    self._model_cache[name] = models
+                    self._last_refresh[name] = time.time()
+                    all_models[name] = models
                 except Exception as e:
-                    print(f"Error listing models from {provider_name}: {e}")
-                    all_models[provider_name] = []
+                    print(f"Error listing models from {name}: {e}")
+                    all_models[name] = []
         
         return all_models
     

@@ -3,6 +3,9 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ['antd', '@ant-design/x', '@ant-design/icons'],
+  experimental: {
+    optimizePackageImports: ['antd', '@ant-design/icons', '@ant-design/x', 'lucide-react'],
+  },
   
   // Disable type checking during build
   typescript: {

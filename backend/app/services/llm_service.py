@@ -23,9 +23,18 @@ class LLMService:
         self.provider_factory = provider_factory
         self.opensearch_service = OpenSearchService()
         self.reference_service = ReferenceService(self.opensearch_service)
-        # Initialize embedding model for semantic search
-        # paraphrase-multilingual-MiniLM-L12-v2 has 384 dimensions
-        self.embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+        # Lazy-initialize embedding model for semantic search
+        self._embedding_model = None
+        
+    @property
+    def embedding_model(self):
+        """Lazy-initialize embedding model for semantic search"""
+        if self._embedding_model is None:
+            print("🧠 Loading embedding model (paraphrase-multilingual-MiniLM-L12-v2)...")
+            # paraphrase-multilingual-MiniLM-L12-v2 has 384 dimensions
+            self._embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+            print("✅ Embedding model loaded")
+        return self._embedding_model
     
     # ==================== Conversation Management ====================
     

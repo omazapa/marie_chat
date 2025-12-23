@@ -39,8 +39,8 @@ export function useModels(token: string | null) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch all models
-  const fetchModels = useCallback(
+  // Fetch all models, providers and health in one call
+  const fetchModelsInit = useCallback(
     async (forceRefresh: boolean = false) => {
       if (!token) return;
 
@@ -48,11 +48,15 @@ export function useModels(token: string | null) {
         setLoading(true);
         setError(null);
 
-        const response = await apiClient.get<ModelsResponse>(
-          `/models${forceRefresh ? '?refresh=true' : ''}`
-        );
+        const response = await apiClient.get<{
+          models: Record<string, ModelInfo[]>;
+          providers: string[];
+          health: Record<string, ProviderHealth>;
+        }>(`/models/init${forceRefresh ? '?refresh=true' : ''}`);
 
         setModels(response.data.models);
+        setProviders(response.data.providers);
+        setProvidersHealth(response.data.health);
 
         // Flatten all models into a single array
         const flatModels: ModelInfo[] = [];
@@ -62,12 +66,20 @@ export function useModels(token: string | null) {
         setAllModels(flatModels);
       } catch (err: any) {
         setError(err.response?.data?.error || 'Failed to fetch models');
-        console.error('Error fetching models:', err);
+        console.error('Error fetching models init:', err);
       } finally {
         setLoading(false);
       }
     },
     [token]
+  );
+
+  // Fetch all models (legacy, now uses init)
+  const fetchModels = useCallback(
+    async (forceRefresh: boolean = false) => {
+      return fetchModelsInit(forceRefresh);
+    },
+    [fetchModelsInit]
   );
 
   // Fetch models by provider
@@ -127,44 +139,22 @@ export function useModels(token: string | null) {
     [token]
   );
 
-  // Fetch providers
+  // Fetch providers (legacy, now uses init)
   const fetchProviders = useCallback(async () => {
-    if (!token) return;
+    return fetchModelsInit();
+  }, [fetchModelsInit]);
 
-    try {
-      const response = await apiClient.get<{ providers: string[] }>(
-        '/models/providers'
-      );
-
-      setProviders(response.data.providers);
-    } catch (err: any) {
-      console.error('Error fetching providers:', err);
-    }
-  }, [token]);
-
-  // Fetch providers health
+  // Fetch providers health (legacy, now uses init)
   const fetchProvidersHealth = useCallback(async () => {
-    if (!token) return;
-
-    try {
-      const response = await apiClient.get<Record<string, ProviderHealth>>(
-        '/models/providers/health'
-      );
-
-      setProvidersHealth(response.data);
-    } catch (err: any) {
-      console.error('Error fetching providers health:', err);
-    }
-  }, [token]);
+    return fetchModelsInit();
+  }, [fetchModelsInit]);
 
   // Load data on mount
   useEffect(() => {
     if (token) {
-      fetchModels();
-      fetchProviders();
-      fetchProvidersHealth();
+      fetchModelsInit();
     }
-  }, [token, fetchModels, fetchProviders, fetchProvidersHealth]);
+  }, [token, fetchModelsInit]);
 
   return {
     models,

@@ -51,6 +51,47 @@ export function useWebSocket({
   const [currentConversation, setCurrentConversation] = useState<string | null>(null);
   const currentConversationRef = useRef<string | null>(null);
 
+  // Use refs for handlers to avoid closure problems and unnecessary re-connections
+  const handlersRef = useRef({
+    onConnected,
+    onDisconnected,
+    onError,
+    onStreamStart,
+    onStreamChunk,
+    onStreamEnd,
+    onMessageResponse,
+    onTranscriptionResult,
+    onTTSResult,
+    onUserTyping,
+  });
+
+  // Update handlers ref when they change
+  useEffect(() => {
+    handlersRef.current = {
+      onConnected,
+      onDisconnected,
+      onError,
+      onStreamStart,
+      onStreamChunk,
+      onStreamEnd,
+      onMessageResponse,
+      onTranscriptionResult,
+      onTTSResult,
+      onUserTyping,
+    };
+  }, [
+    onConnected,
+    onDisconnected,
+    onError,
+    onStreamStart,
+    onStreamChunk,
+    onStreamEnd,
+    onMessageResponse,
+    onTranscriptionResult,
+    onTTSResult,
+    onUserTyping,
+  ]);
+
   // Keep ref in sync with state
   useEffect(() => {
     currentConversationRef.current = currentConversation;
@@ -79,22 +120,22 @@ export function useWebSocket({
     // Message handlers - REGISTER FIRST before connection handlers
     socket.on('stream_start', (data) => {
       console.log('🚀 Stream started:', data);
-      onStreamStart?.(data);
+      handlersRef.current.onStreamStart?.(data);
     });
 
     socket.on('stream_chunk', (chunk: StreamChunk) => {
       console.log('📦 Stream chunk received:', chunk);
-      onStreamChunk?.(chunk);
+      handlersRef.current.onStreamChunk?.(chunk);
     });
 
     socket.on('stream_end', (data) => {
       console.log('✅ Stream ended:', data);
-      onStreamEnd?.(data);
+      handlersRef.current.onStreamEnd?.(data);
     });
 
     socket.on('message_response', (data) => {
       console.log('📩 Message response:', data);
-      onMessageResponse?.(data);
+      handlersRef.current.onMessageResponse?.(data);
     });
 
     socket.on('message_received', (data) => {
@@ -103,16 +144,16 @@ export function useWebSocket({
 
     socket.on('transcription_result', (data) => {
       console.log('🎙️ Transcription result:', data);
-      onTranscriptionResult?.(data);
+      handlersRef.current.onTranscriptionResult?.(data);
     });
 
     socket.on('tts_result', (data) => {
       console.log('🔊 TTS result received');
-      onTTSResult?.(data);
+      handlersRef.current.onTTSResult?.(data);
     });
 
     socket.on('user_typing', (data) => {
-      onUserTyping?.(data);
+      handlersRef.current.onUserTyping?.(data);
     });
 
     // Connection handlers - AFTER message handlers
@@ -129,18 +170,18 @@ export function useWebSocket({
 
     socket.on('connected', (data) => {
       console.log('✅ Authenticated:', data);
-      onConnected?.();
+      handlersRef.current.onConnected?.();
     });
 
     socket.on('disconnect', () => {
       console.log('👋 WebSocket disconnected');
       setIsConnected(false);
-      onDisconnected?.();
+      handlersRef.current.onDisconnected?.();
     });
 
     socket.on('error', (error) => {
       console.error('❌ WebSocket error:', error);
-      onError?.(error);
+      handlersRef.current.onError?.(error);
     });
 
     // Set socket ref AFTER all handlers are registered

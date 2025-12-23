@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Conversations, Sender, Bubble, Think, Welcome, Prompts } from '@ant-design/x';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
@@ -32,10 +33,19 @@ import {
 } from '@ant-design/icons';
 import type { ConversationsProps } from '@ant-design/x';
 import type { Message as WebSocketMessage } from '@/hooks/useWebSocket';
-import ModelSelector from './ModelSelector';
-import { MarkdownContent } from '../markdown/MarkdownContent';
 import { useSpeech } from '@/hooks/useSpeech';
 import { useImages } from '@/hooks/useImages';
+
+// Lazy load heavy components
+const ModelSelector = dynamic(() => import('./ModelSelector'), {
+  loading: () => <Spin size="small" />,
+  ssr: false
+});
+
+const MarkdownContent = dynamic(() => import('../markdown/MarkdownContent').then(mod => mod.MarkdownContent), {
+  loading: () => <div style={{ padding: '8px', color: '#8c8c8c' }}>Loading renderer...</div>,
+  ssr: false
+});
 
 const { Title, Text, Link } = Typography;
 const { Sider, Content } = Layout;
@@ -520,6 +530,14 @@ export default function ChatContainer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { accessToken, user, logout: authLogout } = useAuthStore();
 
+  const onTranscription = useCallback((text: string) => {
+    setInputValue(prev => prev ? `${prev} ${text}` : text);
+  }, []);
+
+  const chatOptions = useMemo(() => ({
+    onTranscription
+  }), [onTranscription]);
+
   const {
     conversations,
     currentConversation,
@@ -547,11 +565,7 @@ export default function ChatContainer() {
     search,
     searchResults,
     isSearching,
-  } = useChat(accessToken, {
-    onTranscription: (text) => {
-      setInputValue(prev => prev ? `${prev} ${text}` : text);
-    }
-  });
+  } = useChat(accessToken, chatOptions);
 
   const {
     isGenerating: isGeneratingImage,

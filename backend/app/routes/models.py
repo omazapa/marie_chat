@@ -113,3 +113,30 @@ def providers_health():
         return jsonify(health_status), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@models_bp.route('/init', methods=['GET'])
+@jwt_required()
+def get_models_init():
+    """Get all models, providers, and health status in a single call"""
+    try:
+        force_refresh = request.args.get('refresh', 'false').lower() == 'true'
+        
+        # Fetch everything in parallel (already parallelized in services)
+        all_models = model_registry.list_all_models(force_refresh=force_refresh)
+        providers = provider_factory.list_providers()
+        health_status = provider_factory.get_all_health_status()
+        
+        # Convert ModelInfo objects to dicts
+        models_dict = {}
+        for provider_name, models in all_models.items():
+            models_dict[provider_name] = [model.to_dict() for model in models]
+            
+        return jsonify({
+            "models": models_dict,
+            "providers": providers,
+            "health": health_status,
+            "total_models": sum(len(models) for models in models_dict.values())
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
