@@ -269,6 +269,10 @@ tests/screenshots/
 *.png
 *.jpg
 *.jpeg
+!imgs/
+!imgs/**
+!frontend/public/imgs/
+!frontend/public/imgs/**
 
 # Test result files
 tests/RESULTADOS.md
