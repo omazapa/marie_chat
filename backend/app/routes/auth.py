@@ -37,7 +37,10 @@ def register():
         )
         
         # Create tokens
-        access_token = create_access_token(identity=user['id'])
+        access_token = create_access_token(
+            identity=user['id'],
+            additional_claims={'role': user.get('role', 'user')}
+        )
         refresh_token = create_refresh_token(identity=user['id'])
         
         # Update last login
@@ -56,7 +59,6 @@ def register():
 @auth_bp.route('/login', methods=['POST'])
 def login():
     """Login user"""
-    print(f"[AUTH] Login attempt for: {request.get_json().get('email')}")
     try:
         data = LoginRequest(**request.get_json())
     except ValidationError as e:
@@ -69,7 +71,7 @@ def login():
     
     # Verify password
     password_hash = user.get('password_hash')
-    if not opensearch_service.verify_password(data.password, password_hash):
+    if not opensearch_service.verify_password(data.password.strip(), password_hash):
         return jsonify({'error': 'Invalid credentials'}), 401
     
     # Check if user is active
@@ -77,7 +79,10 @@ def login():
         return jsonify({'error': 'Account is inactive'}), 403
     
     # Create tokens
-    access_token = create_access_token(identity=user['id'])
+    access_token = create_access_token(
+        identity=user['id'],
+        additional_claims={'role': user.get('role', 'user')}
+    )
     refresh_token = create_refresh_token(identity=user['id'])
     
     # Update last login

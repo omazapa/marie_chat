@@ -4,6 +4,7 @@ Decorators and helpers for API authentication
 """
 from functools import wraps
 from flask import request, jsonify
+from flask_jwt_extended import get_jwt, jwt_required
 from app.services.api_key_service import api_key_service
 
 def api_key_required(f):
@@ -22,5 +23,16 @@ def api_key_required(f):
         request.user_id = key_info['user_id']
         request.api_key_id = key_info['id']
         
+        return f(*args, **kwargs)
+    return decorated
+
+def admin_required(f):
+    """Decorator to require admin role in JWT claims"""
+    @wraps(f)
+    @jwt_required()
+    def decorated(*args, **kwargs):
+        claims = get_jwt()
+        if claims.get('role') != 'admin':
+            return jsonify({'error': 'Admin privileges required'}), 403
         return f(*args, **kwargs)
     return decorated

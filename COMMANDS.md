@@ -92,6 +92,9 @@ docker-compose up --build
 docker-compose exec backend bash
 docker-compose exec backend python
 
+# Create Admin User
+docker-compose exec backend python create_admin_user.py --email admin@marie.com --password admin123 --name "System Admin"
+
 # Frontend (Node)
 docker-compose exec frontend sh
 

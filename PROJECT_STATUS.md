@@ -104,6 +104,7 @@ Phase 9: Advanced Memory            [██████████████�
 Phase 10: Developer API             [████████████████████] 100% ✅
 Phase 11: Prompt Engineering        [████████████████████] 100% ✅
 Phase 12: Enhanced Search           [████████████████████] 100% ✅
+Phase 13: Admin Dashboard           [████████████████████] 100% ✅
 
 TOTAL PROGRESS: [████████████████████] 100%
 ```
@@ -299,7 +300,7 @@ Python 3.12:      Optional (for local dev)
 ---
 
 **Last Update:** December 23, 2025  
-**Status:** Phase 12 Completed ✅  
+**Status:** Phase 13 Completed ✅  
 **Team:** CoLaV - University of Antioquia
 
 ---
@@ -339,3 +340,14 @@ Python 3.12:      Optional (for local dev)
 - ✅ **Search Snippets**: Displaying relevant message previews in the sidebar.
 - ✅ **Highlighting**: Visual highlighting of search terms in both titles and snippets.
 - ✅ **UI Refinement**: Improved sidebar layout to handle multi-line search results.
+
+---
+
+## ✅ Phase 13: Admin Dashboard - COMPLETED
+
+- ✅ **Admin Service**: Backend logic for system monitoring and user administration.
+- ✅ **RBAC (Role-Based Access Control)**: Implementation of `admin_required` decorator and JWT role claims.
+- ✅ **User Management**: UI to list users, toggle account status (active/inactive), and change roles.
+- ✅ **System Statistics**: Real-time monitoring of OpenSearch indices, document counts, and storage usage.
+- ✅ **Admin UI**: Dedicated dashboard with a sidebar and protected routes.
+- ✅ **Integration**: "System Administration" shortcut in the main chat sidebar for authorized users.

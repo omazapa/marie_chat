@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { Layout, Button, Input, Typography, Space, Tooltip, App } from 'antd';
-import { PlusOutlined, SettingOutlined, SearchOutlined, MessageOutlined, EditOutlined, DeleteOutlined, LogoutOutlined } from '@ant-design/icons';
+import { PlusOutlined, SettingOutlined, SearchOutlined, MessageOutlined, EditOutlined, DeleteOutlined, LogoutOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { Conversations } from '@ant-design/x';
+import Link from 'next/link';
 import { UserAvatar } from './UserAvatar'; // Assuming this exists or I'll create it
 
 const { Sider } = Layout;
@@ -244,6 +245,25 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               />
             </Tooltip>
           </div>
+          
+          {user?.role === 'admin' && (
+            <Link href="/admin" style={{ width: '100%', display: 'block', marginBottom: '8px' }}>
+              <Button 
+                icon={<SafetyCertificateOutlined />} 
+                block 
+                size="small"
+                style={{ 
+                  fontSize: '12px', 
+                  background: '#f0f5ff', 
+                  color: '#1d39c4', 
+                  borderColor: '#adc6ff' 
+                }}
+              >
+                System Administration
+              </Button>
+            </Link>
+          )}
+
           <Space orientation="vertical" size={4} style={{ width: '100%' }}>
             <Text type="secondary" style={{ fontSize: '10px' }}>© 2025 ImpactU</Text>
           </Space>
