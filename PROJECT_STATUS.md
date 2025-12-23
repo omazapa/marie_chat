@@ -9,9 +9,9 @@
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
-│  FRONTEND (Next.js 15.1 + TypeScript + Ant Design X)           │
+│  FRONTEND (Next.js 16.1 + TypeScript + Ant Design X)           │
 ├─────────────────────────────────────────────────────────────────┤
-│  ✅ Next.js 15.1 with App Router                                │
+│  ✅ Next.js 16.1 with App Router                                │
 │  ✅ TypeScript configured                                       │
 │  ✅ Tailwind CSS 4                                              │
 │  ✅ Ant Design X 2.1.1 (ImpactU/CoLaV theme)                   │

@@ -71,7 +71,7 @@
 | **Web Speech API** | Native browser STT (fallback) |
 | **MediaRecorder API** | Audio recording to send to Whisper |
 
-> **Note**: Next.js 15.1 is the latest stable version (December 2024) and includes React 19 with Server Components, Server Actions, and the new App Router.
+> **Note**: Next.js 16.1 is the latest stable version (December 2025) and includes React 19 with Server Components, Server Actions, and the new App Router.
 
 ### Backend
 
@@ -157,7 +157,7 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │                           CLIENT                                     │
 │  ┌─────────────────────────────────────────────────────────────┐    │
-│  │                      Next.js 15.1                            │    │
+│  │                      Next.js 16.1                            │    │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │    │
 │  │  │  Ant Design │  │  Ant Design │  │    Tailwind CSS     │  │    │
 │  │  │      X      │  │      5      │  │         4           │  │    │
@@ -483,7 +483,7 @@
 ```
 marie_chat/
 │
-├── 📁 frontend/                      # Next.js 15 Application
+├── 📁 frontend/                      # Next.js 16 Application
 │   ├── 📁 app/
 │   │   ├── 📁 (auth)/               # Rutas de autenticación
 │   │   │   ├── login/
@@ -4291,7 +4291,7 @@ for await (const chunk of client.chatStream("Explica Python")) {
 
 ### Phase 1: Fundamentals (Days 1-2)
 - [ ] **Project Setup**
-  - [ ] Initialize Next.js 15 with TypeScript
+  - [x] Initialize Next.js 16 with TypeScript
   - [ ] Configure Tailwind CSS 4
   - [ ] Install and configure Ant Design X
   - [ ] Create frontend folder structure
@@ -4593,7 +4593,7 @@ NEXT_PUBLIC_WS_URL=ws://localhost:5000
 ## 📚 Referencias
 
 - [Ant Design X Documentation](https://x.ant.design/)
-- [Next.js 15 Documentation](https://nextjs.org/docs)
+- [Next.js 16 Documentation](https://nextjs.org/docs)
 - [Flask Documentation](https://flask.palletsprojects.com/)
 - [OpenSearch Documentation](https://opensearch.org/docs/latest/)
 - [OpenSearch Python Client](https://opensearch.org/docs/latest/clients/python-low-level/)
