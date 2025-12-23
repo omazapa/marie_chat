@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="imgs/marie_logo.png" alt="MARIE Logo" width="200">
+</p>
+
 # MARIE - Development Quick Start
 > **Machine-Assisted Research Intelligent Environment (MARIE)**
 

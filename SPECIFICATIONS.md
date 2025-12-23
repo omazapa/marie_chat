@@ -1,4 +1,8 @@
-# 📘 Marie - Technical Specifications
+<p align="center">
+  <img src="imgs/marie_logo.png" alt="MARIE Logo" width="150">
+</p>
+
+# 📘 MARIE - Technical Specifications
 
 > **Machine-Assisted Research Intelligent Environment (MARIE)**  
 > Developed by ImpactU
