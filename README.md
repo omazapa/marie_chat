@@ -50,8 +50,8 @@ MARIE is built on a modern, scalable stack:
 ## 📄 Documentation
 
 For detailed technical information, please refer to:
-- [Technical Specifications](SPECIFICATIONS.md)
-- [Project Status](PROJECT_STATUS.md)
+- [Technical Specifications](docs/SPECIFICATIONS.md)
+- [Project Status](docs/PROJECT_STATUS.md)
 
 ---
 Developed by **Omar Zapata**.
