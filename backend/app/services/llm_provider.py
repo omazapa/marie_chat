@@ -131,7 +131,8 @@ class LLMProvider(ABC):
         Yields:
             ChatCompletionChunk objects
         """
-        pass
+        if False:
+            yield ChatCompletionChunk(content="")
     
     @abstractmethod
     def validate_connection(self) -> bool:

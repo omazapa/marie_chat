@@ -10,7 +10,7 @@ import {
   LinkOutlined, 
   PictureOutlined,
   CloseCircleFilled,
-  MagicWandOutlined
+  BulbOutlined
 } from '@ant-design/icons';
 
 interface ChatInputProps {
@@ -120,7 +120,7 @@ export const ChatInput = memo(({
               <Tooltip title="Optimize prompt">
                 <Button 
                   type="text" 
-                  icon={<MagicWandOutlined style={{ color: '#1B4B73' }} />} 
+                  icon={<BulbOutlined style={{ color: '#1B4B73' }} />} 
                   onClick={onOptimizeClick}
                   disabled={isStreaming}
                 />

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal, Input, Select, Button, Typography, Space, Card, Tag, Tooltip, Spin } from 'antd';
-import { MagicWandOutlined, BulbOutlined, CopyOutlined, CheckOutlined, SendOutlined } from '@ant-design/icons';
+import { BulbOutlined, CopyOutlined, CheckOutlined, SendOutlined } from '@ant-design/icons';
 import { usePrompts } from '@/hooks/usePrompts';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -70,7 +70,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
     <Modal
       title={
         <Space>
-          <MagicWandOutlined style={{ color: '#1B4B73' }} />
+          <BulbOutlined style={{ color: '#1B4B73' }} />
           <span>Prompt Engineering Assistant</span>
         </Space>
       }
@@ -151,7 +151,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
           type="primary" 
           onClick={handleOptimize} 
           loading={isOptimizing}
-          icon={<MagicWandOutlined />}
+          icon={<BulbOutlined />}
           block
           size="large"
         >

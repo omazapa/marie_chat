@@ -66,12 +66,18 @@ class PromptService:
             from app.services.provider_factory import provider_factory
             provider = provider_factory.get_provider(settings.DEFAULT_LLM_PROVIDER)
             
+            if not provider:
+                return f"Error: Provider {settings.DEFAULT_LLM_PROVIDER} not available."
+            
             response = ""
-            async for chunk in provider.chat_completion(
+            # Use the async generator directly
+            async_gen = provider.chat_completion(
                 model=settings.DEFAULT_LLM_MODEL,
                 messages=messages,
                 stream=True
-            ):
+            )
+            
+            async for chunk in async_gen:
                 response += chunk.content
             
             return response.strip()
