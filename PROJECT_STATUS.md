@@ -103,6 +103,7 @@ Phase 8: Image Generation           [██████████████�
 Phase 9: Advanced Memory            [████████████████████] 100% ✅
 Phase 10: Developer API             [████████████████████] 100% ✅
 Phase 11: Prompt Engineering        [████████████████████] 100% ✅
+Phase 12: Enhanced Search           [████████████████████] 100% ✅
 
 TOTAL PROGRESS: [████████████████████] 100%
 ```
@@ -196,7 +197,8 @@ Current Phase:           11/11
 - [x] Integration with `sentence-transformers` (paraphrase-multilingual-MiniLM-L12-v2)
 - [x] Hybrid search implementation (BM25 + k-NN) in backend
 - [x] Semantic search for messages in `ReferenceModal`
-- [x] Full-text search for conversations in Sidebar
+- [x] Full-text search for conversations in Sidebar (now includes message content)
+- [x] Display message snippets in sidebar search results
 - [x] Search API endpoints (/api/conversations/search)
 - [x] Result highlighting in search queries (backend + frontend)
 - [x] Display highlighted titles in sidebar
@@ -296,8 +298,8 @@ Python 3.12:      Optional (for local dev)
 
 ---
 
-**Last Update:** December 22, 2025  
-**Status:** Phase 10 Completed ✅  
+**Last Update:** December 23, 2025  
+**Status:** Phase 12 Completed ✅  
 **Team:** CoLaV - University of Antioquia
 
 ---
@@ -327,3 +329,13 @@ Python 3.12:      Optional (for local dev)
 - ✅ **Frontend Widget**: Interactive UI component to help users build better prompts.
 - ✅ **Template System**: Pre-defined templates for common tasks.
 - ✅ **Bug Fix**: Resolved event loop conflict in `PromptService` using `nest-asyncio`.
+
+---
+
+## ✅ Phase 12: Enhanced Search - COMPLETED
+
+- ✅ **Hybrid Search**: Combined title and message content search in a single query.
+- ✅ **Message Aggregation**: Grouping message hits by conversation to avoid duplicates.
+- ✅ **Search Snippets**: Displaying relevant message previews in the sidebar.
+- ✅ **Highlighting**: Visual highlighting of search terms in both titles and snippets.
+- ✅ **UI Refinement**: Improved sidebar layout to handle multi-line search results.

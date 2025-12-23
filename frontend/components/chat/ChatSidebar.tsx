@@ -129,9 +129,33 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             <Conversations
               items={filteredConversations.map((conv: any) => ({
                 key: conv.id,
-                label: conv.highlight_title ? (
-                  <span dangerouslySetInnerHTML={{ __html: conv.highlight_title }} />
-                ) : conv.title,
+                label: (
+                  <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <div style={{ 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis', 
+                      whiteSpace: 'nowrap',
+                      fontWeight: 500 
+                    }}>
+                      {conv.highlight_title ? (
+                        <span dangerouslySetInnerHTML={{ __html: conv.highlight_title }} />
+                      ) : conv.title}
+                    </div>
+                    {conv.highlight_message && (
+                      <div 
+                        style={{ 
+                          fontSize: '11px', 
+                          color: '#8c8c8c', 
+                          marginTop: '2px', 
+                          overflow: 'hidden', 
+                          textOverflow: 'ellipsis', 
+                          whiteSpace: 'nowrap' 
+                        }}
+                        dangerouslySetInnerHTML={{ __html: `...${conv.highlight_message}...` }}
+                      />
+                    )}
+                  </div>
+                ),
                 timestamp: new Date(conv.updated_at).getTime(),
               }))}
               activeKey={currentConversation?.id}
@@ -143,12 +167,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     label: 'Rename',
                     icon: <EditOutlined />,
                     onClick: () => {
-                      let newTitle = info.label;
+                      const conv = filteredConversations.find((c: any) => c.id === info.key);
+                      let newTitle = conv?.title || '';
                       modal.confirm({
                         title: 'Rename Conversation',
                         content: (
                           <Input 
-                            defaultValue={info.label} 
+                            defaultValue={newTitle} 
                             onChange={(e) => newTitle = e.target.value}
                             placeholder="Enter new title"
                             style={{ marginTop: 16 }}

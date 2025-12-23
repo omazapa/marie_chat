@@ -56,6 +56,14 @@ mark {
   border-radius: 2px;
 }
 
+/* Search Highlighting */
+mark {
+  background-color: #fff566;
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
 .markdown-content p {
   margin-bottom: 1em;
 }

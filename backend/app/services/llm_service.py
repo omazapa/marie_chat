@@ -132,9 +132,10 @@ class LLMService:
         limit: int = 20,
         offset: int = 0
     ) -> List[Dict[str, Any]]:
-        """Search conversations by title (full-text search)"""
+        """Search conversations by title and message content"""
         try:
-            query = {
+            # 1. Search by title in marie_conversations
+            title_query = {
                 "query": {
                     "bool": {
                         "must": [
@@ -157,22 +158,111 @@ class LLMService:
                     "post_tags": ["</mark>"]
                 },
                 "sort": [{"_score": {"order": "desc"}}, {"updated_at": {"order": "desc"}}],
-                "from": offset,
                 "size": limit
             }
             
-            result = self.client.search(
+            title_result = self.client.search(
                 index="marie_conversations",
-                body=query
+                body=title_query
             )
             
-            hits = []
-            for hit in result["hits"]["hits"]:
+            conversation_hits = {}
+            for hit in title_result["hits"]["hits"]:
                 conv = hit["_source"]
+                conv["_score"] = hit["_score"]
                 if "highlight" in hit and "title" in hit["highlight"]:
                     conv["highlight_title"] = hit["highlight"]["title"][0]
-                hits.append(conv)
-            return hits
+                conversation_hits[conv["id"]] = conv
+
+            # 2. Search by content in marie_messages
+            # We use aggregation to get unique conversation IDs
+            message_query = {
+                "size": 0, # We only want aggregations
+                "query": {
+                    "bool": {
+                        "must": [
+                            {"term": {"user_id": user_id}},
+                            {
+                                "multi_match": {
+                                    "query": query_text,
+                                    "fields": ["content"],
+                                    "fuzziness": "AUTO"
+                                }
+                            }
+                        ]
+                    }
+                },
+                "aggs": {
+                    "unique_conversations": {
+                        "terms": {
+                            "field": "conversation_id",
+                            "size": limit
+                        },
+                        "aggs": {
+                            "top_message_hit": {
+                                "top_hits": {
+                                    "size": 1,
+                                    "highlight": {
+                                        "fields": {
+                                            "content": {}
+                                        },
+                                        "pre_tags": ["<mark>"],
+                                        "post_tags": ["</mark>"]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            message_result = self.client.search(
+                index="marie_messages",
+                body=message_query
+            )
+            
+            conv_ids_from_messages = []
+            message_highlights = {}
+            
+            for bucket in message_result.get("aggregations", {}).get("unique_conversations", {}).get("buckets", []):
+                conv_id = bucket["key"]
+                conv_ids_from_messages.append(conv_id)
+                
+                # Get highlight from the top hit in this bucket
+                top_hits = bucket.get("top_message_hit", {}).get("hits", {}).get("hits", [])
+                if top_hits and "highlight" in top_hits[0] and "content" in top_hits[0]["highlight"]:
+                    message_highlights[conv_id] = top_hits[0]["highlight"]["content"][0]
+
+            # 3. Fetch conversations that matched via messages but not via title
+            missing_conv_ids = [cid for cid in conv_ids_from_messages if cid not in conversation_hits]
+            
+            if missing_conv_ids:
+                missing_query = {
+                    "query": {
+                        "ids": {
+                            "values": missing_conv_ids
+                        }
+                    }
+                }
+                missing_result = self.client.search(
+                    index="marie_conversations",
+                    body=missing_query
+                )
+                for hit in missing_result["hits"]["hits"]:
+                    conv = hit["_source"]
+                    conv["_score"] = hit["_score"]
+                    conversation_hits[conv["id"]] = conv
+
+            # 4. Add message highlights to conversations
+            for conv_id, highlight in message_highlights.items():
+                if conv_id in conversation_hits:
+                    conversation_hits[conv_id]["highlight_message"] = highlight
+
+            # 5. Sort and return
+            all_hits = list(conversation_hits.values())
+            all_hits.sort(key=lambda x: x.get("_score", 0), reverse=True)
+            
+            return all_hits[:limit]
         except Exception as e:
             print(f"Error searching conversations: {e}")
             return []
