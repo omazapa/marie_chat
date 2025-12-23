@@ -20,7 +20,12 @@ Phase 5 focused on integrating voice capabilities into Marie Chat, enabling user
 
 ### 2. Text-to-Speech (TTS)
 - **Engine**: Integrated `edge-tts` for high-quality, natural-sounding voices.
-- **Voice Selection**: Defaulted to `es-CO-GonzaloNeural` for a localized experience.
+- **Voice Selection**: 
+  - Defaulted to `es-CO-GonzaloNeural` for a localized experience.
+  - Support for multiple voices (Colombia, Spain, Mexico, USA).
+- **Auto Language Detection**:
+  - The backend now automatically detects the language of the text to be read.
+  - If the text language differs from the selected voice, the system automatically switches to a default voice for that language (e.g., switching to English if the text is in English).
 - **UI Integration**:
   - "Play" button on assistant messages.
   - Audio playback controls (Play/Pause).

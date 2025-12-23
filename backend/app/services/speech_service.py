@@ -5,7 +5,11 @@ from faster_whisper import WhisperModel
 import edge_tts
 import asyncio
 from typing import Optional
+from langdetect import detect, DetectorFactory
 from app.config import Settings
+
+# For consistent language detection
+DetectorFactory.seed = 0
 
 settings = Settings()
 
@@ -14,6 +18,16 @@ class SpeechService:
         self.stt_model_size = settings.WHISPER_MODEL
         self.device = settings.WHISPER_DEVICE
         self._stt_model = None
+        
+        # Default voices for different languages
+        self.default_voices = {
+            'es': 'es-CO-GonzaloNeural',
+            'en': 'en-US-AndrewNeural',
+            'fr': 'fr-FR-HenriNeural',
+            'de': 'de-DE-ConradNeural',
+            'it': 'it-IT-DiegoNeural',
+            'pt': 'pt-BR-AntonioNeural'
+        }
 
     @property
     def stt_model(self):
@@ -72,8 +86,24 @@ class SpeechService:
             print(f"❌ TTS error: {e}")
 
     async def text_to_speech_base64(self, text: str, voice: str = "es-CO-GonzaloNeural") -> str:
-        """Convert text to speech and return base64 encoded audio"""
+        """Convert text to speech and return base64 encoded audio with auto language detection"""
         try:
+            # Detect language to ensure the voice matches the text
+            try:
+                detected_lang = detect(text)
+                print(f"🔊 Detected language for TTS: {detected_lang}")
+                
+                # Voice format is usually 'lang-country-NameNeural' (e.g., 'es-CO-GonzaloNeural')
+                voice_lang = voice.split('-')[0]
+                
+                # If detected language is different from the voice language, switch to default for that language
+                if detected_lang != voice_lang and detected_lang in self.default_voices:
+                    new_voice = self.default_voices[detected_lang]
+                    print(f"🔄 Switching voice from {voice} to {new_voice} for language {detected_lang}")
+                    voice = new_voice
+            except Exception as le:
+                print(f"⚠️ Language detection failed: {le}")
+
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio:
                 temp_path = temp_audio.name
             
