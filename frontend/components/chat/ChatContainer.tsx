@@ -27,13 +27,15 @@ import {
   SearchOutlined,
   ReloadOutlined,
   PlayCircleOutlined,
-  PauseCircleOutlined
+  PauseCircleOutlined,
+  PictureOutlined
 } from '@ant-design/icons';
 import type { ConversationsProps } from '@ant-design/x';
 import type { Message as WebSocketMessage } from '@/hooks/useWebSocket';
 import ModelSelector from './ModelSelector';
 import { MarkdownContent } from '../markdown/MarkdownContent';
 import { useSpeech } from '@/hooks/useSpeech';
+import { useImages } from '@/hooks/useImages';
 
 const { Title, Text, Link } = Typography;
 const { Sider, Content } = Layout;
@@ -190,6 +192,20 @@ const MessageItem = memo(({
               ))}
             </div>
           )}
+          {msg.metadata?.image && (
+            <div style={{ marginBottom: '12px', maxWidth: '100%' }}>
+              <Image
+                src={`http://localhost:5000${msg.metadata.image.url}`}
+                alt={msg.metadata.image.prompt}
+                style={{ borderRadius: '12px', maxWidth: '100%', border: '1px solid #f0f0f0' }}
+                placeholder={
+                  <div style={{ width: '300px', height: '300px', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Spin />
+                  </div>
+                }
+              />
+            </div>
+          )}
           <Bubble
             content={<MarkdownContent content={msg.content} isStreaming={msg.id === 'streaming'} />}
             avatar={msg.role === 'user' ? <UserAvatar /> : <AssistantAvatar />}
@@ -278,6 +294,7 @@ interface ChatInputProps {
   onStartRecording: () => void;
   onStopRecording: () => void;
   onReferenceClick: () => void;
+  onImageClick: () => void;
   referencedCount: number;
 }
 
@@ -297,6 +314,7 @@ const ChatInput = memo(({
   onStartRecording,
   onStopRecording,
   onReferenceClick,
+  onImageClick,
   referencedCount
 }: ChatInputProps) => {
   const handleSubmit = (val: string) => {
@@ -357,6 +375,14 @@ const ChatInput = memo(({
                   icon={<LinkOutlined />} 
                   onClick={onReferenceClick}
                   style={{ color: referencedCount > 0 ? '#1890ff' : '#1B4B73' }}
+                />
+              </Tooltip>
+              <Tooltip title="Generate image">
+                <Button 
+                  type="text"
+                  icon={<PictureOutlined />} 
+                  onClick={onImageClick}
+                  style={{ color: '#1B4B73' }}
                 />
               </Tooltip>
             </Space>
@@ -485,6 +511,9 @@ export default function ChatContainer() {
   const [referencedConvIds, setReferencedConvIds] = useState<string[]>([]);
   const [referencedMsgIds, setReferencedMsgIds] = useState<string[]>([]);
   const [showReferenceModal, setShowReferenceModal] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [imagePrompt, setImagePrompt] = useState('');
+  const [selectedImageModel, setSelectedImageModel] = useState('stabilityai/stable-diffusion-3.5-large');
   const [isUploading, setIsUploading] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState('es-CO-GonzaloNeural');
@@ -514,11 +543,21 @@ export default function ChatContainer() {
     transcribeAudio,
     textToSpeech,
     setTtsAudio,
+    search,
+    searchResults,
+    isSearching,
   } = useChat(accessToken, {
     onTranscription: (text) => {
       setInputValue(prev => prev ? `${prev} ${text}` : text);
     }
   });
+
+  const {
+    isGenerating: isGeneratingImage,
+    imageModels,
+    fetchImageModels,
+    generateImage
+  } = useImages(accessToken);
 
   const {
     isRecording,
@@ -545,12 +584,29 @@ export default function ChatContainer() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { modal } = useApp();
 
+  // Handle backend search for conversations
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery && searchQuery.trim().length > 2) {
+        search(searchQuery, 'conversations');
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery, search]);
+
   const filteredConversations = useMemo(() => {
     if (!searchQuery) return conversations;
+    
+    // If we have search results from backend, use them
+    if (searchResults.conversations.length > 0 && searchQuery.trim().length > 2) {
+      return searchResults.conversations;
+    }
+    
+    // Fallback to local filtering for short queries
     return conversations.filter(conv => 
       conv.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [conversations, searchQuery]);
+  }, [conversations, searchQuery, searchResults.conversations]);
 
   const handleLogout = useCallback(() => {
     authLogout();
@@ -751,6 +807,29 @@ export default function ChatContainer() {
   const handleReferenceClick = () => {
     setShowReferenceModal(true);
   };
+
+  const handleOpenImageModal = useCallback(() => {
+    setShowImageModal(true);
+    fetchImageModels();
+  }, [fetchImageModels]);
+
+  const handleGenerateImage = useCallback(async () => {
+    if (!imagePrompt.trim() || !currentConversation) return;
+    
+    const result = await generateImage({
+      prompt: imagePrompt,
+      model: selectedImageModel,
+      conversation_id: currentConversation.id
+    });
+    
+    if (result) {
+      setShowImageModal(false);
+      setImagePrompt('');
+      // The message is saved in the backend and will be received via WebSocket
+      // or we can manually fetch messages
+      fetchMessages(currentConversation.id);
+    }
+  }, [imagePrompt, selectedImageModel, currentConversation, generateImage, fetchMessages]);
 
   const toggleReference = (id: string) => {
     setReferencedConvIds(prev => 
@@ -1331,6 +1410,7 @@ export default function ChatContainer() {
                   onStartRecording={startRecording}
                   onStopRecording={stopRecording}
                   onReferenceClick={handleReferenceClick}
+                  onImageClick={handleOpenImageModal}
                   referencedCount={referencedConvIds.length + referencedMsgIds.length}
                 />
               </div>
@@ -1342,51 +1422,148 @@ export default function ChatContainer() {
 
       {/* Reference Conversations Modal */}
       <Modal
-        title="Reference Conversations"
+        title="Reference Content"
         open={showReferenceModal}
         onOk={() => setShowReferenceModal(false)}
         onCancel={() => setShowReferenceModal(false)}
+        width={600}
+        styles={{ body: { padding: '12px 24px 24px 24px' } }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <Text type="secondary">
+            Search and select conversations or specific messages to include as context.
+          </Text>
+          
+          <Input.Search
+            placeholder="Search in history (semantic search)..."
+            allowClear
+            enterButton={<SearchOutlined />}
+            onSearch={(value) => search(value, 'messages')}
+            loading={isSearching}
+          />
+
+          <div style={{ maxHeight: '400px', overflowY: 'auto', padding: '4px' }}>
+            {/* Search Results (Messages) */}
+            {searchResults.messages.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <Title level={5} style={{ fontSize: '14px', marginBottom: '12px' }}>
+                  Messages Found (Semantic Search)
+                </Title>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {searchResults.messages.map((msg: any) => (
+                    <div 
+                      key={msg.id}
+                      onClick={() => toggleMessageReference(msg.id)}
+                      style={{
+                        padding: '12px',
+                        borderRadius: '8px',
+                        border: `1px solid ${referencedMsgIds.includes(msg.id) ? '#13c2c2' : '#f0f0f0'}`,
+                        background: referencedMsgIds.includes(msg.id) ? '#e6fffb' : '#ffffff',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <Tag color={msg.role === 'user' ? 'blue' : 'green'} style={{ fontSize: '10px' }}>
+                          {msg.role.toUpperCase()}
+                        </Tag>
+                        <Text type="secondary" style={{ fontSize: '11px' }}>
+                          {new Date(msg.created_at).toLocaleDateString()}
+                        </Text>
+                      </div>
+                      <Text style={{ fontSize: '13px', display: 'block' }} ellipsis={{ rows: 2 }}>
+                        {msg.content}
+                      </Text>
+                      {referencedMsgIds.includes(msg.id) && (
+                        <div style={{ textAlign: 'right', marginTop: '4px' }}>
+                          <Tag color="cyan">Selected</Tag>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Conversations List */}
+            <Title level={5} style={{ fontSize: '14px', marginBottom: '12px' }}>
+              Recent Conversations
+            </Title>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {conversations
+                .filter(c => c.id !== currentConversation?.id)
+                .map(conv => (
+                  <div 
+                    key={conv.id}
+                    onClick={() => toggleReference(conv.id)}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: `1px solid ${referencedConvIds.includes(conv.id) ? '#1890ff' : '#f0f0f0'}`,
+                      background: referencedConvIds.includes(conv.id) ? '#e6f7ff' : '#ffffff',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <MessageOutlined style={{ color: referencedConvIds.includes(conv.id) ? '#1890ff' : '#8c8c8c' }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <Text strong style={{ display: 'block' }} ellipsis>{conv.title}</Text>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>
+                        {new Date(conv.updated_at).toLocaleDateString()}
+                      </Text>
+                    </div>
+                    {referencedConvIds.includes(conv.id) && (
+                      <Tag color="blue">Selected</Tag>
+                    )}
+                  </div>
+                ))}
+              {conversations.length <= 1 && !isSearching && searchResults.messages.length === 0 && (
+                <Empty description="No other conversations to reference" />
+              )}
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Image Generation Modal */}
+      <Modal
+        title="Generate Image"
+        open={showImageModal}
+        onOk={handleGenerateImage}
+        onCancel={() => setShowImageModal(false)}
+        confirmLoading={isGeneratingImage}
+        okText="Generate"
         width={500}
       >
-        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-          <Text type="secondary" style={{ display: 'block', marginBottom: '16px' }}>
-            Select conversations to include as context for your next message.
-          </Text>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {conversations
-              .filter(c => c.id !== currentConversation?.id)
-              .map(conv => (
-                <div 
-                  key={conv.id}
-                  onClick={() => toggleReference(conv.id)}
-                  style={{
-                    padding: '12px',
-                    borderRadius: '8px',
-                    border: `1px solid ${referencedConvIds.includes(conv.id) ? '#1890ff' : '#f0f0f0'}`,
-                    background: referencedConvIds.includes(conv.id) ? '#e6f7ff' : '#ffffff',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <MessageOutlined style={{ color: referencedConvIds.includes(conv.id) ? '#1890ff' : '#8c8c8c' }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Text strong style={{ display: 'block' }} ellipsis>{conv.title}</Text>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                      {new Date(conv.updated_at).toLocaleDateString()}
-                    </Text>
-                  </div>
-                  {referencedConvIds.includes(conv.id) && (
-                    <Tag color="blue">Selected</Tag>
-                  )}
-                </div>
-              ))}
-            {conversations.length <= 1 && (
-              <Empty description="No other conversations to reference" />
-            )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '12px 0' }}>
+          <div>
+            <Text strong style={{ display: 'block', marginBottom: '8px' }}>Prompt</Text>
+            <Input.TextArea 
+              placeholder="Describe the image you want to generate..." 
+              value={imagePrompt}
+              onChange={(e) => setImagePrompt(e.target.value)}
+              rows={4}
+              autoSize={{ minRows: 3, maxRows: 6 }}
+            />
           </div>
+          <div>
+            <Text strong style={{ display: 'block', marginBottom: '8px' }}>Model</Text>
+            <Select
+              style={{ width: '100%' }}
+              value={selectedImageModel}
+              onChange={setSelectedImageModel}
+              options={imageModels.map(m => ({ label: m.name, value: m.id }))}
+              placeholder="Select a model"
+            />
+          </div>
+          {error && (
+            <Tag color="error" style={{ width: '100%', padding: '8px', whiteSpace: 'normal' }}>
+              {error}
+            </Tag>
+          )}
         </div>
       </Modal>
 

@@ -26,6 +26,8 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
   const [isStreaming, setIsStreaming] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [ttsAudio, setTtsAudio] = useState<{ audio: string; message_id?: string } | null>(null);
+  const [searchResults, setSearchResults] = useState<{ conversations: Conversation[]; messages: Message[] }>({ conversations: [], messages: [] });
+  const [isSearching, setIsSearching] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updateTrigger, setUpdateTrigger] = useState(0);
@@ -318,6 +320,38 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     }
   }, [token]);
 
+  // Search conversations and messages
+  const search = useCallback(async (query: string, scope: 'conversations' | 'messages' = 'conversations', conversationId?: string) => {
+    if (!token || !query) {
+      setSearchResults({ conversations: [], messages: [] });
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await axios.get(`${API_BASE}/conversations/search`, {
+        params: {
+          q: query,
+          scope,
+          conversation_id: conversationId,
+          limit: 20
+        },
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (scope === 'messages') {
+        setSearchResults(prev => ({ ...prev, messages: response.data.results }));
+      } else {
+        setSearchResults(prev => ({ ...prev, conversations: response.data.results }));
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+      setError('Failed to search');
+    } finally {
+      setIsSearching(false);
+    }
+  }, [token]);
+
   // Create conversation
   const createConversation = useCallback(
     async (title: string = 'New Conversation', model: string = 'llama3.2', provider: string = 'ollama') => {
@@ -468,6 +502,8 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     isStreaming,
     isTranscribing,
     ttsAudio,
+    searchResults,
+    isSearching,
     loading,
     error,
     isConnected,
@@ -487,5 +523,6 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     transcribeAudio,
     textToSpeech: wsTextToSpeech,
     setTtsAudio,
+    search,
   };
 }

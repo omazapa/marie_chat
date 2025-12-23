@@ -5,7 +5,9 @@ Manages conversations, messages, and LLM interactions
 from datetime import datetime
 from typing import Dict, Any, Optional, AsyncGenerator, List
 import uuid
+import re
 from opensearchpy import OpenSearch
+from sentence_transformers import SentenceTransformer
 from app.db import opensearch_client
 from app.services.provider_factory import provider_factory
 from app.services.llm_provider import ChatMessage
@@ -21,6 +23,9 @@ class LLMService:
         self.provider_factory = provider_factory
         self.opensearch_service = OpenSearchService()
         self.reference_service = ReferenceService(self.opensearch_service)
+        # Initialize embedding model for semantic search
+        # paraphrase-multilingual-MiniLM-L12-v2 has 384 dimensions
+        self.embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
     
     # ==================== Conversation Management ====================
     
@@ -107,6 +112,109 @@ class LLMService:
             print(f"Error listing conversations: {e}")
             return []
     
+    def search_conversations(
+        self,
+        user_id: str,
+        query_text: str,
+        limit: int = 20,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """Search conversations by title (full-text search)"""
+        try:
+            query = {
+                "query": {
+                    "bool": {
+                        "must": [
+                            {"term": {"user_id": user_id}},
+                            {
+                                "multi_match": {
+                                    "query": query_text,
+                                    "fields": ["title^3", "title.keyword"],
+                                    "fuzziness": "AUTO"
+                                }
+                            }
+                        ]
+                    }
+                },
+                "sort": [{"_score": {"order": "desc"}}, {"updated_at": {"order": "desc"}}],
+                "from": offset,
+                "size": limit
+            }
+            
+            result = self.client.search(
+                index="marie_conversations",
+                body=query
+            )
+            
+            return [hit["_source"] for hit in result["hits"]["hits"]]
+        except Exception as e:
+            print(f"Error searching conversations: {e}")
+            return []
+
+    def search_messages(
+        self,
+        user_id: str,
+        query_text: str,
+        conversation_id: Optional[str] = None,
+        limit: int = 20,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """Hybrid search (text + semantic) in messages"""
+        try:
+            # Generate embedding for semantic search
+            query_vector = self.embedding_model.encode(query_text).tolist()
+            
+            # Build hybrid query
+            # We use a bool query with should for text and knn for vector
+            query = {
+                "size": limit,
+                "from": offset,
+                "query": {
+                    "bool": {
+                        "must": [
+                            {"term": {"user_id": user_id}}
+                        ],
+                        "should": [
+                            {
+                                "multi_match": {
+                                    "query": query_text,
+                                    "fields": ["content^2"],
+                                    "fuzziness": "AUTO"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+            
+            if conversation_id:
+                query["query"]["bool"]["must"].append({"term": {"conversation_id": conversation_id}})
+            
+            # Add k-NN search
+            query["knn"] = {
+                "content_vector": {
+                    "vector": query_vector,
+                    "k": limit
+                }
+            }
+            
+            result = self.client.search(
+                index="marie_messages",
+                body=query
+            )
+            
+            # Process results to include conversation title if possible
+            hits = []
+            for hit in result["hits"]["hits"]:
+                msg = hit["_source"]
+                msg["_score"] = hit["_score"]
+                hits.append(msg)
+                
+            return hits
+        except Exception as e:
+            print(f"Error searching messages: {e}")
+            return []
+
     def update_conversation(
         self,
         conversation_id: str,
@@ -176,9 +284,17 @@ class LLMService:
         tokens_used: int = 0,
         metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Save a message to OpenSearch"""
+        """Save a message to OpenSearch with vector embeddings"""
         message_id = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
+        
+        # Generate embedding for semantic search
+        content_vector = []
+        try:
+            if content and len(content.strip()) > 0:
+                content_vector = self.embedding_model.encode(content).tolist()
+        except Exception as e:
+            print(f"Error generating embedding: {e}")
         
         message = {
             "id": message_id,
@@ -186,6 +302,7 @@ class LLMService:
             "user_id": user_id,
             "role": role,
             "content": content,
+            "content_vector": content_vector,
             "tokens_used": tokens_used,
             "metadata": metadata or {},
             "created_at": now

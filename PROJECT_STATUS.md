@@ -304,6 +304,6 @@ Python 3.12:      Optional (for local dev)
 
 ---
 
-**Last Update:** December 21, 2024  
-**Status:** Phase 5 Completed ✅  
+**Last Update:** December 22, 2025  
+**Status:** Phase 8 Completed ✅  
 **Team:** CoLaV - University of Antioquia

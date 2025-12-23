@@ -53,6 +53,39 @@ def get_conversations():
     return jsonify({'conversations': conversations}), 200
 
 
+@conversations_bp.route('/search', methods=['GET'])
+@jwt_required()
+def search_conversations():
+    """Search conversations and messages"""
+    user_id = get_jwt_identity()
+    query = request.args.get('q', '')
+    scope = request.args.get('scope', 'conversations') # 'conversations' or 'messages'
+    conversation_id = request.args.get('conversation_id')
+    limit = request.args.get('limit', 20, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    
+    if not query:
+        return jsonify({'results': []}), 200
+    
+    if scope == 'messages':
+        results = llm_service.search_messages(
+            user_id=user_id,
+            query_text=query,
+            conversation_id=conversation_id,
+            limit=limit,
+            offset=offset
+        )
+    else:
+        results = llm_service.search_conversations(
+            user_id=user_id,
+            query_text=query,
+            limit=limit,
+            offset=offset
+        )
+    
+    return jsonify({'results': results}), 200
+
+
 @conversations_bp.route('/<conversation_id>', methods=['GET'])
 @jwt_required()
 def get_conversation(conversation_id: str):

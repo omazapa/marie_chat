@@ -3,5 +3,6 @@ from app.routes.conversations import conversations_bp
 from app.routes.models import models_bp
 from app.routes.files import files_bp
 from app.routes.speech import speech_bp
+from app.routes.images import images_bp
 
-__all__ = ['auth_bp', 'conversations_bp', 'models_bp', 'files_bp', 'speech_bp']
+__all__ = ['auth_bp', 'conversations_bp', 'models_bp', 'files_bp', 'speech_bp', 'images_bp']
