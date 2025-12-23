@@ -33,3 +33,4 @@ requests==2.32.3
 httpx==0.28.1
 gunicorn==23.0.0
 eventlet==0.37.0
+nest-asyncio==1.6.0

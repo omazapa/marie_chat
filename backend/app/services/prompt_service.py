@@ -3,10 +3,14 @@ Prompt Engineering Service
 Handles prompt optimization and technique application
 """
 import asyncio
+import nest_asyncio
 from typing import List, Dict, Any, Optional
 from app.services.llm_service import llm_service
 from app.services.llm_provider import ChatMessage
 from app.config import settings
+
+# Allow nested event loops
+nest_asyncio.apply()
 
 class PromptService:
     def __init__(self):
@@ -91,14 +95,27 @@ class PromptService:
         Runs the async generation in a synchronous way.
         """
         try:
-            # Use a new event loop to run the async task
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            result = loop.run_until_complete(self._generate_optimized_prompt(user_input, technique, context))
-            loop.close()
-            return result
+            # Get the current event loop or create a new one
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            # Run the coroutine
+            if loop.is_running():
+                # If the loop is already running (thanks to nest_asyncio), we can use run_until_complete
+                return loop.run_until_complete(self._generate_optimized_prompt(user_input, technique, context))
+            else:
+                # If the loop is not running, we can run it
+                return loop.run_until_complete(self._generate_optimized_prompt(user_input, technique, context))
         except Exception as e:
             print(f"Error optimizing prompt: {e}")
-            return f"Error: Could not optimize prompt. Original: {user_input}"
+            # Last resort fallback
+            try:
+                return asyncio.run(self._generate_optimized_prompt(user_input, technique, context))
+            except Exception as e2:
+                print(f"Fallback optimization failed: {e2}")
+                return f"Error: Could not optimize prompt. Original: {user_input}"
 
 prompt_service = PromptService()

@@ -326,3 +326,4 @@ Python 3.12:      Optional (for local dev)
 - ✅ **Optimization Endpoint**: REST API to refine user inputs into high-quality prompts.
 - ✅ **Frontend Widget**: Interactive UI component to help users build better prompts.
 - ✅ **Template System**: Pre-defined templates for common tasks.
+- ✅ **Bug Fix**: Resolved event loop conflict in `PromptService` using `nest-asyncio`.
