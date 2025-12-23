@@ -95,7 +95,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
       ]}
       width={700}
     >
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="large" style={{ width: '100%' }}>
         <div style={{ display: 'flex', gap: '16px' }}>
           <div style={{ flex: 1 }}>
             <Text strong>Quick Templates</Text>

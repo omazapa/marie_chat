@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo } from 'react';
-import { Spin, Empty, Typography, Progress, Card } from 'antd';
+import { Spin, Empty, Typography, Progress, Card, Space } from 'antd';
 import { RobotOutlined, ThunderboltOutlined, MessageOutlined, LinkOutlined, SettingOutlined, PictureOutlined } from '@ant-design/icons';
 import { Welcome, Prompts } from '@ant-design/x';
 import { MessageList } from './MessageList'; // I'll extract this too
