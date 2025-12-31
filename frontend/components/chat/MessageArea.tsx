@@ -94,7 +94,7 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
   }
 
   return (
-    <div key={currentConversation.id} style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minWidth: 0 }}>
+    <div key={currentConversation.id} style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>
       {/* Messages Area */}
       <div 
         ref={scrollContainerRef}
@@ -103,7 +103,8 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
           overflowY: 'auto',
           padding: '24px',
           background: '#ffffff',
-          scrollBehavior: isStreaming ? 'auto' : 'smooth'
+          scrollBehavior: isStreaming ? 'auto' : 'smooth',
+          minHeight: 0
         }}
       >
         {loading && chatMessages.length === 0 ? (

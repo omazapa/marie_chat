@@ -30,10 +30,12 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSend, onNewConve
       flexDirection: 'column',
       justifyContent: 'flex-start', 
       alignItems: 'center',
-      padding: '80px 40px 40px 40px',
+      padding: '40px 40px 20px 40px',
       background: '#ffffff',
       maxWidth: '800px',
-      margin: '0 auto'
+      margin: '0 auto',
+      overflow: 'auto',
+      minHeight: 0
     }}>
       <div style={{ textAlign: 'center', marginBottom: '24px' }}>
         <Image 
