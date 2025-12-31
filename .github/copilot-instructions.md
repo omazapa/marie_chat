@@ -3,100 +3,96 @@
 ## 🎯 Critical Rules - READ FIRST
 
 ### Language & Communication
-- **ALL code MUST be written in English** (variables, functions, classes, comments)
-- **ALL documentation MUST be in English** (README, comments, commit messages)
-- **NO Spanish in code or technical documentation** - Only user-facing UI text can be multilingual
+- **ALL code MUST be written in English** (variables, functions, classes, comments).
+- **ALL documentation MUST be in English** (README, comments, commit messages).
+- **NO Spanish in code or technical documentation** - Only user-facing UI text can be multilingual.
 
 ### Workflow & Automation
-- **NEVER, EVER ask for commit confirmation** - Make changes directly without prompting the user
-- **DO NOT suggest commits** - The user will commit when they're ready
-- **NO commit messages in responses** - Focus on the work, not version control
-- **Use \`docker compose\`** (with space) - NOT \`docker-compose\` (hyphenated)
-- **ALWAYS pin package versions** in \`requirements.txt\` (e.g., \`package==1.2.3\`)
-- **AVOID hardcoded paths** and "unprofessional patches"
+- **NEVER ask for commit confirmation** - Make changes directly.
+- **DO NOT suggest commits** - The user will commit when ready.
+- **NO commit messages in responses** - Focus on the implementation.
+- **Use `docker compose`** (with space) - NOT `docker-compose` (hyphenated).
+- **ALWAYS pin package versions** in `requirements.txt` (e.g., `package==1.2.3`).
 - **CLEAN UP temporary diagnostic files** immediately after use.
-- **Complete tasks fully** - Don't stop mid-implementation asking for approval
-- **Just do the work** - Implement, test, verify, and report results
+- **Complete tasks fully** - Implement, test, verify, and report results.
 
 ### Architecture Principles
-- **Hexagonal Architecture (Ports & Adapters)** - Mandatory for all new code
-- **SOLID Principles** - Apply rigorously in all implementations
-- **Domain-Driven Design** - Use ubiquitous language and bounded contexts
+- **Hexagonal Architecture (Ports & Adapters)**: Mandatory for all new code.
+  - **Domain**: Entities and Ports (Protocols) in `backend/app/domain/`. No external dependencies.
+  - **Application**: Services and DTOs in `backend/app/application/services/`.
+  - **Infrastructure**: Adapters (Ollama, OpenSearch) in `backend/app/infrastructure/adapters/`.
+  - **Presentation**: Flask routes and WebSocket handlers in `backend/app/presentation/`.
+- **SOLID & DDD**: Apply rigorously. Use ubiquitous language.
 
 ---
 
-## 🤖 AI Assistant Profile
+## 🤖 Tech Stack & Expertise
 
-You are an **elite AI engineering assistant** specializing in the **MARIE (Machine-Assisted Research Intelligent Environment)** project.
+### Backend (Flask 3 + Python 3.12)
+- **Real-time**: `Flask-SocketIO` with `eventlet`.
+- **Critical**: `eventlet.monkey_patch()` MUST be the first line in `run.py`.
+- **Concurrency**: Keep REST routes synchronous. Use async ONLY for LLM streaming chunks.
+- **Search**: OpenSearch 2.11 (k-NN vector search).
+- **Auth**: Flask-JWT-Extended (RBAC).
 
-### Core Expertise Areas
-- **AI/ML & LLM Engineering**: Multi-provider LLM (Ollama, HuggingFace), LangChain, LangGraph, Vector DBs (OpenSearch), Embeddings, Speech AI (Whisper, edge-tts), Image Gen.
-- **Frontend**: Next.js 16 (App Router, React 19), TypeScript 5, Ant Design X 2.1 (RICH paradigm), Ant Design 6, Tailwind CSS 4, Zustand, Socket.IO.
-- **Backend**: Flask 3, Flask-SocketIO (eventlet), Flask-JWT-Extended (RBAC), Python 3.12+, Pydantic 2.
-- **Data & Search**: OpenSearch 2.x (Hybrid Search, k-NN), Document Processing.
-- **DevOps**: Docker, NVIDIA GPU (CUDA).
+### Frontend (Next.js 16 + React 19)
+- **UI Framework**: Ant Design 6 + Ant Design X 2.1 (RICH paradigm).
+- **Styling**: Tailwind CSS 4.
+- **State**: Zustand for global state, `useRef` for WebSocket-related state to avoid closure staleness.
+- **Content**: LaTeX (KaTeX), Markdown, and HTML Artifacts (sanitized with DOMPurify).
 
 ---
 
-## 📋 Project Context: MARIE
+## 📋 Common Patterns & Solutions
 
-### Architecture
-\`\`\`
-Frontend (Next.js 16 + Ant Design X) <-> REST API + WebSockets <-> Backend (Flask 3 + SocketIO) <-> OpenSearch / LLM Providers
-\`\`\`
-
-### Common Patterns & Solutions
-
-#### React Closure Problems with WebSockets
-**Solution**: Use \`useRef\` pattern for state accessed in callbacks:
-\`\`\`typescript
+### React Closure Problems with WebSockets
+Use `useRef` for state accessed in callbacks:
+```typescript
 const valueRef = useRef(initialValue);
 const handleEvent = useCallback(() => {
   doSomething(valueRef.current);
 }, []);
-\`\`\`
+```
 
-#### EventLoop Conflicts with Flask-SocketIO
-**Solution**: 
-- Apply \`eventlet.monkey_patch()\` before imports.
-- Keep REST routes synchronous.
-- Use async only for LLM streaming chunks.
-- Convert OpenSearch/database operations to sync.
-
-#### Hexagonal Architecture Layers
-1. **Domain Layer**: Entities, Value Objects, Ports (Protocols). NO external dependencies.
-2. **Application Layer**: Services (Use Cases), DTOs. Depends on Domain.
-3. **Infrastructure Layer**: Adapters (Ollama, OpenSearch, etc.). Implements Ports.
-4. **Presentation Layer**: Flask routes, WebSocket handlers. Depends on Application.
-
----
-
-## 🎨 Code Style & Best Practices
-
-### Python (Backend)
-- **Docstring Style**: NumPy Format (MANDATORY).
-- **Type Hints**: Use strictly with Pydantic models and Protocols.
-- **Naming**: \`snake_case\` for functions/variables, \`PascalCase\` for classes.
-
-### TypeScript (Frontend)
-- **Types**: Use strictly, avoid \`any\`.
-- **Components**: \`PascalCase\`, Hooks: \`usePrefix\`.
-- **Naming**: \`camelCase\` for functions/variables.
+### Ant Design 6 Deprecations
+- **Collapse**: Use `expandIconPlacement` instead of `expandIconPosition`.
 
 ### Naming Conventions
-- **Ports**: \`*_port.py\` (e.g., \`llm_port.py\`).
-- **Adapters**: \`*_adapter.py\` (e.g., \`ollama_adapter.py\`).
-- **Services**: \`*_service.py\`.
+- **Ports**: `*_port.py` (e.g., `llm_port.py`).
+- **Adapters**: `*_adapter.py` (e.g., `ollama_adapter.py`).
+- **Services**: `*_service.py`.
+- **Hooks**: `usePrefix` (e.g., `useChat`).
 
 ---
 
-## 🔒 Security & Performance
-- **Secrets**: Use environment variables.
-- **Validation**: Pydantic (Backend), TypeScript (Frontend).
-- **JWT**: Access + Refresh tokens.
-- **Sanitization**: DOMPurify for HTML artifacts.
-- **Async**: Use for I/O, but avoid mixing with eventlet in Flask-SocketIO routes.
-- **Caching**: 5-minute TTL for model lists/settings.
+## 🛠️ Developer Workflows
+
+### Commands
+- **Start Environment**: `docker compose up -d`
+- **Run Tests**: `npx playwright test` (Playwright tests in `tests/`)
+- **Backend Dev**: `python run.py` (inside `backend/`)
+- **Frontend Dev**: `npm run dev` (inside `frontend/`)
+
+### Integration Points
+- **Developer API (v1)**: Routes in `backend/app/routes/v1/`.
+- **Swagger Docs**: Available at `http://localhost:5000/api/v1/docs`.
+- **Ollama**: Local LLM provider on port `11434`.
+
+---
+
+## 📂 Key Files & Directories
+- `backend/run.py`: Entry point, contains `eventlet.monkey_patch()`.
+- `backend/app/routes/v1/`: Developer API implementation.
+- `frontend/hooks/useChat.ts`: Core chat logic and WebSocket integration.
+- `frontend/components/chat/ChatContainer.tsx`: Main chat UI component.
+- `tests/`: Playwright E2E tests.
+
+---
+
+## 🎨 Code Style
+- **Python**: NumPy-style docstrings (MANDATORY). Strict type hints with Pydantic 2.
+- **TypeScript**: Strict types, NO `any`. PascalCase for components, camelCase for variables.
+- **Security**: Use environment variables for secrets. Validate all inputs.
 
 ---
 

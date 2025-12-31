@@ -123,7 +123,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
         <Collapse 
           ghost 
           size="small"
-          expandIconPosition="end"
+          expandIconPlacement="end"
           items={[{
             key: 'templates',
             label: <Text strong>Quick Templates</Text>,
@@ -208,7 +208,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
         <Collapse 
           ghost 
           size="small"
-          expandIconPosition="end"
+          expandIconPlacement="end"
           items={[{
             key: 'context',
             label: <Text strong>Additional Context (Optional)</Text>,

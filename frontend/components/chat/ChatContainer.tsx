@@ -357,31 +357,27 @@ export default function ChatContainer() {
   };
 
   const handleOpenImageModal = useCallback(() => {
-    // Only open modal if we have an active conversation
-    if (!currentConversation?.id) {
-      modal.warning({
-        title: 'No Active Conversation',
-        content: 'Please create or select a conversation first before generating images.',
-      });
-      return;
-    }
     setShowImageModal(true);
     fetchImageModels();
-  }, [fetchImageModels, currentConversation, modal]);
+  }, [fetchImageModels]);
 
   const handleGenerateImage = useCallback(async () => {
     if (!imagePrompt.trim()) return;
-    if (!currentConversation?.id) {
-      modal.warning({
-        title: 'No Active Conversation',
-        content: 'Please select a conversation first.',
-      });
-      return;
+    
+    let convId = currentConversation?.id;
+    
+    if (!convId) {
+      const conv = await createConversation('Image Generation', selectedModel, selectedProvider);
+      if (conv) {
+        await selectConversation(conv);
+        convId = conv.id;
+      } else {
+        return;
+      }
     }
     
     const prompt = imagePrompt;
     const model = selectedImageModel;
-    const convId = currentConversation.id;
     
     setShowImageModal(false);
     setImagePrompt('');
@@ -398,7 +394,7 @@ export default function ChatContainer() {
       console.log('✅ Image generation started:', result);
       
       // Only update progress for the current conversation
-      if (currentConversation.id === result.conversation_id) {
+      if (convId === result.conversation_id) {
         setImageProgress({
           conversation_id: result.conversation_id,
           progress: 0,
@@ -425,7 +421,7 @@ export default function ChatContainer() {
         });
       }
     }
-  }, [imagePrompt, selectedImageModel, selectedModel, selectedProvider, currentConversation, generateImage, user, setMessages, setImageProgress, modal]);
+  }, [imagePrompt, selectedImageModel, selectedModel, selectedProvider, currentConversation, createConversation, selectConversation, generateImage, user, setMessages, setImageProgress]);
 
   const toggleReference = (id: string) => {
     setReferencedConvIds(prev => 

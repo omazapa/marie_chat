@@ -2,8 +2,6 @@
 Prompt Engineering Service
 Handles prompt optimization and technique application
 """
-import asyncio
-import nest_asyncio
 from typing import List, Dict, Any, Optional
 from app.services.llm_service import llm_service
 from app.services.llm_provider import ChatMessage
@@ -11,11 +9,8 @@ from app.config import settings
 
 class PromptService:
     def __init__(self):
-        # Apply nest_asyncio to allow nested event loops
-        # This is necessary because eventlet and asyncio can conflict
-        nest_asyncio.apply()
-        
         self.techniques = {
+            "cot": "Chain of Thought: Encourages the model to explain its reasoning step-by-step.",
             "cot": "Chain of Thought: Encourages the model to explain its reasoning step-by-step.",
             "few_shot": "Few-Shot: Provides examples to guide the model's output format and style.",
             "persona": "Persona: Assigns a specific role or character to the model.",
@@ -97,26 +92,25 @@ class PromptService:
         ]
 
         try:
+            # Get current settings for default model/provider
+            config = llm_service.settings_service.get_settings()
+            provider_name = config.get("llm", {}).get("default_provider", settings.DEFAULT_LLM_PROVIDER)
+            model_name = config.get("llm", {}).get("default_model", settings.DEFAULT_LLM_MODEL)
+
             from app.services.provider_factory import provider_factory
-            provider = provider_factory.get_provider(settings.DEFAULT_LLM_PROVIDER)
+            provider = provider_factory.get_provider(provider_name)
             
             if not provider:
-                print(f"❌ Provider {settings.DEFAULT_LLM_PROVIDER} not found in provider_factory")
-                return f"Error: Provider {settings.DEFAULT_LLM_PROVIDER} not available."
+                print(f"❌ Provider {provider_name} not found in provider_factory")
+                return f"Error: Provider {provider_name} not available."
             
-            print(f"🤖 Optimizing prompt with {settings.DEFAULT_LLM_PROVIDER} ({settings.DEFAULT_LLM_MODEL})")
+            print(f"🤖 Optimizing prompt with {provider_name} ({model_name})")
             
-            # Use the async version with asyncio.run and nest_asyncio
-            # This avoids blocking the eventlet hub and handles event loop conflicts
-            async def get_completion():
-                async for chunk in provider.chat_completion(
-                    model=settings.DEFAULT_LLM_MODEL,
-                    messages=messages,
-                    stream=False
-                ):
-                    return chunk
-            
-            chunk = asyncio.run(get_completion())
+            # Use the synchronous version to avoid event loop conflicts with eventlet
+            chunk = provider.chat_completion_sync(
+                model=model_name,
+                messages=messages
+            )
             
             response = chunk.content
             
