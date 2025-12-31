@@ -133,6 +133,30 @@ class LLMProvider(ABC):
         """
         if False:
             yield ChatCompletionChunk(content="")
+
+    @abstractmethod
+    def chat_completion_sync(
+        self,
+        model: str,
+        messages: List[ChatMessage],
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+        **kwargs
+    ) -> ChatCompletionChunk:
+        """
+        Generate chat completion synchronously (non-streaming)
+        
+        Args:
+            model: Model identifier
+            messages: List of chat messages
+            temperature: Sampling temperature (0-2)
+            max_tokens: Maximum tokens to generate
+            **kwargs: Additional provider-specific parameters
+            
+        Returns:
+            ChatCompletionChunk object
+        """
+        pass
     
     @abstractmethod
     def validate_connection(self) -> bool:

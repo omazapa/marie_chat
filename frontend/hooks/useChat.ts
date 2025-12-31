@@ -204,10 +204,13 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       content: string, 
       attachments: any[] = [], 
       referenced_convs: { id: string, title: string }[] = [],
-      referenced_msg_ids: string[] = []
+      referenced_msg_ids: string[] = [],
+      conversationId?: string
     ) => {
       const conv = currentConversationRef.current;
-      if (!conv || !isConnected) {
+      const targetConvId = conversationId || conv?.id;
+
+      if (!targetConvId || !isConnected) {
         setError('Not connected to chat');
         return;
       }
@@ -217,7 +220,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       // Add user message to UI immediately
       const userMessage: Message = {
         id: `temp-${Date.now()}`,
-        conversation_id: conv.id,
+        conversation_id: targetConvId,
         user_id: 'current-user',
         role: 'user',
         content,
@@ -229,11 +232,16 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         },
         created_at: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, userMessage]);
+
+      // Only update messages if we are in the target conversation
+      if (targetConvId === conv?.id) {
+        setMessages((prev) => [...prev, userMessage]);
+      }
+      
       setImageProgress(null);
 
       // Send via WebSocket
-      wsSendMessage(conv.id, content, true, attachments, referenced_conv_ids, referenced_msg_ids);
+      wsSendMessage(targetConvId, content, true, attachments, referenced_conv_ids, referenced_msg_ids);
     },
     [isConnected, wsSendMessage]
   );

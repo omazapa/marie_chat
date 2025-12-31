@@ -319,7 +319,7 @@ export default function ChatContainer() {
   };
 
   const handleSend = async (content: string) => {
-    if (!content.trim() && attachments.length === 0) return;
+    if (!content || (!content.trim() && attachments.length === 0)) return;
     
     setInputValue('');
     const currentAttachments = [...attachments];
@@ -344,10 +344,8 @@ export default function ChatContainer() {
       const conv = await createConversation('New Chat', selectedModel, selectedProvider);
       if (conv) {
         await selectConversation(conv);
-        // Use a slightly longer delay and call sendMessage directly with the captured values
-        setTimeout(() => {
-          sendMessage(content, currentAttachments, currentReferences, currentMsgRefs);
-        }, 600);
+        // Call sendMessage directly with the new conversation ID
+        await sendMessage(content, currentAttachments, currentReferences, currentMsgRefs, conv.id);
       }
     } else {
       await sendMessage(content, currentAttachments, currentReferences, currentMsgRefs);

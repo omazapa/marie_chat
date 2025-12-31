@@ -14,6 +14,7 @@
 - **Use `docker compose`** (with space) - NOT `docker-compose` (hyphenated)
 - **ALWAYS pin package versions** in `requirements.txt` (e.g., `package==1.2.3`)
 - **AVOID hardcoded paths** and "unprofessional patches" (e.g., hardcoded library paths in Dockerfiles)
+- **CLEAN UP temporary diagnostic files** - Never commit test files used only for debugging or reproduction (e.g., `reproduce-scroll-issue.spec.js`). Delete them immediately after use.
 - **Complete tasks fully** - Don't stop mid-implementation asking for approval
 - **Just do the work** - Implement, test, verify, and report results
 

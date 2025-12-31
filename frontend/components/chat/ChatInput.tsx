@@ -152,7 +152,8 @@ export const ChatInput = memo(({
               lineHeight: '1.5',
               padding: '12px',
               resize: 'none',
-              overflow: 'auto'
+              overflow: 'auto',
+              wordBreak: 'break-all'
             }
           }}
         />

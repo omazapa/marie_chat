@@ -11,7 +11,8 @@ from app.config import settings
 
 class PromptService:
     def __init__(self):
-        # Allow nested event loops (needed for Flask + asyncio)
+        # Apply nest_asyncio to allow nested event loops
+        # This is necessary because eventlet and asyncio can conflict
         nest_asyncio.apply()
         
         self.techniques = {
@@ -53,8 +54,8 @@ class PromptService:
         """Returns a list of available user profiles"""
         return self.profiles
 
-    async def _generate_optimized_prompt(self, user_input: str, technique: Optional[str] = None, context: Optional[str] = None, profile: Optional[str] = None) -> str:
-        """Internal async method to generate the optimized prompt"""
+    def _generate_optimized_prompt(self, user_input: str, technique: Optional[str] = None, context: Optional[str] = None, profile: Optional[str] = None) -> str:
+        """Internal method to generate the optimized prompt synchronously"""
         system_content = (
             "You are a world-class Prompt Engineer specializing in Large Language Models. "
             "Your goal is to rewrite the user's request into a highly effective, professional, and structured prompt. "
@@ -104,16 +105,20 @@ class PromptService:
                 return f"Error: Provider {settings.DEFAULT_LLM_PROVIDER} not available."
             
             print(f"🤖 Optimizing prompt with {settings.DEFAULT_LLM_PROVIDER} ({settings.DEFAULT_LLM_MODEL})")
-            response = ""
-            # Use the async generator directly
-            async_gen = provider.chat_completion(
-                model=settings.DEFAULT_LLM_MODEL,
-                messages=messages,
-                stream=True
-            )
             
-            async for chunk in async_gen:
-                response += chunk.content
+            # Use the async version with asyncio.run and nest_asyncio
+            # This avoids blocking the eventlet hub and handles event loop conflicts
+            async def get_completion():
+                async for chunk in provider.chat_completion(
+                    model=settings.DEFAULT_LLM_MODEL,
+                    messages=messages,
+                    stream=False
+                ):
+                    return chunk
+            
+            chunk = asyncio.run(get_completion())
+            
+            response = chunk.content
             
             if not response:
                 print("⚠️ LLM returned empty response for prompt optimization")
@@ -129,24 +134,7 @@ class PromptService:
     def optimize_prompt(self, user_input: str, technique: Optional[str] = None, context: Optional[str] = None, profile: Optional[str] = None) -> str:
         """
         Uses an LLM to optimize a user prompt based on a specific technique and user profile.
-        Runs the async generation in a synchronous way using nest-asyncio.
         """
-        try:
-            # Get or create event loop
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            
-            # Run the coroutine synchronously
-            return loop.run_until_complete(
-                self._generate_optimized_prompt(user_input, technique, context, profile)
-            )
-        except Exception as e:
-            print(f"❌ Error in PromptService.optimize_prompt: {e}")
-            import traceback
-            traceback.print_exc()
-            return f"Error: {str(e)}. Original: {user_input}"
+        return self._generate_optimized_prompt(user_input, technique, context, profile)
 
 prompt_service = PromptService()

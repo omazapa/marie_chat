@@ -3,6 +3,7 @@ Ollama LLM Provider
 Handles communication with Ollama API for chat completions
 """
 import httpx
+import requests
 from typing import AsyncGenerator, Dict, Any, Optional, List
 import json
 import os
@@ -17,7 +18,6 @@ class OllamaProvider(LLMProvider):
         self.base_url = config.get('base_url') if config else None
         self.base_url = self.base_url or os.getenv('OLLAMA_BASE_URL', 'http://ollama:11434')
         self._client = None  # Lazy init
-        self._sync_client = None  # Lazy init
         self.provider_name = 'ollama'
     
     @property
@@ -26,18 +26,11 @@ class OllamaProvider(LLMProvider):
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(timeout=300.0)
         return self._client
-
-    @property
-    def sync_client(self):
-        """Lazy-initialize synchronous httpx client"""
-        if self._sync_client is None:
-            self._sync_client = httpx.Client(timeout=300.0)
-        return self._sync_client
     
     def list_models(self) -> List[ModelInfo]:
         """List available models from Ollama"""
         try:
-            response = self.sync_client.get(f"{self.base_url}/api/tags")
+            response = requests.get(f"{self.base_url}/api/tags", timeout=30.0)
             response.raise_for_status()
             data = response.json()
             models = data.get("models", [])
@@ -72,9 +65,10 @@ class OllamaProvider(LLMProvider):
     def get_model_info(self, model_id: str) -> Optional[ModelInfo]:
         """Get detailed information about a specific model"""
         try:
-            response = self.sync_client.post(
+            response = requests.post(
                 f"{self.base_url}/api/show",
-                json={"name": model_id}
+                json={"name": model_id},
+                timeout=30.0
             )
             response.raise_for_status()
             data = response.json()
@@ -98,6 +92,7 @@ class OllamaProvider(LLMProvider):
             )
         except Exception as e:
             print(f"Error getting Ollama model info for {model_id}: {e}")
+            return None
             return None
     
     async def chat_completion(
@@ -142,11 +137,53 @@ class OllamaProvider(LLMProvider):
                 tokens_used=result.get('tokens_used'),
                 metadata=result
             )
+
+    def chat_completion_sync(
+        self,
+        model: str,
+        messages: List[ChatMessage],
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+        **kwargs
+    ) -> ChatCompletionChunk:
+        """Generate chat completion synchronously"""
+        message_dicts = [msg.to_dict() for msg in messages]
+        
+        payload = {
+            "model": model,
+            "messages": message_dicts,
+            "stream": False,
+            "options": {
+                "temperature": temperature,
+                **({"num_predict": max_tokens} if max_tokens else {}),
+                **kwargs
+            }
+        }
+        
+        try:
+            response = requests.post(
+                f"{self.base_url}/api/chat",
+                json=payload,
+                timeout=300.0
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            return ChatCompletionChunk(
+                content=data["message"]["content"],
+                done=True,
+                model=data.get("model"),
+                tokens_used=data.get("eval_count", 0),
+                metadata=data
+            )
+        except Exception as e:
+            print(f"Error in Ollama sync chat: {e}")
+            raise
     
     def validate_connection(self) -> bool:
         """Validate that Ollama is accessible"""
         try:
-            response = self.sync_client.get(f"{self.base_url}/api/tags")
+            response = requests.get(f"{self.base_url}/api/tags", timeout=10.0)
             return response.status_code == 200
         except Exception:
             return False
@@ -196,7 +233,7 @@ class OllamaProvider(LLMProvider):
     def list_models_legacy(self) -> list[Dict[str, Any]]:
         """List available models from Ollama"""
         try:
-            response = self.sync_client.get(f"{self.base_url}/api/tags")
+            response = requests.get(f"{self.base_url}/api/tags", timeout=30.0)
             response.raise_for_status()
             data = response.json()
             return data.get("models", [])

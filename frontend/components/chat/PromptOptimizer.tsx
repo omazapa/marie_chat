@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Input, Select, Button, Typography, Space, Card, Tag, Tooltip, Spin, Badge } from 'antd';
-import { BulbOutlined, CopyOutlined, CheckOutlined, SendOutlined, AudioOutlined, AudioMutedOutlined } from '@ant-design/icons';
+import { Modal, Input, Select, Button, Typography, Space, Card, Tag, Tooltip, Spin, Badge, Collapse } from 'antd';
+import { BulbOutlined, CopyOutlined, CheckOutlined, SendOutlined, AudioOutlined, AudioMutedOutlined, DownOutlined } from '@ant-design/icons';
 import { usePrompts } from '@/hooks/usePrompts';
 import { useAuthStore } from '@/stores/authStore';
 import { useSettings } from '@/hooks/useSettings';
@@ -120,21 +120,30 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
       width={700}
     >
       <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+        <Collapse 
+          ghost 
+          size="small"
+          expandIconPosition="end"
+          items={[{
+            key: 'templates',
+            label: <Text strong>Quick Templates</Text>,
+            children: (
+              <Select
+                style={{ width: '100%' }}
+                value={selectedTemplate}
+                onChange={handleTemplateSelect}
+                placeholder="Choose a template..."
+                allowClear
+              >
+                {Object.keys(templates).map(key => (
+                  <Option key={key} value={key}>{key.charAt(0).toUpperCase() + key.slice(1)}</Option>
+                ))}
+              </Select>
+            )
+          }]} 
+        />
+
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 200px' }}>
-            <Text strong>Quick Templates</Text>
-            <Select
-              style={{ width: '100%', marginTop: 8 }}
-              value={selectedTemplate}
-              onChange={handleTemplateSelect}
-              placeholder="Choose a template..."
-              allowClear
-            >
-              {Object.keys(templates).map(key => (
-                <Option key={key} value={key}>{key.charAt(0).toUpperCase() + key.slice(1)}</Option>
-              ))}
-            </Select>
-          </div>
           <div style={{ flex: '1 1 200px' }}>
             <Text strong>User Profile</Text>
             <Select
@@ -196,16 +205,24 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
           />
         </div>
 
-        <div>
-          <Text strong>Additional Context (Optional)</Text>
-          <TextArea
-            rows={2}
-            placeholder="Provide background info, specific data, or examples..."
-            value={context}
-            onChange={(e) => setContext(e.target.value)}
-            style={{ marginTop: 8 }}
-          />
-        </div>
+        <Collapse 
+          ghost 
+          size="small"
+          expandIconPosition="end"
+          items={[{
+            key: 'context',
+            label: <Text strong>Additional Context (Optional)</Text>,
+            children: (
+              <TextArea
+                rows={2}
+                placeholder="Provide background info, specific data, or examples..."
+                value={context}
+                onChange={(e) => setContext(e.target.value)}
+                style={{ marginTop: 8 }}
+              />
+            )
+          }]} 
+        />
 
         <div style={{ marginTop: -8 }}>
           <Text type="secondary" style={{ fontSize: '12px' }}>

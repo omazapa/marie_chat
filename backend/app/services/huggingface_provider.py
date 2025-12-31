@@ -3,6 +3,7 @@ HuggingFace LLM Provider
 Handles communication with HuggingFace Inference API
 """
 import httpx
+import requests
 from typing import AsyncGenerator, Dict, Any, Optional, List
 import json
 import os
@@ -19,7 +20,6 @@ class HuggingFaceProvider(LLMProvider):
         self.base_url = config.get('base_url') if config else None
         self.base_url = self.base_url or 'https://router.huggingface.co/hf-inference/models'
         self._client = None  # Lazy init
-        self._sync_client = None  # Lazy init
         self.provider_name = 'huggingface'
         
         # Popular models for quick listing
@@ -117,9 +117,10 @@ class HuggingFaceProvider(LLMProvider):
             if self.api_key:
                 headers['Authorization'] = f'Bearer {self.api_key}'
             
-            response = self.sync_client.get(
+            response = requests.get(
                 f"https://huggingface.co/api/models/{model_id}",
-                headers=headers
+                headers=headers,
+                timeout=30.0
             )
             
             if response.status_code == 200:
@@ -276,6 +277,62 @@ class HuggingFaceProvider(LLMProvider):
                 done=True,
                 model=model
             )
+
+    def chat_completion_sync(
+        self,
+        model: str,
+        messages: List[ChatMessage],
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+        **kwargs
+    ) -> ChatCompletionChunk:
+        """Generate chat completion synchronously using HuggingFace Inference API"""
+        if not self.api_key:
+            raise ValueError("HuggingFace API key is required. Set HUGGINGFACE_API_KEY environment variable.")
+        
+        prompt = self._messages_to_prompt(messages)
+        
+        headers = {
+            'Authorization': f'Bearer {self.api_key}',
+            'Content-Type': 'application/json'
+        }
+        
+        payload = {
+            'inputs': prompt,
+            'parameters': {
+                'temperature': temperature,
+                'max_new_tokens': max_tokens or 1024,
+                'return_full_text': False,
+                **kwargs
+            }
+        }
+        
+        try:
+            url = f"{self.base_url}/{model}"
+            response = requests.post(
+                url,
+                headers=headers,
+                json=payload,
+                timeout=300.0
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            content = ""
+            if isinstance(data, list) and len(data) > 0:
+                content = data[0].get('generated_text', '')
+            elif isinstance(data, dict):
+                content = data.get('generated_text', '')
+            
+            return ChatCompletionChunk(
+                content=content,
+                done=True,
+                model=model,
+                metadata=data
+            )
+        except Exception as e:
+            print(f"Error in HuggingFace sync chat: {e}")
+            raise
     
     def validate_connection(self) -> bool:
         """Validate that HuggingFace API is accessible"""

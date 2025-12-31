@@ -75,7 +75,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSend, onNewConve
             { key: '3', label: 'Explain RAG technology', icon: <RobotOutlined style={{ color: '#52c41a' }} /> },
             { key: '4', label: `How to use references in ${whiteLabel.app_name.replace(/\s*Chat/i, '')}?`, icon: <LinkOutlined style={{ color: '#722ed1' }} /> },
           ]}
-          onItemClick={(info) => onSend(info.data.label as string)}
+          onItemClick={(info) => onSend(info.item.label as string)}
         />
       </div>
     </div>
