@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Input, Select, Button, Typography, Space, Card, Tag, Tooltip, Spin } from 'antd';
-import { BulbOutlined, CopyOutlined, CheckOutlined, SendOutlined } from '@ant-design/icons';
+import { Modal, Input, Select, Button, Typography, Space, Card, Tag, Tooltip, Spin, Badge } from 'antd';
+import { BulbOutlined, CopyOutlined, CheckOutlined, SendOutlined, AudioOutlined, AudioMutedOutlined } from '@ant-design/icons';
 import { usePrompts } from '@/hooks/usePrompts';
 import { useAuthStore } from '@/stores/authStore';
 import { useSettings } from '@/hooks/useSettings';
+import { useSpeech } from '@/hooks/useSpeech';
 
 const { Text, Paragraph, Title } = Typography;
 const { TextArea } = Input;
@@ -26,20 +27,38 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
 }) => {
   const { whiteLabel } = useSettings();
   const { accessToken } = useAuthStore();
-  const { isOptimizing, techniques, templates, fetchTechniques, optimizePrompt } = usePrompts(accessToken);
+  const { isOptimizing, techniques, templates, profiles, fetchTechniques, optimizePrompt } = usePrompts(accessToken);
   
   const [userInput, setUserInput] = useState(initialPrompt);
   const [selectedTechnique, setSelectedTechnique] = useState<string>('cot');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [selectedProfile, setSelectedProfile] = useState<string>('');
   const [optimizedResult, setOptimizedResult] = useState<string>('');
   const [copied, setCopied] = useState(false);
+
+  const {
+    isRecording,
+    isTranscribing,
+    startRecording,
+    stopRecording,
+  } = useSpeech({
+    accessToken,
+    onTranscription: (text) => {
+      setUserInput(prev => prev ? `${prev} ${text}` : text);
+    }
+  });
 
   useEffect(() => {
     if (visible) {
       fetchTechniques();
       setUserInput(initialPrompt);
+    } else {
+      // Stop recording if modal is closed
+      if (isRecording) {
+        stopRecording();
+      }
     }
-  }, [visible, fetchTechniques, initialPrompt]);
+  }, [visible, fetchTechniques, initialPrompt, isRecording, stopRecording]);
 
   const handleTemplateSelect = (val: string) => {
     setSelectedTemplate(val);
@@ -54,7 +73,8 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
     
     const result = await optimizePrompt({
       prompt: userInput,
-      technique: selectedTechnique
+      technique: selectedTechnique,
+      profile: selectedProfile
     });
     
     if (result) {
@@ -98,8 +118,8 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
       width={700}
     >
       <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-        <div style={{ display: 'flex', gap: '16px' }}>
-          <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 200px' }}>
             <Text strong>Quick Templates</Text>
             <Select
               style={{ width: '100%', marginTop: 8 }}
@@ -113,7 +133,25 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
               ))}
             </Select>
           </div>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: '1 1 200px' }}>
+            <Text strong>User Profile</Text>
+            <Select
+              style={{ width: '100%', marginTop: 8 }}
+              value={selectedProfile}
+              onChange={setSelectedProfile}
+              placeholder="Who are you?"
+              allowClear
+            >
+              {Object.entries(profiles).map(([id, description]) => (
+                <Option key={id} value={id}>
+                  <Tooltip title={description}>
+                    {id.charAt(0).toUpperCase() + id.slice(1).replace('_', ' ')}
+                  </Tooltip>
+                </Option>
+              ))}
+            </Select>
+          </div>
+          <div style={{ flex: '1 1 200px' }}>
             <Text strong>Prompting Technique</Text>
             <Select
               style={{ width: '100%', marginTop: 8 }}
@@ -133,10 +171,23 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
         </div>
 
         <div>
-          <Text strong>Your Request / Topic</Text>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text strong>Your Request / Topic</Text>
+            <Tooltip title={isRecording ? "Stop recording" : "Voice input"}>
+              <Button
+                type={isRecording ? "primary" : "text"}
+                danger={isRecording}
+                shape="circle"
+                size="small"
+                icon={isRecording ? <AudioMutedOutlined /> : <AudioOutlined />}
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={isOptimizing || isTranscribing}
+              />
+            </Tooltip>
+          </div>
           <TextArea
             rows={4}
-            placeholder="Describe what you want the AI to do..."
+            placeholder={isRecording ? "Listening..." : isTranscribing ? "Transcribing..." : "Describe what you want the AI to do..."}
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             style={{ marginTop: 8 }}
