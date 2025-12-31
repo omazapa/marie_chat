@@ -586,51 +586,10 @@ export default function ChatContainer() {
 
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minWidth: 0, overflow: 'hidden' }}>
             {!currentConversation ? (
-              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                <WelcomeScreen 
-                  onSend={handleSend} 
-                  onNewConversation={handleNewConversation} 
-                />
-                {/* Input Area for WelcomeScreen */}
-                <div style={{ 
-                  borderTop: '1px solid #E2E8F0',
-                  background: '#ffffff',
-                  padding: '16px 24px',
-                  width: '100%',
-                  boxSizing: 'border-box',
-                  flexShrink: 0
-                }}>
-                  <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      style={{ display: 'none' }} 
-                      onChange={handleFileChange}
-                      multiple
-                    />
-                    <ChatInput 
-                      value={inputValue}
-                      onChange={setInputValue}
-                      onSend={handleSend}
-                      onStop={stopGeneration}
-                      isStreaming={isStreaming}
-                      isConnected={isConnected}
-                      isUploading={isUploading}
-                      onFileClick={handleFileClick}
-                      editingMessageId={editingMessageId}
-                      onCancelEdit={handleCancelEdit}
-                      isRecording={isRecording}
-                      isTranscribing={isTranscribing}
-                      onStartRecording={startRecording}
-                      onStopRecording={stopRecording}
-                      onReferenceClick={handleReferenceClick}
-                      onImageClick={handleOpenImageModal}
-                      onOptimizeClick={() => setShowPromptOptimizer(true)}
-                      referencedCount={referencedConvIds.length + referencedMsgIds.length}
-                    />
-                  </div>
-                </div>
-              </div>
+              <WelcomeScreen 
+                onSend={handleSend} 
+                onNewConversation={handleNewConversation} 
+              />
             ) : (
               <div key={currentConversation.id} style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
                 {/* Chat Header with Model Info */}
@@ -721,15 +680,18 @@ export default function ChatContainer() {
                   messagesEndRef={messagesEndRef}
                 />
 
-                {/* Input Area for Conversation */}
-                <div style={{ 
-                  borderTop: '1px solid #E2E8F0',
-                  background: '#ffffff',
-                  padding: '16px 24px',
-                  width: '100%',
-                  boxSizing: 'border-box',
-                  flexShrink: 0
-                }}>
+              </div>
+            )}
+
+            {/* Common Input Area */}
+            <div style={{ 
+              borderTop: '1px solid #E2E8F0',
+              background: '#ffffff',
+              padding: '16px 24px',
+              width: '100%',
+              boxSizing: 'border-box',
+              flexShrink: 0
+            }}>
               <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
                 {/* Attachments and References List */}
                 {(attachments.length > 0 || referencedConvIds.length > 0 || referencedMsgIds.length > 0) && (
@@ -746,7 +708,7 @@ export default function ChatContainer() {
                       </Tag>
                     ))}
                     {referencedConvIds.map(id => {
-                      const conv = conversations.find(c => c.id === id);
+                      const conv = conversations.find((c: any) => c.id === id);
                       return (
                         <Tag 
                           key={id} 
@@ -806,10 +768,8 @@ export default function ChatContainer() {
                   onOptimizeClick={() => setShowPromptOptimizer(true)}
                   referencedCount={referencedConvIds.length + referencedMsgIds.length}
                 />
-                  </div>
-                </div>
               </div>
-            )}
+            </div>
           </div>
         </Content>
       </Layout>
