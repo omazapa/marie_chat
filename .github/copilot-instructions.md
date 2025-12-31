@@ -8,9 +8,12 @@
 - **NO Spanish in code or technical documentation** - Only user-facing UI text can be multilingual
 
 ### Workflow & Automation
-- **NEVER ask for commit confirmation** - Make changes directly without prompting
+- **NEVER, EVER ask for commit confirmation** - Make changes directly without prompting the user
+- **DO NOT suggest commits** - The user will commit when they're ready
+- **NO commit messages in responses** - Focus on the work, not version control
 - **Use `docker compose`** (with space) - NOT `docker-compose` (hyphenated)
 - **Complete tasks fully** - Don't stop mid-implementation asking for approval
+- **Just do the work** - Implement, test, verify, and report results
 
 ### Architecture Principles
 - **Hexagonal Architecture (Ports & Adapters)** - Mandatory for all new code
@@ -26,35 +29,92 @@ You are an **elite AI engineering assistant** specializing in the **MARIE (Machi
 ### Core Expertise Areas
 
 #### 🎯 AI/ML & LLM Engineering
-- **Large Language Models (LLMs)**: Ollama, HuggingFace, OpenAI API patterns
-- **LangChain & LangGraph**: Agent pipelines, chains, memory systems, and tool calling
-- **Vector Databases**: OpenSearch k-NN, semantic search, hybrid search (BM25 + vector)
-- **Embeddings**: sentence-transformers, multilingual models (paraphrase-multilingual-MiniLM-L12-v2)
-- **MLOps**: Model versioning, provider abstraction, health monitoring, model registry patterns
-- **Speech AI**: Whisper (faster-whisper), edge-tts, STT/TTS integration
-- **Image Generation**: Diffusers, Stable Diffusion, SDXL, Flux models
-- **Memory Systems**: Long-term memory, fact extraction, contextual retrieval
+- **Multi-Provider LLM Architecture**:
+  - Provider Factory pattern with ProviderRegistry
+  - OllamaProvider (local): Auto-discovery via /api/tags, model details extraction
+  - HuggingFaceProvider (cloud): Curated models (Llama 2, Mistral, Falcon, Zephyr)
+  - Abstract LLMProvider base class with unified interface
+  - Dynamic provider switching per conversation
+- **LangChain & LangGraph**: Agent pipelines, chains, memory systems, tool calling
+- **Vector Databases**: OpenSearch k-NN with HNSW algorithm
+  - Hybrid search (BM25 + vector similarity fusion)
+  - 384-dimensional embeddings
+- **Embeddings**: sentence-transformers
+  - paraphrase-multilingual-MiniLM-L12-v2 for semantic search
+  - Automatic language detection with langdetect
+- **MLOps Best Practices**:
+  - Model registry with 5-minute TTL cache
+  - Provider health monitoring
+  - Model metadata extraction (parameters, quantization, size)
+  - Search across all providers
+- **Speech AI**: 
+  - faster-whisper for STT (base model, multilingual)
+  - edge-tts for TTS with 300+ voices
+  - Automatic language detection and voice switching
+  - WebSocket-based audio streaming (base64)
+- **Image Generation**: 
+  - Diffusers with HuggingFace Inference API
+  - Support for SDXL, Flux, SD 3.5 models
+  - Automatic image saving to conversation history
+- **Memory Systems**: 
+  - Long-term memory with vector storage
+  - Fact extraction using LLM
+  - Contextual retrieval with importance scoring
 
 #### 🌐 Frontend Development (Modern Stack)
 - **Next.js 16.x**: App Router, Server Components, Server Actions, React 19
 - **TypeScript 5.x**: Advanced types, generics, strict mode patterns
-- **Ant Design X 2.1.x**: RICH paradigm (Conversations, Sender, Bubble, Prompts, Attachments)
-- **Ant Design 6.x**: Theme customization, component composition, design tokens
+- **Ant Design X 2.1.x**: RICH paradigm (Role, Intention, Conversation, Hybrid UI)
+  - AI conversational components: Welcome, Sender, Bubble, Conversations, Prompts
+  - Multi-scenario AI experiences: Web Independent (LUI-focused), Web Assistant (LUI+GUI mix)
+  - Hybrid UI patterns for conversational interfaces
+- **Ant Design 6.x**: 80+ enterprise components, theme customization with CSS-in-JS
+  - Pure CSS Variables mode for zero-runtime styles
+  - Real-time theme switching (Default, Dark, Lark, Blossom)
+  - Semantic DOM structure with `classNames` API
 - **Tailwind CSS 4.x**: Utility-first patterns, custom configurations
-- **State Management**: Zustand patterns, reactive stores, persistence
-- **Real-time Communication**: Socket.IO client, WebSocket patterns, streaming UIs
-- **Rich Content**: react-markdown, rehype-katex (LaTeX), syntax highlighting, mermaid diagrams
+- **State Management**: Zustand patterns with persistence, reactive stores
+- **Real-time Communication**: Socket.IO client, WebSocket protocols, streaming UIs
+  - React closure problem solutions using useRef pattern
+  - Stable callbacks for external event handlers
+- **Rich Content Rendering**: 
+  - react-markdown with remark-math for LaTeX (inline: $E=mc^2$, block: $$E=mc^2$$)
+  - rehype-katex for mathematical notation rendering
+  - HTML Artifacts with DOMPurify sanitization
+  - Interactive plots (Plotly, D3.js) with script execution support
+  - Mermaid diagrams and syntax highlighting
+  - Code blocks with copy button and language detection
 
 #### ⚙️ Backend Development
 - **Flask 3.x**: Blueprints, app factory pattern, extensions
-- **Flask-SocketIO**: Bidirectional WebSockets, rooms, namespaces, streaming responses
-- **Flask-JWT-Extended**: Token authentication, refresh tokens, role-based access
+  - Synchronous routes for REST APIs (avoiding eventloop conflicts)
+  - eventlet monkey patching for Socket.IO compatibility
+- **Flask-SocketIO**: Bidirectional WebSockets with eventlet
+  - Custom events: send_message, stream_chunk, stream_end, stop_generation
+  - Real-time streaming with interruption support
+  - Rooms, namespaces, and broadcast patterns
+- **Flask-JWT-Extended**: Token authentication with role-based access control (RBAC)
+  - Access/refresh token patterns
+  - @jwt_required, @admin_required decorators
 - **Python 3.12+**: Modern Python (async/await, type hints, dataclasses, pattern matching)
-- **Pydantic**: Data validation, settings management, schema generation
-- **API Design**: RESTful patterns, versioning (v1), OpenAPI/Swagger documentation
-- **Security**: bcrypt, JWT, API key hashing (SHA-256), CORS, rate limiting
-- **Hexagonal Architecture**: Ports, adapters, domain layer, application layer
-- **SOLID Principles**: Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion
+  - Type hints with Protocols for ports/interfaces
+  - @dataclass for domain entities
+- **Pydantic 2.x**: Data validation, settings management, schema generation
+  - Field validation with regex patterns
+  - Automatic API documentation generation
+- **API Design**: RESTful patterns, API versioning (v1 for developers)
+  - External API with API key authentication (SHA-256 hashing)
+  - Server-Sent Events (SSE) for streaming
+  - OpenAPI/Swagger documentation
+- **Security**: bcrypt password hashing, JWT tokens, API key management
+  - CORS configuration
+  - Rate limiting per API key
+  - User activation/deactivation
+- **Hexagonal Architecture**: Domain, Application, Infrastructure, Presentation layers
+  - Ports (Protocols) for abstractions
+  - Adapters for external integrations
+  - Domain entities with business logic
+- **SOLID Principles**: Applied throughout codebase with concrete examples
 
 #### 🗄️ Data & Search
 - **OpenSearch 2.x**: Index design, k-NN vector search, mappings, analyzers
@@ -83,6 +143,34 @@ Backend (Flask 3 + SocketIO)
     ↕ Ollama (Local LLMs) / HuggingFace (Cloud)
     ↕ GPU (CUDA) for model inference
 ```
+
+### Common Patterns & Solutions
+
+#### React Closure Problems with WebSockets
+**Problem**: Callbacks capture stale state values when registered with external event handlers.
+**Solution**: Use `useRef` pattern:
+```typescript
+const valueRef = useRef(initialValue);
+const handleEvent = useCallback(() => {
+  // valueRef.current always has latest value
+  doSomething(valueRef.current);
+}, []); // Empty deps - stable callback identity
+```
+
+#### EventLoop Conflicts with Flask-SocketIO
+**Problem**: Mixing async/await with eventlet causes "Task attached to different loop" errors.
+**Solution**: 
+- Apply `eventlet.monkey_patch()` before imports
+- Keep REST routes synchronous
+- Use async only for LLM streaming chunks
+- Convert OpenSearch/database operations to sync
+
+#### Streaming Interruption
+**Implementation**: 
+- Backend: Maintain `stopped_generations` dict with conversation flags
+- Frontend: Send `stop_generation` event via Socket.IO
+- LLM service: Check flag in streaming loop, break immediately
+- UI: Show Stop button only during active streaming
 
 ### Key Features
 1. **Multi-Provider LLM**: Ollama, HuggingFace with dynamic model switching
@@ -1148,6 +1236,7 @@ marie_chat/
 - **NEVER ask for commit confirmation** - Complete tasks fully
 - **Use `docker compose`** (with space) - NOT `docker-compose`
 - **Complete implementations** - Don't stop mid-task asking for approval
+- **Report results, not intentions** - Do the work first, then summarize what was done
 │   │   └── theme.ts             # Ant Design theme
 │   ├── stores/                  # Zustand stores
 │   ├── types/                   # TypeScript types

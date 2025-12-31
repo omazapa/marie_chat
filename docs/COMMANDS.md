@@ -10,10 +10,10 @@ Quick reference guide for development, debugging, and Docker operations.
 ### Start all services
 ```bash
 # Start in background
-docker-compose up -d
+docker compose up -d
 
 # Start with logs
-docker-compose up
+docker compose up
 
 # Using the startup script (recommended)
 ./start.sh           # Linux/MacOS
@@ -23,20 +23,20 @@ start.bat            # Windows
 ### Stop services
 ```bash
 # Stop without removing containers
-docker-compose stop
+docker compose stop
 
 # Stop and remove containers
-docker-compose down
+docker compose down
 
 # Stop and remove containers + volumes (⚠️ deletes data)
-docker-compose down -v
+docker compose down -v
 ```
 
 ### Restart specific service
 ```bash
-docker-compose restart frontend
-docker-compose restart backend
-docker-compose restart opensearch
+docker compose restart frontend
+docker compose restart backend
+docker compose restart opensearch
 ```
 
 ---
@@ -45,7 +45,7 @@ docker-compose restart opensearch
 
 ### View status of all containers
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 ### View resource usage
@@ -56,18 +56,18 @@ docker stats
 ### View logs
 ```bash
 # All services
-docker-compose logs
+docker compose logs
 
 # Follow logs (real-time)
-docker-compose logs -f
+docker compose logs -f
 
 # Specific service
-docker-compose logs -f backend
-docker-compose logs -f frontend
-docker-compose logs -f opensearch
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f opensearch
 
 # Last N lines
-docker-compose logs --tail=100 backend
+docker compose logs --tail=100 backend
 ```
 
 ---
@@ -77,39 +77,39 @@ docker-compose logs --tail=100 backend
 ### Rebuild containers after changes
 ```bash
 # Rebuild all
-docker-compose build
+docker compose build
 
 # Rebuild specific service
-docker-compose build frontend
-docker-compose build backend
+docker compose build frontend
+docker compose build backend
 
 # Rebuild and start
-docker-compose up --build
+docker compose up --build
 ```
 
 ### Access container shell
 ```bash
 # Backend (Python)
-docker-compose exec backend bash
-docker-compose exec backend python
+docker compose exec backend bash
+docker compose exec backend python
 
 # Create Admin User
-docker-compose exec backend python create_admin_user.py --email admin@marie.com --password admin123 --name "System Admin"
+docker compose exec backend python create_admin_user.py --email admin@marie.com --password admin123 --name "System Admin"
 
 # Frontend (Node)
-docker-compose exec frontend sh
+docker compose exec frontend sh
 
 # OpenSearch
-docker-compose exec opensearch bash
+docker compose exec opensearch bash
 ```
 
 ### Run commands in containers
 ```bash
 # Install Python package
-docker-compose exec backend pip install package_name
+docker compose exec backend pip install package_name
 
 # Install Node package
-docker-compose exec frontend npm install package-name
+docker compose exec frontend npm install package-name
 ```
 
 ---
@@ -275,24 +275,24 @@ curl http://localhost:11434/api/tags
 
 ### Download model
 ```bash
-docker-compose exec ollama ollama pull llama2
-docker-compose exec ollama ollama pull mistral
-docker-compose exec ollama ollama pull codellama
+docker compose exec ollama ollama pull llama2
+docker compose exec ollama ollama pull mistral
+docker compose exec ollama ollama pull codellama
 ```
 
 ### List installed models
 ```bash
-docker-compose exec ollama ollama list
+docker compose exec ollama ollama list
 ```
 
 ### Test model
 ```bash
-docker-compose exec ollama ollama run llama2 "Hello, how are you?"
+docker compose exec ollama ollama run llama2 "Hello, how are you?"
 ```
 
 ### Delete model
 ```bash
-docker-compose exec ollama ollama rm llama2
+docker compose exec ollama ollama rm llama2
 ```
 
 ---
@@ -301,35 +301,35 @@ docker-compose exec ollama ollama rm llama2
 
 ### View backend logs
 ```bash
-docker-compose logs -f backend
+docker compose logs -f backend
 ```
 
 ### View frontend logs
 ```bash
-docker-compose logs -f frontend
+docker compose logs -f frontend
 ```
 
 ### Check environment variables
 ```bash
 # Backend
-docker-compose exec backend env | grep FLASK
-docker-compose exec backend env | grep OPENSEARCH
+docker compose exec backend env | grep FLASK
+docker compose exec backend env | grep OPENSEARCH
 
 # Frontend
-docker-compose exec frontend env | grep NEXT
+docker compose exec frontend env | grep NEXT
 ```
 
 ### Restart service with rebuild
 ```bash
-docker-compose up -d --build backend
-docker-compose up -d --build frontend
+docker compose up -d --build backend
+docker compose up -d --build frontend
 ```
 
 ### Clean everything and start fresh (⚠️ deletes all data)
 ```bash
-docker-compose down -v
-docker-compose build --no-cache
-docker-compose up -d
+docker compose down -v
+docker compose build --no-cache
+docker compose up -d
 ```
 
 ### Check port conflicts
@@ -352,25 +352,25 @@ netstat -ano | findstr :9200
 ### Backend (Python)
 ```bash
 # Install package
-docker-compose exec backend pip install package_name
+docker compose exec backend pip install package_name
 
 # Update requirements.txt
-docker-compose exec backend pip freeze > backend/requirements.txt
+docker compose exec backend pip freeze > backend/requirements.txt
 
 # Install from requirements.txt
-docker-compose exec backend pip install -r requirements.txt
+docker compose exec backend pip install -r requirements.txt
 ```
 
 ### Frontend (Node.js)
 ```bash
 # Install package
-docker-compose exec frontend npm install package-name
+docker compose exec frontend npm install package-name
 
 # Install as dev dependency
-docker-compose exec frontend npm install -D package-name
+docker compose exec frontend npm install -D package-name
 
 # Update dependencies
-docker-compose exec frontend npm update
+docker compose exec frontend npm update
 ```
 
 ---
@@ -495,9 +495,9 @@ git checkout -b phase-2-chat-core
 
 ### Quick reset (when things break)
 ```bash
-docker-compose down
-docker-compose up -d
-docker-compose logs -f
+docker compose down
+docker compose up -d
+docker compose logs -f
 ```
 
 ### See what's consuming space
@@ -523,11 +523,11 @@ docker system prune -a --volumes
 ### Hot reload not working?
 ```bash
 # Rebuild with no cache
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Restart with volume mount check
-docker-compose down
-docker-compose up -d
+docker compose down
+docker compose up -d
 ```
 
 ---
