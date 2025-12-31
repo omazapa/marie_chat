@@ -12,6 +12,8 @@
 - **DO NOT suggest commits** - The user will commit when they're ready
 - **NO commit messages in responses** - Focus on the work, not version control
 - **Use `docker compose`** (with space) - NOT `docker-compose` (hyphenated)
+- **ALWAYS pin package versions** in `requirements.txt` (e.g., `package==1.2.3`)
+- **AVOID hardcoded paths** and "unprofessional patches" (e.g., hardcoded library paths in Dockerfiles)
 - **Complete tasks fully** - Don't stop mid-implementation asking for approval
 - **Just do the work** - Implement, test, verify, and report results
 

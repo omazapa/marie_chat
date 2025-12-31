@@ -39,9 +39,12 @@ COPY . .
 # Create uploads directory
 RUN mkdir -p /app/uploads
 
+# Make start script executable
+RUN chmod +x /app/start.sh
+
 EXPOSE 5000
 
 # Use unbuffered output for logs in containers
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "run.py"]
+CMD ["/bin/bash", "start.sh"]

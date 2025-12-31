@@ -386,16 +386,18 @@ def handle_transcribe_audio(data):
     
     print(f"🎙️ Transcribing audio from {request.sid} (language hint: {language or 'auto'})")
     
-    def process_transcription():
+    sid = request.sid
+    
+    def process_transcription(target_sid):
         try:
             text = speech_service.transcribe_base64(audio_data, language=language)
-            socketio.emit('transcription_result', {'text': text}, room=request.sid)
+            socketio.emit('transcription_result', {'text': text}, room=target_sid)
         except Exception as e:
             print(f"❌ Transcription error: {e}")
-            socketio.emit('error', {'message': f'Transcription error: {str(e)}'}, room=request.sid)
+            socketio.emit('error', {'message': f'Transcription error: {str(e)}'}, room=target_sid)
     
     # Run in a separate thread to avoid blocking the event loop
-    threading.Thread(target=process_transcription).start()
+    threading.Thread(target=process_transcription, args=(sid,)).start()
 
 
 @socketio.on('text_to_speech')
@@ -415,20 +417,22 @@ def handle_text_to_speech(data):
     
     print(f"🔊 Converting text to speech for {request.sid}")
     
-    async def process_tts():
+    sid = request.sid
+    
+    async def process_tts(target_sid):
         try:
             audio_base64 = await speech_service.text_to_speech_base64(text, voice)
             socketio.emit('tts_result', {
                 'audio': audio_base64,
                 'message_id': message_id
-            }, room=request.sid)
+            }, room=target_sid)
         except Exception as e:
             print(f"❌ TTS error: {e}")
-            socketio.emit('error', {'message': f'TTS error: {str(e)}'}, room=request.sid)
+            socketio.emit('error', {'message': f'TTS error: {str(e)}'}, room=target_sid)
     
     # Run in the global async loop
     loop = get_async_loop()
-    asyncio.run_coroutine_threadsafe(process_tts(), loop)
+    asyncio.run_coroutine_threadsafe(process_tts(sid), loop)
 
 
 # Error handler
