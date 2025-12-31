@@ -463,6 +463,35 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     [token, currentConversation]
   );
 
+  // Bulk delete conversations
+  const bulkDeleteConversations = useCallback(
+    async (conversationIds: string[]) => {
+      if (!token || conversationIds.length === 0) return false;
+
+      try {
+        setLoading(true);
+        await apiClient.post('/conversations/bulk-delete', { conversation_ids: conversationIds });
+        
+        setConversations((prev) => prev.filter((c) => !conversationIds.includes(c.id)));
+        
+        if (currentConversation && conversationIds.includes(currentConversation.id)) {
+          setCurrentConversation(null);
+          setMessages([]);
+        }
+        
+        setError(null);
+        return true;
+      } catch (err: any) {
+        setError(err.response?.data?.error || 'Failed to delete conversations');
+        console.error('Error bulk deleting conversations:', err);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [token, currentConversation]
+  );
+
   // Update conversation
   const updateConversation = useCallback(
     async (conversationId: string, updates: Partial<Conversation>) => {
@@ -605,6 +634,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     fetchMessages,
     createConversation,
     deleteConversation,
+    bulkDeleteConversations,
     updateConversation,
     selectConversation,
     sendMessage,

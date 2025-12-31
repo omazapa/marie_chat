@@ -84,6 +84,7 @@ export default function ChatContainer() {
     fetchMessages,
     createConversation,
     deleteConversation,
+    bulkDeleteConversations,
     updateConversation,
     selectConversation,
     sendMessage,
@@ -562,6 +563,7 @@ export default function ChatContainer() {
         handleSelectConversation={handleSelectConversation}
         handleRenameConversation={handleRenameConversation}
         handleDeleteConversation={handleDeleteConversation}
+        handleBulkDeleteConversations={bulkDeleteConversations}
         handleLogout={handleLogout}
         user={user}
         isConnected={isConnected}

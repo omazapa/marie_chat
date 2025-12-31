@@ -408,6 +408,46 @@ class LLMService:
             print(f"Error deleting conversation: {e}")
             return False
     
+    def delete_conversations(self, conversation_ids: List[str], user_id: str) -> bool:
+        """Delete multiple conversations and all their messages"""
+        try:
+            # Delete all messages in these conversations
+            self.client.delete_by_query(
+                index="marie_messages",
+                body={
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {"terms": {"conversation_id": conversation_ids}},
+                                {"term": {"user_id": user_id}}
+                            ]
+                        }
+                    }
+                },
+                refresh=True
+            )
+            
+            # Delete the conversations
+            self.client.delete_by_query(
+                index="marie_conversations",
+                body={
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {"ids": {"values": conversation_ids}},
+                                {"term": {"user_id": user_id}}
+                            ]
+                        }
+                    }
+                },
+                refresh=True
+            )
+            
+            return True
+        except Exception as e:
+            print(f"Error deleting conversations: {e}")
+            return False
+    
     # ==================== Message Management ====================
     
     def save_message(
