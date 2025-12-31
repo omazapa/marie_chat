@@ -122,7 +122,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
         {/* New Conversation Button */}
         <div style={{ padding: '16px' }}>
-          <Space direction="vertical" style={{ width: '100%' }} size="small">
+          <Space orientation="vertical" style={{ width: '100%' }} size="small">
             <Button
               type="primary"
               icon={<PlusOutlined />}

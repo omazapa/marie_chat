@@ -38,7 +38,9 @@ export function usePrompts(token: string | null) {
     setError(null);
     
     try {
-      const response = await apiClient.post('/prompts/optimize', params);
+      const response = await apiClient.post('/prompts/optimize', params, {
+        timeout: 120000 // 2 minutes for LLM optimization
+      });
       return response.data.optimized as string;
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Failed to optimize prompt';
