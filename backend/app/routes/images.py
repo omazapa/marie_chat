@@ -259,8 +259,46 @@ def generate_image():
             })
             
         except Exception as e:
-            print(f"❌ Error in background generation: {e}")
+            error_msg = str(e)
+            print(f"❌ Error in background generation: {error_msg}")
             stop_simulated_progress = True
+            
+            # Emit error to frontend
+            progress_queue.put({
+                'event': 'image_error',
+                'room': str(conv_id),
+                'payload': {
+                    'conversation_id': conv_id,
+                    'error': error_msg,
+                    'message': 'Image generation failed'
+                }
+            })
+            
+            # Save error message to database
+            try:
+                error_message = llm_service.save_message(
+                    conversation_id=conv_id,
+                    user_id=u_id,
+                    role='assistant',
+                    content=f"❌ Image generation failed: {error_msg}",
+                    metadata={'type': 'image_generation_error', 'error': error_msg}
+                )
+                
+                # Emit the error message
+                display_error_message = error_message.copy()
+                if 'content_vector' in display_error_message:
+                    del display_error_message['content_vector']
+                    
+                progress_queue.put({
+                    'event': 'message_response',
+                    'room': str(conv_id),
+                    'payload': {
+                        'conversation_id': conv_id,
+                        'message': display_error_message
+                    }
+                })
+            except Exception as save_error:
+                print(f"⚠️ Could not save error message: {save_error}")
         finally:
             # Stop emitter
             stop_simulated_progress = True

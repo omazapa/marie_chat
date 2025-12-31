@@ -151,6 +151,21 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     setTtsAudio(data);
   }, []);
 
+  const handleImageError = useCallback(
+    (data: { 
+      conversation_id: string;
+      error: string;
+      message?: string;
+    }) => {
+      console.error(`❌ Image error for ${data.conversation_id}: ${data.error}`);
+      if (currentConversationRef.current?.id === data.conversation_id) {
+        setImageProgress(null);
+        setError(data.message || data.error);
+      }
+    },
+    []
+  );
+
   // Initialize WebSocket
   const {
     isConnected,
@@ -170,6 +185,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     onTranscriptionResult: handleTranscriptionResult,
     onTTSResult: handleTTSResult,
     onImageProgress: handleImageProgress,
+    onImageError: handleImageError,
     onError: (err) => setError(err.message),
   });
 

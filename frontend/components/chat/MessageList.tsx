@@ -73,7 +73,8 @@ export const MessageList = memo(({
         <div style={{ 
           display: 'flex', 
           justifyContent: 'flex-start', 
-          marginBottom: '16px',
+          marginBottom: '24px',
+          marginTop: '16px',
           padding: '0 16px'
         }}>
           <Card 
@@ -136,7 +137,7 @@ export const MessageList = memo(({
         </div>
       )}
 
-      <div ref={messagesEndRef} />
+      <div ref={messagesEndRef} style={{ height: '20px' }} />
     </div>
   );
 });

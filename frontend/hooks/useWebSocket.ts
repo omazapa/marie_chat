@@ -40,6 +40,11 @@ interface UseWebSocketProps {
     image_url?: string;
     message?: string;
   }) => void;
+  onImageError?: (data: {
+    conversation_id: string;
+    error: string;
+    message?: string;
+  }) => void;
 }
 
 export function useWebSocket({
@@ -55,6 +60,7 @@ export function useWebSocket({
   onTTSResult,
   onUserTyping,
   onImageProgress,
+  onImageError,
 }: UseWebSocketProps) {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -74,6 +80,7 @@ export function useWebSocket({
     onTTSResult,
     onUserTyping,
     onImageProgress,
+    onImageError,
   });
 
   // Update handlers ref when they change
@@ -90,6 +97,7 @@ export function useWebSocket({
       onTTSResult,
       onUserTyping,
       onImageProgress,
+      onImageError,
     };
   }, [
     onConnected,
@@ -103,6 +111,7 @@ export function useWebSocket({
     onTTSResult,
     onUserTyping,
     onImageProgress,
+    onImageError,
   ]);
 
   // Keep ref in sync with state
@@ -172,6 +181,11 @@ export function useWebSocket({
     socket.on('image_progress', (data) => {
       console.log('🖼️ Socket event: image_progress', data);
       handlersRef.current.onImageProgress?.(data);
+    });
+
+    socket.on('image_error', (data) => {
+      console.error('❌ Socket event: image_error', data);
+      handlersRef.current.onImageError?.(data);
     });
 
     // Connection handlers - AFTER message handlers

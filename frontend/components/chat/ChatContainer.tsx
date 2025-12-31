@@ -359,16 +359,31 @@ export default function ChatContainer() {
   };
 
   const handleOpenImageModal = useCallback(() => {
+    // Only open modal if we have an active conversation
+    if (!currentConversation?.id) {
+      modal.warning({
+        title: 'No Active Conversation',
+        content: 'Please create or select a conversation first before generating images.',
+      });
+      return;
+    }
     setShowImageModal(true);
     fetchImageModels();
-  }, [fetchImageModels]);
+  }, [fetchImageModels, currentConversation, modal]);
 
   const handleGenerateImage = useCallback(async () => {
     if (!imagePrompt.trim()) return;
+    if (!currentConversation?.id) {
+      modal.warning({
+        title: 'No Active Conversation',
+        content: 'Please select a conversation first.',
+      });
+      return;
+    }
     
     const prompt = imagePrompt;
     const model = selectedImageModel;
-    const convId = currentConversation?.id;
+    const convId = currentConversation.id;
     
     setShowImageModal(false);
     setImagePrompt('');
@@ -384,40 +399,35 @@ export default function ChatContainer() {
     if (result && result.conversation_id) {
       console.log('✅ Image generation started:', result);
       
-      // Set initial progress state so the user sees something immediately
-      setImageProgress({
-        conversation_id: result.conversation_id,
-        progress: 0,
-        step: 0,
-        total_steps: 15, // Default or estimate
-        message: 'Starting generation...'
-      });
-      
-      // Switch to the conversation immediately so the user sees the progress
-      if (!currentConversation || currentConversation.id !== result.conversation_id) {
-        await selectConversation(result.conversation_id);
+      // Only update progress for the current conversation
+      if (currentConversation.id === result.conversation_id) {
+        setImageProgress({
+          conversation_id: result.conversation_id,
+          progress: 0,
+          step: 0,
+          total_steps: 15,
+          message: 'Starting generation...'
+        });
+        
+        // Optimistically add the user message
+        const modelParts = model.split('/');
+        const displayModel = modelParts[modelParts.length - 1] || model || "default";
+        const userMessage = {
+          id: `temp-${Date.now()}`,
+          conversation_id: result.conversation_id,
+          user_id: user?.id || 'user',
+          role: 'user',
+          content: `Generate an image using ${displayModel}: ${prompt}`,
+          created_at: new Date().toISOString()
+        };
+        
+        setMessages(prev => {
+          if (prev.some(m => m.content === userMessage.content)) return prev;
+          return [...prev, userMessage];
+        });
       }
-
-      // Optimistically add the user message to the chat list
-      // This ensures it appears in the "chat field" as requested
-      const modelParts = model.split('/');
-      const displayModel = modelParts[modelParts.length - 1] || model || "default";
-      const userMessage = {
-        id: `temp-${Date.now()}`,
-        conversation_id: result.conversation_id,
-        user_id: user?.id || 'user',
-        role: 'user',
-        content: `Generate an image using ${displayModel}: ${prompt}`,
-        created_at: new Date().toISOString()
-      };
-      
-      setMessages(prev => {
-        // Avoid duplicates if fetchMessages already got it
-        if (prev.some(m => m.content === userMessage.content)) return prev;
-        return [...prev, userMessage];
-      });
     }
-  }, [imagePrompt, selectedImageModel, selectedModel, selectedProvider, currentConversation, generateImage, selectConversation, user, setMessages, setImageProgress]);
+  }, [imagePrompt, selectedImageModel, selectedModel, selectedProvider, currentConversation, generateImage, user, setMessages, setImageProgress, modal]);
 
   const toggleReference = (id: string) => {
     setReferencedConvIds(prev => 
@@ -663,7 +673,11 @@ export default function ChatContainer() {
                   regenerateResponse={regenerateResponse}
                   handlePlayMessage={handlePlayMessage}
                   playingMessageId={playingMessageId}
-                  imageProgress={imageProgress}
+                  imageProgress={
+                    imageProgress?.conversation_id === currentConversation?.id 
+                      ? imageProgress 
+                      : null
+                  }
                   messagesEndRef={messagesEndRef}
                 />
               </div>
