@@ -20,7 +20,10 @@ class PromptService:
             "persona": "Persona: Assigns a specific role or character to the model.",
             "delimited": "Delimited: Uses clear delimiters to separate different parts of the prompt.",
             "structured": "Structured Output: Requests the output in a specific format like JSON or Markdown.",
-            "tot": "Tree of Thoughts: Explores multiple reasoning paths simultaneously."
+            "tot": "Tree of Thoughts: Explores multiple reasoning paths simultaneously.",
+            "step_back": "Step-Back Prompting: Asks the model to first identify the broader principles or concepts involved.",
+            "self_critique": "Self-Critique: Instructs the model to review and refine its own response for accuracy and quality.",
+            "analogical": "Analogical Reasoning: Uses analogies to explain complex or abstract concepts more clearly."
         }
         self.templates = {
             "creative": "Write a creative story or poem about {topic}. Use vivid imagery and emotional depth.",
@@ -30,12 +33,12 @@ class PromptService:
             "code_review": "Review the following code for bugs, performance issues, and best practices: {topic}"
         }
         self.profiles = {
-            "developer": "Software Developer: Focuses on code quality, efficiency, technical accuracy, and best practices.",
-            "researcher": "Researcher/Academic: Focuses on rigorous analysis, citations, formal language, and deep conceptual understanding.",
-            "creator": "Content Creator: Focuses on audience engagement, creativity, storytelling, and visual/emotional appeal.",
-            "business": "Business Professional: Focuses on clarity, professionalism, actionable insights, and strategic value.",
-            "student": "Student: Focuses on learning, clear explanations of foundational concepts, and step-by-step guidance.",
-            "data_scientist": "Data Scientist: Focuses on data-driven insights, statistical rigor, visualization, and reproducible results."
+            "developer": "Software Developer: Expert in multiple programming languages, focuses on clean code (SOLID, DRY), performance optimization, security, and comprehensive documentation. Prefers technical, concise, and implementation-ready responses.",
+            "researcher": "Researcher/Academic: Expert in scientific methodology, focuses on evidence-based analysis, peer-reviewed citations, formal academic tone, and exploring theoretical implications. Prefers deep, nuanced, and well-structured scholarly content.",
+            "creator": "Content Creator: Expert in digital storytelling and marketing, focuses on audience psychology, viral potential, creative hooks, and multi-platform adaptation. Prefers engaging, imaginative, and emotionally resonant content.",
+            "business": "Business Professional: Expert in corporate strategy and communication, focuses on ROI, actionable executive summaries, professional etiquette, and market alignment. Prefers clear, high-level, and results-oriented insights.",
+            "student": "Student/Learner: Focuses on building foundational knowledge, clear analogies, step-by-step explanations, and identifying key learning objectives. Prefers educational, encouraging, and easy-to-digest information.",
+            "data_scientist": "Data Scientist: Expert in statistics and machine learning, focuses on data integrity, algorithmic efficiency, statistical significance, and clear data visualization. Prefers rigorous, mathematical, and reproducible analysis."
         }
 
     def get_available_techniques(self) -> Dict[str, str]:
@@ -53,29 +56,38 @@ class PromptService:
     async def _generate_optimized_prompt(self, user_input: str, technique: Optional[str] = None, context: Optional[str] = None, profile: Optional[str] = None) -> str:
         """Internal async method to generate the optimized prompt"""
         system_content = (
-            "You are an expert Prompt Engineer. Your task is to take a simple user request "
-            "and transform it into a high-quality, effective prompt for a Large Language Model. "
-            "Use advanced prompt engineering techniques to ensure the best possible results."
+            "You are a world-class Prompt Engineer specializing in Large Language Models. "
+            "Your goal is to rewrite the user's request into a highly effective, professional, and structured prompt. "
+            "\n\nFollow these principles for the optimized prompt:"
+            "\n1. Role & Context: Define a clear persona for the LLM based on the user's profile."
+            "\n2. Task Specification: Be extremely specific about what the LLM should do."
+            "\n3. Constraints & Requirements: Include technical, stylistic, or structural constraints."
+            "\n4. Output Format: Specify exactly how the response should be formatted (Markdown, JSON, etc.)."
+            "\n5. Tone & Style: Match the tone to the user's profile and intent."
+            "\n\nIMPORTANT: Return ONLY the rewritten prompt. Do not include any explanations, 'Here is your prompt', or conversational filler."
         )
         
         technique_instruction = ""
         if technique and technique in self.techniques:
-            technique_instruction = f"\nApply the following technique: {self.techniques[technique]}"
+            technique_instruction = f"\n- MANDATORY TECHNIQUE: {self.techniques[technique]}"
         
         profile_instruction = ""
         if profile and profile in self.profiles:
-            profile_instruction = f"\nThe user profile is: {self.profiles[profile]}. Tailor the prompt to suit this user's needs and expectations."
+            profile_instruction = f"\n- TARGET USER PROFILE: {self.profiles[profile]}"
         
         context_instruction = ""
         if context:
-            context_instruction = f"\nConsider this additional context: {context}"
+            context_instruction = f"\n- ADDITIONAL CONTEXT: {context}"
 
         user_content = (
-            f"User Request: {user_input}"
-            f"{technique_instruction}"
+            "Please optimize the following user request into a professional prompt:\n"
+            f"--- USER REQUEST START ---\n{user_input}\n--- USER REQUEST END ---\n"
+            "\nInstructions for optimization:"
             f"{profile_instruction}"
+            f"{technique_instruction}"
             f"{context_instruction}"
-            "\n\nPlease provide the optimized prompt only, without any introductory or concluding text."
+            "\n\nRewrite this request into a comprehensive prompt that will yield the highest quality response from an LLM. "
+            "The resulting prompt should be ready to be used directly with another AI model."
         )
 
         messages = [

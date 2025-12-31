@@ -30,6 +30,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
   const { isOptimizing, techniques, templates, profiles, fetchTechniques, optimizePrompt } = usePrompts(accessToken);
   
   const [userInput, setUserInput] = useState(initialPrompt);
+  const [context, setContext] = useState<string>('');
   const [selectedTechnique, setSelectedTechnique] = useState<string>('cot');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [selectedProfile, setSelectedProfile] = useState<string>('');
@@ -74,7 +75,8 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
     const result = await optimizePrompt({
       prompt: userInput,
       technique: selectedTechnique,
-      profile: selectedProfile
+      profile: selectedProfile,
+      context: context
     });
     
     if (result) {
@@ -190,6 +192,17 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
             placeholder={isRecording ? "Listening..." : isTranscribing ? "Transcribing..." : "Describe what you want the AI to do..."}
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
+            style={{ marginTop: 8 }}
+          />
+        </div>
+
+        <div>
+          <Text strong>Additional Context (Optional)</Text>
+          <TextArea
+            rows={2}
+            placeholder="Provide background info, specific data, or examples..."
+            value={context}
+            onChange={(e) => setContext(e.target.value)}
             style={{ marginTop: 8 }}
           />
         </div>
