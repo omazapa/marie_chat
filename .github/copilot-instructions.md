@@ -8,13 +8,21 @@
 - **NO Spanish in code or technical documentation** - Only user-facing UI text can be multilingual.
 
 ### Workflow & Automation
-- **NEVER ask for commit confirmation** - Make changes directly.
-- **DO NOT suggest commits** - The user will commit when ready.
+- **CRITICAL: NEVER perform git commits, pushes, or any version control operations** - The user will handle all git commands manually.
+- **CRITICAL: NEVER ask for commit confirmation** - Make changes directly to files.
+- **CRITICAL: DO NOT suggest commits** - The user will commit when ready.
 - **NO commit messages in responses** - Focus on the implementation.
 - **Use `docker compose`** (with space) - NOT `docker-compose` (hyphenated).
 - **ALWAYS pin package versions** in `requirements.txt` (e.g., `package==1.2.3`).
 - **CLEAN UP temporary diagnostic files** immediately after use.
 - **Complete tasks fully** - Implement, test, verify, and report results.
+
+### Visual Verification (MCP Browser)
+- **MANDATORY: ALWAYS use MCP snapshots for visual verification** when making UI/layout changes.
+- **NEVER claim "fixed" without taking a snapshot** - Visual confirmation is required.
+- **Test multiple resolutions** (1920x900, 1366x768, 1280x900) for responsive layouts.
+- **Check for content cutoff** - Verify nothing is cut off on edges (left, right, top, bottom).
+- **Procedure**: Make changes → Take snapshot → Verify visually → Report actual visual state.
 
 ### Architecture Principles
 - **Hexagonal Architecture (Ports & Adapters)**: Mandatory for all new code.
