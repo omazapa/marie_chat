@@ -5,7 +5,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import rehypeRaw from 'rehype-raw';
 import { PrismAsync as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Button, Tooltip, Table, Typography, Spin, App, Tag } from 'antd';
@@ -388,13 +387,15 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
     const htmlBlockRegex = /(<!doctype html>[\s\S]*?<\/html>|<html[\s\S]*?<\/html>|<body[\s\S]*?<\/body>|<div[\s\S]*?<\/div>|<svg[\s\S]*?<\/svg>|<iframe[\s\S]*?<\/iframe>|<table[\s\S]*?<\/table>|<button[\s\S]*?<\/button>|<form[\s\S]*?<\/form>|<canvas[\s\S]*?<\/canvas>)/gi;
     // Regex to find LaTeX environments and display math blocks
     const latexBlockRegex = /(\\begin\{([a-z\*]+)\}[\s\S]*?\\end\{\2\}|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$|\\\( [\s\S]*? \\\))/gi;
+    // Regex to find thought blocks
+    const thoughtBlockRegex = /<thought>([\s\S]*?)<\/thought>/gi;
     
     // Check if the block is already inside a code block
     let lastIndex = 0;
     let result = '';
     
     // Combine and sort matches by index
-    const matches: { index: number; length: number; content: string; type: 'html' | 'latex' }[] = [];
+    const matches: { index: number; length: number; content: string; type: 'html' | 'latex' | 'thought' }[] = [];
     
     let match;
     while ((match = htmlBlockRegex.exec(content)) !== null) {
@@ -402,6 +403,9 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
     }
     while ((match = latexBlockRegex.exec(content)) !== null) {
       matches.push({ index: match.index, length: match[0].length, content: match[0], type: 'latex' });
+    }
+    while ((match = thoughtBlockRegex.exec(content)) !== null) {
+      matches.push({ index: match.index, length: match[0].length, content: match[1], type: 'thought' });
     }
     
     matches.sort((a, b) => a.index - b.index);
@@ -421,8 +425,10 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
       if (!isInsideCode && !isInsideMath) {
         if (m.type === 'html') {
           result += `\n\n\`\`\`html\n${m.content.trim()}\n\`\`\`\n\n`;
-        } else {
+        } else if (m.type === 'latex') {
           result += `\n\n\`\`\`latex\n${m.content.trim()}\n\`\`\`\n\n`;
+        } else if (m.type === 'thought') {
+          result += `\n\n\`\`\`thought\n${m.content.trim()}\n\`\`\`\n\n`;
         }
       } else {
         result += m.content;
@@ -476,6 +482,23 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
         return <LatexArtifact latex={codeContent} isStreaming={isStreaming} />;
       }
 
+      // Handle Thought artifacts
+      if (language === 'thought') {
+        return (
+          <div style={{ marginBottom: '16px' }}>
+            <Think 
+              title="Reasoning Process" 
+              defaultExpanded={false}
+              style={{ background: '#f8f9fa', border: '1px solid #e9ecef' }}
+            >
+              <div style={{ fontSize: '13px', color: '#495057', lineHeight: '1.6' }}>
+                <MarkdownContent content={codeContent} isStreaming={isStreaming} />
+              </div>
+            </Think>
+          </div>
+        );
+      }
+
       return !inline && match ? (
         <CodeBlock language={language} value={codeContent} />
       ) : (
@@ -490,7 +513,8 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
       const isArtifact = childrenArray.some((child: any) => {
         return React.isValidElement(child) && 
                ((child.type as any)?.displayName === 'HTMLArtifact' || 
-                (child.type as any)?.displayName === 'LatexArtifact');
+                (child.type as any)?.displayName === 'LatexArtifact' ||
+                (child.type as any)?.displayName === 'Think');
       });
 
       if (isArtifact) {
@@ -500,21 +524,6 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
     },
     table({ children }: any) {
       return <MarkdownTable>{children}</MarkdownTable>;
-    },
-    thought({ children }: any) {
-      return (
-        <div style={{ marginBottom: '16px' }}>
-          <Think 
-            title="Reasoning Process" 
-            defaultExpanded={false}
-            style={{ background: '#f8f9fa', border: '1px solid #e9ecef' }}
-          >
-            <div style={{ fontSize: '13px', color: '#495057', lineHeight: '1.6' }}>
-              {children}
-            </div>
-          </Think>
-        </div>
-      );
     }
   }), [isStreaming]);
 
@@ -526,7 +535,7 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
     <div className={`markdown-content ${className || ''}`} style={{ width: '100%', maxWidth: '100%', overflowWrap: 'break-word', minWidth: 0 }}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeRaw, rehypeKatex]}
+        rehypePlugins={[rehypeKatex]}
         components={components}
       >
         {processedContent}
