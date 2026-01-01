@@ -21,7 +21,7 @@ class OllamaProvider(LLMProvider):
         super().__init__(config)
         self.base_url = config.get("base_url") if config else None
         self.base_url = self.base_url or os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
-        self._client = None  # Lazy init
+        self._client: httpx.AsyncClient | None = None  # Lazy init
         self.provider_name = "ollama"
 
     @property

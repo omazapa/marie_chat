@@ -4,6 +4,7 @@ Decorators and helpers for API authentication
 """
 
 from functools import wraps
+from typing import Any, cast
 
 from flask import jsonify, request
 from flask_jwt_extended import get_jwt, jwt_required
@@ -25,8 +26,8 @@ def api_key_required(f):
             return jsonify({"error": "Invalid, expired, or inactive API Key"}), 401
 
         # Add user_id and key_id to request context for use in the route
-        request.user_id = key_info["user_id"]
-        request.api_key_id = key_info["id"]
+        cast(Any, request).user_id = key_info["user_id"]
+        cast(Any, request).api_key_id = key_info["id"]
 
         return f(*args, **kwargs)
 

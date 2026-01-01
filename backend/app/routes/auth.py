@@ -79,7 +79,9 @@ def login():
 
     # Verify password
     password_hash = user.get("password_hash")
-    if not opensearch_service.verify_password(data.password.strip(), password_hash):
+    if not password_hash or not opensearch_service.verify_password(
+        data.password.strip(), password_hash
+    ):
         return jsonify({"error": "Invalid credentials"}), 401
 
     # Check if user is active

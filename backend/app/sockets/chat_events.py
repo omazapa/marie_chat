@@ -65,7 +65,7 @@ def handle_connect(auth=None):
             token = auth_header[7:]
 
     if not token:
-        print(f"❌ Connection rejected: No token provided. SID: {request.sid}")
+        print(f"❌ Connection rejected: No token provided. SID: {cast(Any, request).sid}")
         return False
 
     try:
@@ -74,23 +74,23 @@ def handle_connect(auth=None):
         user_id = decoded["sub"]
 
         # Store connection
-        active_connections[request.sid] = {"user_id": user_id, "token": token}
+        active_connections[cast(Any, request).sid] = {"user_id": user_id, "token": token}
 
-        print(f"✅ Client connected: {request.sid} (user: {user_id})")
+        print(f"✅ Client connected: {cast(Any, request).sid} (user: {user_id})")
         emit("connected", {"message": "Connected successfully", "user_id": user_id})
         return True
     except Exception as e:
-        print(f"❌ Connection rejected for SID {request.sid}: {e}")
+        print(f"❌ Connection rejected for SID {cast(Any, request).sid}: {e}")
         return False
 
 
 @socketio.on("disconnect")
 def handle_disconnect(*args, **kwargs):
     """Handle client disconnection"""
-    if request.sid in active_connections:
-        user_id = active_connections[request.sid]["user_id"]
-        del active_connections[request.sid]
-        print(f"👋 Client disconnected: {request.sid} (user: {user_id})")
+    if cast(Any, request).sid in active_connections:
+        user_id = active_connections[cast(Any, request).sid]["user_id"]
+        del active_connections[cast(Any, request).sid]
+        print(f"👋 Client disconnected: {cast(Any, request).sid} (user: {user_id})")
 
 
 @socketio.on("join_conversation")
@@ -102,17 +102,17 @@ def handle_join_conversation(data):
         emit("error", {"message": "conversation_id is required"})
         return
 
-    if request.sid not in active_connections:
+    if cast(Any, request).sid not in active_connections:
         emit("error", {"message": "Not authenticated"})
         return
 
     join_room(conversation_id)
-    print(f"📥 Client {request.sid} joined conversation {conversation_id}")
+    print(f"📥 Client {cast(Any, request).sid} joined conversation {conversation_id}")
 
     # Debug: list rooms for this client
     from flask_socketio import rooms
 
-    print(f"🔍 Client {request.sid} is now in rooms: {rooms()}")
+    print(f"🔍 Client {cast(Any, request).sid} is now in rooms: {rooms()}")
 
     emit("joined_conversation", {"conversation_id": conversation_id})
 
@@ -127,18 +127,18 @@ def handle_leave_conversation(data):
         return
 
     leave_room(conversation_id)
-    print(f"📤 Client {request.sid} left conversation {conversation_id}")
+    print(f"📤 Client {cast(Any, request).sid} left conversation {conversation_id}")
     emit("left_conversation", {"conversation_id": conversation_id})
 
 
 @socketio.on("send_message")
 def handle_send_message(data):
     """Handle incoming chat message with streaming response"""
-    if request.sid not in active_connections:
+    if cast(Any, request).sid not in active_connections:
         emit("error", {"message": "Not authenticated"})
         return
 
-    user_id = active_connections[request.sid]["user_id"]
+    user_id = active_connections[cast(Any, request).sid]["user_id"]
     conversation_id = data.get("conversation_id")
     message = data.get("message")
     stream = data.get("stream", True)
@@ -167,7 +167,9 @@ def handle_send_message(data):
 
     # Ensure client is in the conversation room before processing
     join_room(conversation_id)
-    print(f"[AUTOJOIN] Ensured client {request.sid} is in conversation room {conversation_id}")
+    print(
+        f"[AUTOJOIN] Ensured client {cast(Any, request).sid} is in conversation room {conversation_id}"
+    )
 
     # Acknowledge message received
     emit(
@@ -190,7 +192,7 @@ def handle_send_message(data):
         conversation_id=conversation_id,
         message=message,
         stream=stream,
-        sid=request.sid,
+        sid=cast(Any, request).sid,
         attachments=attachments,
         referenced_conv_ids=referenced_conv_ids,
         referenced_msg_ids=referenced_msg_ids,
@@ -382,7 +384,7 @@ def handle_stop_generation(data):
 @socketio.on("typing")
 def handle_typing(data):
     """Handle typing indicator"""
-    if request.sid not in active_connections:
+    if cast(Any, request).sid not in active_connections:
         return
 
     conversation_id = data.get("conversation_id")
@@ -394,18 +396,18 @@ def handle_typing(data):
             "user_typing",
             {
                 "conversation_id": conversation_id,
-                "user_id": active_connections[request.sid]["user_id"],
+                "user_id": active_connections[cast(Any, request).sid]["user_id"],
                 "is_typing": is_typing,
             },
             room=conversation_id,
-            skip_sid=request.sid,
+            skip_sid=cast(Any, request).sid,
         )
 
 
 @socketio.on("transcribe_audio")
 def handle_transcribe_audio(data):
     """Transcribe audio data to text"""
-    if request.sid not in active_connections:
+    if cast(Any, request).sid not in active_connections:
         emit("error", {"message": "Not authenticated"})
         return
 
@@ -416,9 +418,11 @@ def handle_transcribe_audio(data):
         emit("error", {"message": "Audio data is required"})
         return
 
-    print(f"🎙️ Transcribing audio from {request.sid} (language hint: {language or 'auto'})")
+    print(
+        f"🎙️ Transcribing audio from {cast(Any, request).sid} (language hint: {language or 'auto'})"
+    )
 
-    sid = request.sid
+    sid = cast(Any, request).sid
 
     def process_transcription(target_sid):
         try:
@@ -435,7 +439,7 @@ def handle_transcribe_audio(data):
 @socketio.on("text_to_speech")
 def handle_text_to_speech(data):
     """Convert text to speech"""
-    if request.sid not in active_connections:
+    if cast(Any, request).sid not in active_connections:
         emit("error", {"message": "Not authenticated"})
         return
 
@@ -447,9 +451,9 @@ def handle_text_to_speech(data):
         emit("error", {"message": "Text is required"})
         return
 
-    print(f"🔊 Converting text to speech for {request.sid}")
+    print(f"🔊 Converting text to speech for {cast(Any, request).sid}")
 
-    sid = request.sid
+    sid = cast(Any, request).sid
 
     async def process_tts(target_sid):
         try:

@@ -3,6 +3,8 @@ V1 Conversations Routes
 External REST API for managing conversations using API Key authentication
 """
 
+from typing import Any, cast
+
 from flask import Blueprint, jsonify, request
 
 from app.services.llm_service import llm_service
@@ -15,7 +17,7 @@ v1_conversations_bp = Blueprint("v1_conversations", __name__)
 @api_key_required
 def list_conversations():
     """List user's conversations via API"""
-    user_id = request.user_id
+    user_id = cast(Any, request).user_id
 
     # Get query parameters for pagination
     limit = request.args.get("limit", 20, type=int)
@@ -30,7 +32,7 @@ def list_conversations():
 @api_key_required
 def create_conversation():
     """Create a new conversation via API"""
-    user_id = request.user_id
+    user_id = cast(Any, request).user_id
     data = request.get_json()
 
     if not data:
@@ -52,7 +54,7 @@ def create_conversation():
 @api_key_required
 def get_conversation(conversation_id):
     """Get conversation details via API"""
-    user_id = request.user_id
+    user_id = cast(Any, request).user_id
 
     conversation = llm_service.get_conversation(conversation_id, user_id)
     if not conversation:
@@ -65,7 +67,7 @@ def get_conversation(conversation_id):
 @api_key_required
 def delete_conversation(conversation_id):
     """Delete a conversation via API"""
-    user_id = request.user_id
+    user_id = cast(Any, request).user_id
 
     success = llm_service.delete_conversation(conversation_id, user_id)
     if not success:
@@ -78,7 +80,7 @@ def delete_conversation(conversation_id):
 @api_key_required
 def bulk_delete_conversations():
     """Delete multiple conversations via API"""
-    user_id = request.user_id
+    user_id = cast(Any, request).user_id
     data = request.get_json()
 
     conversation_ids = data.get("conversation_ids", [])
@@ -96,12 +98,12 @@ def bulk_delete_conversations():
 @api_key_required
 def get_messages(conversation_id):
     """Get messages from a conversation via API"""
-    user_id = request.user_id
+    user_id = cast(Any, request).user_id
 
     # Verify conversation exists and belongs to user
     conversation = llm_service.get_conversation(conversation_id, user_id)
     if not conversation:
         return jsonify({"error": "Conversation not found"}), 404
 
-    messages = llm_service.get_messages(conversation_id)
+    messages = llm_service.get_messages(conversation_id, user_id)
     return jsonify({"messages": messages}), 200

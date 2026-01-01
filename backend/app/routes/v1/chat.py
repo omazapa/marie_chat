@@ -5,6 +5,7 @@ External REST API for chat completions using API Key authentication
 
 import asyncio
 import json
+from typing import Any, cast
 
 from flask import Blueprint, Response, jsonify, request, stream_with_context
 
@@ -21,7 +22,7 @@ def chat_completions():
     External API endpoint for chat completions
     Expects: { "messages": [...], "model": "...", "stream": bool }
     """
-    user_id = request.user_id
+    user_id = cast(Any, request).user_id
     data = request.get_json()
 
     if not data or "messages" not in data:
@@ -72,16 +73,23 @@ def chat_completions():
                 gen_loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(gen_loop)
                 try:
-                    gen = llm_service.chat_completion(
+                    # Get the generator object from the coroutine
+                    gen_coro = llm_service.chat_completion(
                         conversation_id=conversation_id,
                         user_id=user_id,
                         user_message=user_message,
                         stream=True,
                     )
+                    gen_obj = gen_loop.run_until_complete(gen_coro)
+
+                    if isinstance(gen_obj, dict):
+                        yield f"data: {json.dumps(gen_obj)}\n\n"
+                        return
 
                     while True:
                         try:
-                            chunk = gen_loop.run_until_complete(gen.__anext__())
+                            # Now we can call __anext__ on the generator object
+                            chunk = gen_loop.run_until_complete(gen_obj.__anext__())
                             yield f"data: {json.dumps(chunk)}\n\n"
                             if chunk.get("done"):
                                 break

@@ -23,7 +23,8 @@ class HuggingFaceProvider(LLMProvider):
         self.api_key = self.api_key or os.getenv("HUGGINGFACE_API_KEY")
         self.base_url = config.get("base_url") if config else None
         self.base_url = self.base_url or "https://router.huggingface.co/hf-inference/models"
-        self._client = None  # Lazy init
+        self._client: httpx.AsyncClient | None = None  # Lazy init
+        self._sync_client: httpx.Client | None = None  # Lazy init
         self.provider_name = "huggingface"
 
         # Popular models for quick listing

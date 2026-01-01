@@ -96,7 +96,7 @@ def generate_image():
         eventlet.sleep(1.0)
 
         # Create a THREAD-SAFE queue for progress updates (native thread -> greenlet)
-        progress_queue = queue.Queue()
+        progress_queue: queue.Queue = queue.Queue()
 
         # Background task to consume the queue and emit events
         def emit_progress_task():

@@ -248,18 +248,21 @@ class ImageService:
                     print(f"⚠️ CUDA OOM detected, falling back to CPU: {e}")
                     # Clear cache and force move to CPU
                     torch.cuda.empty_cache()
-                    self._local_pipe.to("cpu", torch.float32)
-                    # Retry on CPU
-                    image = self._local_pipe(
-                        prompt=prompt,
-                        negative_prompt=negative_prompt,
-                        num_inference_steps=num_inference_steps,
-                        guidance_scale=guidance_scale,
-                        width=width,
-                        height=height,
-                        callback_on_step_end=callback_on_step_end,
-                        callback_on_step_end_tensor_inputs=["latents"],
-                    ).images[0]
+                    if self._local_pipe is not None:
+                        self._local_pipe.to("cpu", torch.float32)
+                        # Retry on CPU
+                        image = self._local_pipe(
+                            prompt=prompt,
+                            negative_prompt=negative_prompt,
+                            num_inference_steps=num_inference_steps,
+                            guidance_scale=guidance_scale,
+                            width=width,
+                            height=height,
+                            callback_on_step_end=callback_on_step_end,
+                            callback_on_step_end_tensor_inputs=["latents"],
+                        ).images[0]
+                    else:
+                        raise e
                 elif "meta tensor" in error_str:
                     # This is the specific error we're seeing - pipeline not properly initialized
                     print("⚠️ Meta tensor error, reinitializing pipeline on CPU...")

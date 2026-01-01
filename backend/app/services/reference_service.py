@@ -71,7 +71,7 @@ class ReferenceService:
     def build_context_with_references(
         self,
         user_message: str,
-        referenced_conv_ids: list[str],
+        referenced_conv_ids: list[str] | None,
         user_id: str,
         include_full_history: bool = False,
         referenced_msg_ids: list[str] | None = None,

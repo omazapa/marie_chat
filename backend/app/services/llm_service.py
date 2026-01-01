@@ -1009,6 +1009,9 @@ class LLMService:
         try:
             # Use a fast model for extraction
             provider = self.provider_factory.get_provider("ollama")
+            if not provider:
+                return
+
             # We use a non-streaming call for simplicity
             response_text = ""
             async for chunk in provider.chat_completion(
