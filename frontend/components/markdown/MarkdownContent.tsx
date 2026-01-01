@@ -8,7 +8,7 @@ import rehypeKatex from 'rehype-katex';
 import { PrismAsync as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Button, Tooltip, Table, Typography, Spin } from 'antd';
-import { CopyOutlined, CheckOutlined, TableOutlined } from '@ant-design/icons';
+import { CopyOutlined, CheckOutlined, TableOutlined, DownloadOutlined } from '@ant-design/icons';
 import 'katex/dist/katex.min.css';
 import { HTMLArtifact } from './HTMLArtifact';
 import { LatexArtifact } from './LatexArtifact';
@@ -31,40 +31,67 @@ const CodeBlock = memo(({ language, value }: { language: string; value: string }
   }, [value]);
 
   return (
-    <div style={{ position: 'relative', marginBottom: '1em', maxWidth: '100%' }}>
+    <div style={{ 
+      margin: '1.5em 0', 
+      borderRadius: '12px', 
+      overflow: 'hidden',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      border: '1px solid #30363d',
+      background: '#1e1e1e'
+    }}>
       <div style={{
-        position: 'absolute',
-        right: '8px',
-        top: '8px',
-        zIndex: 10,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '8px 16px',
+        background: '#2d2d2d',
+        borderBottom: '1px solid #30363d',
+        userSelect: 'none'
       }}>
+        <Text style={{ 
+          color: '#8b949e', 
+          fontSize: '12px', 
+          textTransform: 'uppercase', 
+          fontWeight: 600,
+          letterSpacing: '0.5px'
+        }}>
+          {language || 'code'}
+        </Text>
         <Tooltip title={copied ? 'Copied!' : 'Copy code'}>
           <Button
             size="small"
             type="text"
-            icon={copied ? <CheckOutlined style={{ color: '#52c41a' }} /> : <CopyOutlined style={{ color: 'rgba(255,255,255,0.6)' }} />}
+            icon={copied ? <CheckOutlined style={{ color: '#52c41a' }} /> : <CopyOutlined style={{ color: '#8b949e' }} />}
             onClick={handleCopy}
             style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '24px',
+              padding: '0 8px',
+              fontSize: '12px',
+              color: '#8b949e'
             }}
-          />
+          >
+            {copied ? 'Copied' : 'Copy'}
+          </Button>
         </Tooltip>
       </div>
       <SyntaxHighlighter
         style={vscDarkPlus}
         language={language}
-        PreTag="pre"
+        PreTag="div"
         customStyle={{
           margin: 0,
-          borderRadius: '8px',
+          borderRadius: 0,
           padding: '16px',
           fontSize: '13px',
           width: '100%',
           maxWidth: '100%',
           overflowX: 'auto',
           overflowY: 'hidden',
-          whiteSpace: 'pre'
+          whiteSpace: 'pre',
+          background: 'transparent'
         }}
       >
         {value}
@@ -84,6 +111,39 @@ const extractText = (children: any): string => {
 };
 
 const MarkdownTable = memo(({ children }: { children: any }) => {
+  const { message } = App.useApp();
+
+  const handleDownloadCSV = (columns: any[], dataSource: any[]) => {
+    const headers = columns.map(col => {
+      // Extract text from the title which might be a React element
+      if (React.isValidElement(col.title)) {
+        return extractText(col.title);
+      }
+      return col.title;
+    }).join(',');
+
+    const rows = dataSource.map(row => {
+      return columns.map(col => {
+        const val = row[col.dataIndex] || '';
+        // Escape quotes and wrap in quotes if contains comma
+        const escaped = String(val).replace(/"/g, '""');
+        return escaped.includes(',') ? `"${escaped}"` : escaped;
+      }).join(',');
+    }).join('\n');
+
+    const csvContent = `${headers}\n${rows}`;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'table_data.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    message.success('CSV downloaded successfully');
+  };
+
   try {
     const childrenArray = Array.isArray(children) ? children : [children];
     const thead = childrenArray.find((c: any) => c?.type === 'thead');
@@ -121,6 +181,19 @@ const MarkdownTable = memo(({ children }: { children: any }) => {
 
     return (
       <div className="markdown-table-container" style={{ marginBottom: '1.5em' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+          <Tooltip title="Download as CSV">
+            <Button 
+              size="small" 
+              type="text" 
+              icon={<DownloadOutlined />} 
+              onClick={() => handleDownloadCSV(columns, dataSource)}
+              style={{ color: '#8c8c8c' }}
+            >
+              Download CSV
+            </Button>
+          </Tooltip>
+        </div>
         <Table 
           columns={columns} 
           dataSource={dataSource} 
@@ -131,7 +204,8 @@ const MarkdownTable = memo(({ children }: { children: any }) => {
           style={{ 
             borderRadius: '8px', 
             overflow: 'hidden',
-            border: '1px solid #f0f0f0'
+            border: '1px solid #f0f0f0',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
           }}
         />
       </div>

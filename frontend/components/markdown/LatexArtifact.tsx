@@ -50,16 +50,16 @@ export const LatexArtifact = memo(function LatexArtifact({ latex, className, isS
       className={`latex-artifact-card ${className || ''}`}
       size="small"
       style={{ 
-        margin: '16px 0', 
-        borderRadius: '8px', 
+        margin: '1.5em 0', 
+        borderRadius: '12px', 
         overflow: 'hidden',
         border: '1px solid #d9d9d9',
         width: '100%',
         maxWidth: '100%',
-        boxShadow: isStreaming ? '0 0 15px rgba(24, 144, 255, 0.1)' : 'none'
+        boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
       }}
       styles={{
-        header: { background: '#f5f5f5', padding: '8px 12px' },
+        header: { background: '#f8f9fa', padding: '8px 16px', borderBottom: '1px solid #f0f0f0' },
         body: { padding: '24px', minHeight: '100px', background: '#ffffff' }
       }}
       title={
