@@ -31,20 +31,16 @@ interface UseWebSocketProps {
   onTranscriptionResult?: (data: { text: string }) => void;
   onTTSResult?: (data: { audio: string; message_id?: string }) => void;
   onUserTyping?: (data: { conversation_id: string; user_id: string; is_typing: boolean }) => void;
-  onImageProgress?: (data: { 
-    conversation_id: string; 
-    step: number; 
-    total_steps: number; 
-    progress: number; 
+  onImageProgress?: (data: {
+    conversation_id: string;
+    step: number;
+    total_steps: number;
+    progress: number;
     preview?: string;
     image_url?: string;
     message?: string;
   }) => void;
-  onImageError?: (data: {
-    conversation_id: string;
-    error: string;
-    message?: string;
-  }) => void;
+  onImageError?: (data: { conversation_id: string; error: string; message?: string }) => void;
 }
 
 export function useWebSocket({
@@ -63,6 +59,7 @@ export function useWebSocket({
   onImageError,
 }: UseWebSocketProps) {
   const socketRef = useRef<Socket | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [currentConversation, setCurrentConversation] = useState<string | null>(null);
   const currentConversationRef = useRef<string | null>(null);
@@ -128,7 +125,7 @@ export function useWebSocket({
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     console.log(`🔌 Connecting to WebSocket at ${API_URL}...`);
-    
+
     const socket = io(API_URL, {
       auth: { token },
       query: { token },
@@ -138,9 +135,8 @@ export function useWebSocket({
       reconnectionAttempts: 5,
     });
 
-    // Register ALL event handlers IMMEDIATELY after socket creation
-    // This ensures they're ready before any events arrive
-    
+    socketRef.current = socket;
+
     // Message handlers - REGISTER FIRST before connection handlers
     socket.on('stream_start', (data) => {
       console.log('🚀 Stream started:', data);
@@ -192,9 +188,12 @@ export function useWebSocket({
 
     // Connection handlers - AFTER message handlers
     socket.on('connect', () => {
-      console.log(`✅ WebSocket connected! ID: ${socket.id}, Transport: ${socket.io.engine.transport.name}`);
+      console.log(
+        `✅ WebSocket connected! ID: ${socket.id}, Transport: ${socket.io.engine.transport.name}`
+      );
       setIsConnected(true);
-      
+      setSocket(socket);
+
       // Re-join current conversation on reconnect
       if (currentConversationRef.current) {
         console.log(`🔄 Re-joining conversation: ${currentConversationRef.current}`);
@@ -222,14 +221,16 @@ export function useWebSocket({
       console.error('❌ WebSocket error:', error);
       // If error is an empty object, it might be a non-serializable Error object
       if (error && typeof error === 'object' && Object.keys(error).length === 0) {
-        console.error('   Note: Error object appears empty. This often happens with connection rejections or CORS issues.');
+        console.error(
+          '   Note: Error object appears empty. This often happens with connection rejections or CORS issues.'
+        );
       }
       handlersRef.current.onError?.(error);
     });
 
     // Set socket ref AFTER all handlers are registered
     socketRef.current = socket;
-    
+
     // Expose socket for debugging
     if (typeof window !== 'undefined') {
       (window as any).socket = socket;
@@ -250,9 +251,9 @@ export function useWebSocket({
     if (socketRef.current && socketRef.current.connected) {
       socketRef.current.emit('join_conversation', { conversation_id: conversationId });
       console.log(`📥 Joined conversation: ${conversationId}`);
-      
+
       // Wait a moment to ensure backend processes the join before allowing messages
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
       console.log(`✓ Ready to send messages in: ${conversationId}`);
     } else {
       console.log(`⏳ Queued join for conversation: ${conversationId} (waiting for connection)`);
@@ -260,22 +261,25 @@ export function useWebSocket({
   }, []);
 
   // Leave conversation
-  const leaveConversation = useCallback((conversationId: string) => {
-    if (socketRef.current && socketRef.current.connected) {
-      socketRef.current.emit('leave_conversation', { conversation_id: conversationId });
-      if (currentConversation === conversationId) {
-        setCurrentConversation(null);
+  const leaveConversation = useCallback(
+    (conversationId: string) => {
+      if (socketRef.current && socketRef.current.connected) {
+        socketRef.current.emit('leave_conversation', { conversation_id: conversationId });
+        if (currentConversation === conversationId) {
+          setCurrentConversation(null);
+        }
+        console.log(`📤 Left conversation: ${conversationId}`);
       }
-      console.log(`📤 Left conversation: ${conversationId}`);
-    }
-  }, [currentConversation]);
+    },
+    [currentConversation]
+  );
 
   // Send message
   const sendMessage = useCallback(
     (
-      conversationId: string, 
-      message: string, 
-      stream: boolean = true, 
+      conversationId: string,
+      message: string,
+      stream: boolean = true,
       attachments: any[] = [],
       referenced_conv_ids: string[] = [],
       referenced_msg_ids: string[] = [],
@@ -289,7 +293,7 @@ export function useWebSocket({
           attachments,
           referenced_conv_ids,
           referenced_msg_ids,
-          regenerate
+          regenerate,
         });
         console.log(`💬 Sent message to ${conversationId}:`, message.substring(0, 50));
         if (attachments.length > 0) {
@@ -309,60 +313,48 @@ export function useWebSocket({
   );
 
   // Typing indicator
-  const setTyping = useCallback(
-    (conversationId: string, isTyping: boolean) => {
-      if (socketRef.current && socketRef.current.connected) {
-        socketRef.current.emit('typing', {
-          conversation_id: conversationId,
-          is_typing: isTyping,
-        });
-      }
-    },
-    []
-  );
+  const setTyping = useCallback((conversationId: string, isTyping: boolean) => {
+    if (socketRef.current && socketRef.current.connected) {
+      socketRef.current.emit('typing', {
+        conversation_id: conversationId,
+        is_typing: isTyping,
+      });
+    }
+  }, []);
 
   // Stop generation
-  const stopGeneration = useCallback(
-    (conversationId: string) => {
-      if (socketRef.current && socketRef.current.connected) {
-        socketRef.current.emit('stop_generation', {
-          conversation_id: conversationId,
-        });
-        console.log(`🛑 Stop generation requested for ${conversationId}`);
-      }
-    },
-    []
-  );
+  const stopGeneration = useCallback((conversationId: string) => {
+    if (socketRef.current && socketRef.current.connected) {
+      socketRef.current.emit('stop_generation', {
+        conversation_id: conversationId,
+      });
+      console.log(`🛑 Stop generation requested for ${conversationId}`);
+    }
+  }, []);
 
   // Transcribe audio
-  const transcribeAudio = useCallback(
-    (base64Audio: string, language?: string) => {
-      if (socketRef.current && socketRef.current.connected) {
-        socketRef.current.emit('transcribe_audio', {
-          audio: base64Audio,
-          language,
-        });
-      }
-    },
-    []
-  );
+  const transcribeAudio = useCallback((base64Audio: string, language?: string) => {
+    if (socketRef.current && socketRef.current.connected) {
+      socketRef.current.emit('transcribe_audio', {
+        audio: base64Audio,
+        language,
+      });
+    }
+  }, []);
 
   // Text to speech
-  const textToSpeech = useCallback(
-    (text: string, messageId?: string, voice?: string) => {
-      if (socketRef.current && socketRef.current.connected) {
-        socketRef.current.emit('text_to_speech', {
-          text,
-          message_id: messageId,
-          voice,
-        });
-      }
-    },
-    []
-  );
+  const textToSpeech = useCallback((text: string, messageId?: string, voice?: string) => {
+    if (socketRef.current && socketRef.current.connected) {
+      socketRef.current.emit('text_to_speech', {
+        text,
+        message_id: messageId,
+        voice,
+      });
+    }
+  }, []);
 
   return {
-    socket: socketRef.current,
+    socket,
     isConnected,
     currentConversation,
     joinConversation,

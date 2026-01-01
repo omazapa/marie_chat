@@ -22,13 +22,15 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!legacyHydrated || !isAuthenticated || !user) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '100vh',
-        background: '#f5f7f9'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          background: '#f5f7f9',
+        }}
+      >
         <Spin size="large" tip="Authenticating...">
           <div style={{ padding: '50px' }} />
         </Spin>

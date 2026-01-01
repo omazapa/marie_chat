@@ -2,25 +2,30 @@
 LLM Provider Factory and Model Registry
 Central management for multiple LLM providers
 """
-from typing import Dict, List, Optional, Any
+
 import concurrent.futures
+from typing import Any
+
 from app.config import settings
+
+from .huggingface_provider import HuggingFaceProvider
 from .llm_provider import LLMProvider, ModelInfo
 from .ollama_provider import OllamaProvider
-from .huggingface_provider import HuggingFaceProvider
 
 
 class ProviderFactory:
     """Factory for creating and managing LLM providers"""
-    
+
     def __init__(self):
-        self._providers: Dict[str, LLMProvider] = {}
-        self._configs: Dict[str, Dict[str, Any]] = {}
-    
-    def register_provider(self, name: str, provider_class: type, config: Optional[Dict[str, Any]] = None):
+        self._providers: dict[str, LLMProvider] = {}
+        self._configs: dict[str, dict[str, Any]] = {}
+
+    def register_provider(
+        self, name: str, provider_class: type, config: dict[str, Any] | None = None
+    ):
         """
         Register a provider with the factory
-        
+
         Args:
             name: Provider name (e.g., 'ollama', 'huggingface')
             provider_class: Provider class
@@ -28,73 +33,75 @@ class ProviderFactory:
         """
         self._configs[name] = config or {}
         self._providers[name] = provider_class(config)
-    
-    def get_provider(self, name: str) -> Optional[LLMProvider]:
+
+    def get_provider(self, name: str) -> LLMProvider | None:
         """
         Get a provider by name
-        
+
         Args:
             name: Provider name
-            
+
         Returns:
             Provider instance or None
         """
         return self._providers.get(name)
-    
-    def list_providers(self) -> List[str]:
+
+    def list_providers(self) -> list[str]:
         """Get list of registered provider names"""
         return list(self._providers.keys())
-    
-    def get_all_health_status(self) -> Dict[str, Dict[str, Any]]:
+
+    def get_all_health_status(self) -> dict[str, dict[str, Any]]:
         """Get health status of all providers in parallel"""
         health_status = {}
-        
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(self._providers) or 1) as executor:
+
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=len(self._providers) or 1
+        ) as executor:
             # Create a map of future to provider name
             future_to_name = {
-                executor.submit(provider.health_check): name 
+                executor.submit(provider.health_check): name
                 for name, provider in self._providers.items()
             }
-            
+
             for future in concurrent.futures.as_completed(future_to_name):
                 name = future_to_name[future]
                 try:
                     health_status[name] = future.result()
                 except Exception as e:
                     health_status[name] = {
-                        'provider': name,
-                        'status': 'error',
-                        'available': False,
-                        'error': str(e)
+                        "provider": name,
+                        "status": "error",
+                        "available": False,
+                        "error": str(e),
                     }
-                    
+
         return health_status
 
 
 class ModelRegistry:
     """Registry for tracking available models from all providers"""
-    
+
     def __init__(self, provider_factory: ProviderFactory):
         self.provider_factory = provider_factory
-        self._model_cache: Dict[str, List[ModelInfo]] = {}
+        self._model_cache: dict[str, list[ModelInfo]] = {}
         self._cache_ttl = 300  # 5 minutes
-        self._last_refresh: Dict[str, float] = {}
-    
-    def list_all_models(self, force_refresh: bool = False) -> Dict[str, List[ModelInfo]]:
+        self._last_refresh: dict[str, float] = {}
+
+    def list_all_models(self, force_refresh: bool = False) -> dict[str, list[ModelInfo]]:
         """
         List all models from all providers in parallel
-        
+
         Args:
             force_refresh: Force refresh of cached models
-            
+
         Returns:
             Dictionary mapping provider name to list of ModelInfo
         """
         import time
-        
+
         all_models = {}
         providers_to_fetch = []
-        
+
         # Check cache first
         for provider_name in self.provider_factory.list_providers():
             if not force_refresh and provider_name in self._model_cache:
@@ -102,12 +109,12 @@ class ModelRegistry:
                 if time.time() - last_refresh < self._cache_ttl:
                     all_models[provider_name] = self._model_cache[provider_name]
                     continue
-            
+
             providers_to_fetch.append(provider_name)
-            
+
         if not providers_to_fetch:
             return all_models
-            
+
         # Fetch remaining providers in parallel
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(providers_to_fetch)) as executor:
             future_to_name = {}
@@ -115,7 +122,7 @@ class ModelRegistry:
                 provider = self.provider_factory.get_provider(name)
                 if provider:
                     future_to_name[executor.submit(provider.list_models)] = name
-            
+
             for future in concurrent.futures.as_completed(future_to_name):
                 name = future_to_name[future]
                 try:
@@ -126,31 +133,33 @@ class ModelRegistry:
                 except Exception as e:
                     print(f"Error listing models from {name}: {e}")
                     all_models[name] = []
-        
+
         return all_models
-    
-    def get_models_by_provider(self, provider_name: str, force_refresh: bool = False) -> List[ModelInfo]:
+
+    def get_models_by_provider(
+        self, provider_name: str, force_refresh: bool = False
+    ) -> list[ModelInfo]:
         """
         Get models from a specific provider
-        
+
         Args:
             provider_name: Name of the provider
             force_refresh: Force refresh of cached models
-            
+
         Returns:
             List of ModelInfo
         """
         all_models = self.list_all_models(force_refresh)
         return all_models.get(provider_name, [])
-    
-    def get_model_info(self, provider_name: str, model_id: str) -> Optional[ModelInfo]:
+
+    def get_model_info(self, provider_name: str, model_id: str) -> ModelInfo | None:
         """
         Get detailed information about a specific model
-        
+
         Args:
             provider_name: Name of the provider
             model_id: Model identifier
-            
+
         Returns:
             ModelInfo or None
         """
@@ -161,40 +170,38 @@ class ModelRegistry:
             except Exception as e:
                 print(f"Error getting model info for {provider_name}/{model_id}: {e}")
         return None
-    
-    def search_models(self, query: str) -> List[Dict[str, Any]]:
+
+    def search_models(self, query: str) -> list[dict[str, Any]]:
         """
         Search for models across all providers
-        
+
         Args:
             query: Search query
-            
+
         Returns:
             List of matching models with provider information
         """
         all_models = self.list_all_models()
         results = []
-        
+
         query_lower = query.lower()
-        
+
         for provider_name, models in all_models.items():
             for model in models:
                 # Search in model name, ID, and description
-                if (query_lower in model.name.lower() or
-                    query_lower in model.id.lower() or
-                    (model.description and query_lower in model.description.lower())):
-                    
-                    results.append({
-                        'provider': provider_name,
-                        'model': model.to_dict()
-                    })
-        
+                if (
+                    query_lower in model.name.lower()
+                    or query_lower in model.id.lower()
+                    or (model.description and query_lower in model.description.lower())
+                ):
+                    results.append({"provider": provider_name, "model": model.to_dict()})
+
         return results
-    
-    def clear_cache(self, provider_name: Optional[str] = None):
+
+    def clear_cache(self, provider_name: str | None = None):
         """
         Clear model cache
-        
+
         Args:
             provider_name: Specific provider to clear, or None for all
         """
@@ -214,15 +221,15 @@ model_registry = ModelRegistry(provider_factory)
 def initialize_providers():
     """Initialize default providers"""
     # Register Ollama provider
-    provider_factory.register_provider('ollama', OllamaProvider, {
-        'base_url': settings.OLLAMA_BASE_URL
-    })
-    
+    provider_factory.register_provider(
+        "ollama", OllamaProvider, {"base_url": settings.OLLAMA_BASE_URL}
+    )
+
     # Register HuggingFace provider (requires API key)
-    provider_factory.register_provider('huggingface', HuggingFaceProvider, {
-        'api_key': settings.HUGGINGFACE_API_KEY
-    })
-    
+    provider_factory.register_provider(
+        "huggingface", HuggingFaceProvider, {"api_key": settings.HUGGINGFACE_API_KEY}
+    )
+
     print("✅ LLM Providers initialized: ollama, huggingface")
 
 

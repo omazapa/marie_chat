@@ -6,15 +6,15 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['antd', '@ant-design/icons', '@ant-design/x', 'lucide-react'],
   },
-  
+
   // Disable type checking during build
   typescript: {
     ignoreBuildErrors: true,
   },
-  
+
   // Empty turbopack config to silence the warning
   turbopack: {},
-  
+
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
     };
     return config;
   },
-  
+
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
     NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:5000',

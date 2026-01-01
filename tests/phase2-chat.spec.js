@@ -17,16 +17,16 @@ test.describe('Phase 2: Chat Core Functionality', () => {
 
   test.beforeAll(async ({ request }) => {
     console.log('Setting up test user...');
-    
+
     // Register test user
     const registerResponse = await request.post(`${API_URL}/api/auth/register`, {
       data: TEST_USER
     });
-    
+
     expect(registerResponse.ok()).toBeTruthy();
     const registerData = await registerResponse.json();
     authToken = registerData.access_token;
-    
+
     console.log('✅ Test user created and authenticated');
   });
 
@@ -46,13 +46,13 @@ test.describe('Phase 2: Chat Core Functionality', () => {
 
   test('should display chat interface when authenticated', async ({ page }) => {
     console.log('Testing chat interface display...');
-    
+
     await page.goto(`${BASE_URL}/chat`);
     await page.waitForLoadState('networkidle');
 
     // Check for main chat container
     await expect(page.getByRole('heading', { name: 'Marie', exact: true })).toBeVisible();
-    
+
     // Check for connection status
     const connectionStatus = page.locator('text=/Connected|Disconnected/');
     await expect(connectionStatus).toBeVisible();
@@ -80,12 +80,12 @@ test.describe('Phase 2: Chat Core Functionality', () => {
 
     expect(response.ok()).toBeTruthy();
     const conversation = await response.json();
-    
+
     expect(conversation).toHaveProperty('id');
     expect(conversation).toHaveProperty('title', 'Test Conversation');
     expect(conversation).toHaveProperty('model', 'llama3.2');
     expect(conversation).toHaveProperty('user_id');
-    
+
     conversationId = conversation.id;
     console.log(`✅ Conversation created: ${conversationId}`);
   });
@@ -101,7 +101,7 @@ test.describe('Phase 2: Chat Core Functionality', () => {
 
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
-    
+
     expect(data).toHaveProperty('conversations');
     expect(Array.isArray(data.conversations)).toBeTruthy();
     expect(data.conversations.length).toBeGreaterThan(0);
@@ -128,7 +128,7 @@ test.describe('Phase 2: Chat Core Functionality', () => {
     });
 
     expect(response.ok()).toBeTruthy();
-    
+
     // Verify the update
     const getResponse = await request.get(`${API_URL}/api/conversations/${conversationId}`, {
       headers: {
@@ -151,7 +151,7 @@ test.describe('Phase 2: Chat Core Functionality', () => {
 
     // Click new conversation button
     await page.click('button:has-text("New Conversation")');
-    
+
     // Wait for conversation to be created
     await page.waitForTimeout(2000);
 
@@ -241,7 +241,7 @@ test.describe('Phase 2: Chat Core Functionality', () => {
 
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
-    
+
     console.log(`Found ${data.messages.length} messages in conversation`);
 
     if (data.messages.length > 0) {
@@ -288,7 +288,7 @@ test.describe('Phase 2: Chat Core Functionality', () => {
 
     try {
       const response = await request.get(`${API_URL}/api/models`);
-      
+
       if (response.ok()) {
         const data = await response.json();
         console.log('✅ Ollama is available');

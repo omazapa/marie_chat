@@ -2,9 +2,10 @@
 V1 Documentation Routes
 Serves OpenAPI/Swagger documentation for the Developer API
 """
+
 from flask import Blueprint, jsonify, render_template_string
 
-v1_docs_bp = Blueprint('v1_docs', __name__)
+v1_docs_bp = Blueprint("v1_docs", __name__)
 
 SWAGGER_UI_HTML = """
 <!DOCTYPE html>
@@ -45,12 +46,14 @@ SWAGGER_UI_HTML = """
 </html>
 """
 
-@v1_docs_bp.route('')
+
+@v1_docs_bp.route("")
 def docs():
     """Serve Swagger UI"""
     return render_template_string(SWAGGER_UI_HTML)
 
-@v1_docs_bp.route('/swagger.json')
+
+@v1_docs_bp.route("/swagger.json")
 def swagger_json():
     """Serve OpenAPI specification"""
     spec = {
@@ -59,31 +62,15 @@ def swagger_json():
             "title": "MARIE Developer API",
             "description": "Machine-Assisted Research Intelligent Environment (MARIE) - External REST API for developers.",
             "version": "1.0.0",
-            "contact": {
-                "name": "Omar Zapata",
-                "url": "https://github.com/omarzapata"
-            }
+            "contact": {"name": "Omar Zapata", "url": "https://github.com/omarzapata"},
         },
-        "servers": [
-            {
-                "url": "/api/v1",
-                "description": "Local server"
-            }
-        ],
+        "servers": [{"url": "/api/v1", "description": "Local server"}],
         "components": {
             "securitySchemes": {
-                "ApiKeyAuth": {
-                    "type": "apiKey",
-                    "in": "header",
-                    "name": "X-API-Key"
-                }
+                "ApiKeyAuth": {"type": "apiKey", "in": "header", "name": "X-API-Key"}
             }
         },
-        "security": [
-            {
-                "ApiKeyAuth": []
-            }
-        ],
+        "security": [{"ApiKeyAuth": []}],
         "paths": {
             "/chat/completions": {
                 "post": {
@@ -102,35 +89,34 @@ def swagger_json():
                                             "items": {
                                                 "type": "object",
                                                 "properties": {
-                                                    "role": {"type": "string", "enum": ["user", "assistant", "system"]},
-                                                    "content": {"type": "string"}
-                                                }
-                                            }
+                                                    "role": {
+                                                        "type": "string",
+                                                        "enum": ["user", "assistant", "system"],
+                                                    },
+                                                    "content": {"type": "string"},
+                                                },
+                                            },
                                         },
                                         "model": {"type": "string", "default": "llama3.2"},
                                         "stream": {"type": "boolean", "default": False},
-                                        "conversation_id": {"type": "string"}
+                                        "conversation_id": {"type": "string"},
                                     },
-                                    "required": ["messages"]
+                                    "required": ["messages"],
                                 }
                             }
-                        }
+                        },
                     },
                     "responses": {
                         "200": {
                             "description": "Successful response",
                             "content": {
-                                "application/json": {
-                                    "schema": {
-                                        "type": "object"
-                                    }
-                                },
+                                "application/json": {"schema": {"type": "object"}},
                                 "text/event-stream": {
                                     "description": "SSE stream of chunks if stream=true"
-                                }
-                            }
+                                },
+                            },
                         }
-                    }
+                    },
                 }
             },
             "/conversations": {
@@ -138,15 +124,23 @@ def swagger_json():
                     "tags": ["Conversations"],
                     "summary": "List conversations",
                     "parameters": [
-                        {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 20}},
-                        {"name": "offset", "in": "query", "schema": {"type": "integer", "default": 0}}
+                        {
+                            "name": "limit",
+                            "in": "query",
+                            "schema": {"type": "integer", "default": 20},
+                        },
+                        {
+                            "name": "offset",
+                            "in": "query",
+                            "schema": {"type": "integer", "default": 0},
+                        },
                     ],
                     "responses": {
                         "200": {
                             "description": "List of conversations",
-                            "content": {"application/json": {"schema": {"type": "object"}}}
+                            "content": {"application/json": {"schema": {"type": "object"}}},
                         }
-                    }
+                    },
                 },
                 "post": {
                     "tags": ["Conversations"],
@@ -160,39 +154,41 @@ def swagger_json():
                                         "title": {"type": "string"},
                                         "model": {"type": "string"},
                                         "provider": {"type": "string"},
-                                        "system_prompt": {"type": "string"}
-                                    }
+                                        "system_prompt": {"type": "string"},
+                                    },
                                 }
                             }
                         }
                     },
-                    "responses": {
-                        "201": {
-                            "description": "Conversation created"
-                        }
-                    }
-                }
+                    "responses": {"201": {"description": "Conversation created"}},
+                },
             },
             "/conversations/{id}": {
                 "get": {
                     "tags": ["Conversations"],
                     "summary": "Get conversation details",
-                    "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}],
-                    "responses": {"200": {"description": "Conversation details"}}
+                    "parameters": [
+                        {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    ],
+                    "responses": {"200": {"description": "Conversation details"}},
                 },
                 "delete": {
                     "tags": ["Conversations"],
                     "summary": "Delete a conversation",
-                    "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}],
-                    "responses": {"200": {"description": "Conversation deleted"}}
-                }
+                    "parameters": [
+                        {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    ],
+                    "responses": {"200": {"description": "Conversation deleted"}},
+                },
             },
             "/conversations/{id}/messages": {
                 "get": {
                     "tags": ["Conversations"],
                     "summary": "Get conversation messages",
-                    "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}],
-                    "responses": {"200": {"description": "List of messages"}}
+                    "parameters": [
+                        {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    ],
+                    "responses": {"200": {"description": "List of messages"}},
                 }
             },
             "/search": {
@@ -200,13 +196,30 @@ def swagger_json():
                     "tags": ["Search"],
                     "summary": "Search history",
                     "parameters": [
-                        {"name": "q", "in": "query", "required": True, "schema": {"type": "string"}},
-                        {"name": "type", "in": "query", "schema": {"type": "string", "enum": ["text", "semantic"], "default": "text"}},
-                        {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 10}}
+                        {
+                            "name": "q",
+                            "in": "query",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        },
+                        {
+                            "name": "type",
+                            "in": "query",
+                            "schema": {
+                                "type": "string",
+                                "enum": ["text", "semantic"],
+                                "default": "text",
+                            },
+                        },
+                        {
+                            "name": "limit",
+                            "in": "query",
+                            "schema": {"type": "integer", "default": 10},
+                        },
                     ],
-                    "responses": {"200": {"description": "Search results"}}
+                    "responses": {"200": {"description": "Search results"}},
                 }
-            }
-        }
+            },
+        },
     }
     return jsonify(spec)

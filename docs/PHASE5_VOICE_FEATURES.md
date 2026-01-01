@@ -7,12 +7,12 @@ Phase 5 focused on integrating voice capabilities into Marie, enabling users to 
 
 ### 1. Speech-to-Text (STT)
 - **Engine**: Integrated `faster-whisper` for high-performance local transcription.
-- **Multilingual Support**: 
+- **Multilingual Support**:
   - Added support for language hints passed from the frontend.
   - Automatic language detection enabled by default.
   - Logs detected language and probability for debugging.
 - **Real-time Integration**: Added WebSocket events (`transcribe_audio`) for seamless transcription within the chat flow.
-- **UI Integration**: 
+- **UI Integration**:
   - Microphone button in the chat input area.
   - Recording state visualization (pulse effect).
   - Automatic insertion of transcribed text into the input field.
@@ -20,7 +20,7 @@ Phase 5 focused on integrating voice capabilities into Marie, enabling users to 
 
 ### 2. Text-to-Speech (TTS)
 - **Engine**: Integrated `edge-tts` for high-quality, natural-sounding voices.
-- **Voice Selection**: 
+- **Voice Selection**:
   - Defaulted to `es-CO-GonzaloNeural` for a localized experience.
   - Support for multiple voices (Colombia, Spain, Mexico, USA).
 - **Auto Language Detection**:

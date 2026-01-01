@@ -47,9 +47,11 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
         onSelect={onSelectModel}
         showDetails={true}
       />
-      
+
       <div style={{ marginTop: '24px', borderTop: '1px solid #f0f0f0', paddingTop: '16px' }}>
-        <Title level={5} style={{ marginBottom: '16px' }}>Voice Settings</Title>
+        <Title level={5} style={{ marginBottom: '16px' }}>
+          Voice Settings
+        </Title>
         <Space orientation="vertical" style={{ width: '100%' }}>
           <Text type="secondary">Select the voice for Text-to-Speech:</Text>
           <Select

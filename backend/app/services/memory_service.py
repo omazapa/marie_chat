@@ -2,16 +2,20 @@
 Memory Service
 Manages long-term memory (facts, preferences, entities) using OpenSearch vector search
 """
+
 import uuid
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 from opensearchpy import OpenSearch
 from sentence_transformers import SentenceTransformer
+
 from app.db import opensearch_client
+
 
 class MemoryService:
     """Service for managing long-term memory (facts, preferences, entities)"""
-    
+
     def __init__(self):
         self.client: OpenSearch = opensearch_client.client
         self.index = "marie_memory"
@@ -23,8 +27,11 @@ class MemoryService:
         if self._embedding_model is None:
             print("🧠 Loading embedding model for MemoryService...")
             import torch
+
             device = "cuda" if torch.cuda.is_available() else "cpu"
-            self._embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', device=device)
+            self._embedding_model = SentenceTransformer(
+                "paraphrase-multilingual-MiniLM-L12-v2", device=device
+            )
             print(f"✅ Memory embedding model loaded on {device}")
         return self._embedding_model
 
@@ -34,12 +41,12 @@ class MemoryService:
         content: str,
         memory_type: str = "fact",
         importance: int = 1,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Save a piece of information to long-term memory"""
         memory_id = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
-        
+
         # Generate embedding
         content_vector = None
         try:
@@ -47,7 +54,7 @@ class MemoryService:
                 content_vector = self.embedding_model.encode(content).tolist()
         except Exception as e:
             print(f"Error generating memory embedding: {e}")
-        
+
         memory_doc = {
             "id": memory_id,
             "user_id": user_id,
@@ -56,62 +63,44 @@ class MemoryService:
             "importance": importance,
             "metadata": metadata or {},
             "created_at": now,
-            "updated_at": now
+            "updated_at": now,
         }
-        
+
         if content_vector:
             memory_doc["content_vector"] = content_vector
-        
-        self.client.index(
-            index=self.index,
-            id=memory_id,
-            body=memory_doc,
-            refresh=True
-        )
-        
+
+        self.client.index(index=self.index, id=memory_id, body=memory_doc, refresh=True)
+
         return memory_doc
 
     def retrieve_memories(
-        self,
-        user_id: str,
-        query_text: str,
-        limit: int = 5
-    ) -> List[Dict[str, Any]]:
+        self, user_id: str, query_text: str, limit: int = 5
+    ) -> list[dict[str, Any]]:
         """Retrieve relevant memories using hybrid search"""
         try:
             query_vector = self.embedding_model.encode(query_text).tolist()
-            
+
             query = {
                 "size": limit,
                 "query": {
                     "bool": {
-                        "must": [
-                            {"term": {"user_id": user_id}}
-                        ],
+                        "must": [{"term": {"user_id": user_id}}],
                         "should": [
                             {
                                 "multi_match": {
                                     "query": query_text,
                                     "fields": ["content"],
-                                    "fuzziness": "AUTO"
+                                    "fuzziness": "AUTO",
                                 }
                             }
-                        ]
+                        ],
                     }
                 },
-                "knn": {
-                    "content_vector": {
-                        "vector": query_vector,
-                        "k": limit
-                    }
-                }
+                "knn": {"content_vector": {"vector": query_vector, "k": limit}},
             }
-            
-            result = self.client.search(
-                index=self.index,
-                body=query
-            )
-            
+
+            result = self.client.search(index=self.index, body=query)
+
             return [hit["_source"] for hit in result["hits"]["hits"]]
         except Exception as e:
             print(f"Error retrieving memories: {e}")
@@ -124,11 +113,12 @@ class MemoryService:
             res = self.client.get(index=self.index, id=memory_id)
             if res["_source"]["user_id"] != user_id:
                 return False
-                
+
             self.client.delete(index=self.index, id=memory_id, refresh=True)
             return True
         except Exception:
             return False
+
 
 # Global instance
 memory_service = MemoryService()

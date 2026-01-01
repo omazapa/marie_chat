@@ -365,6 +365,6 @@ The project has a solid foundation to continue with the following phases:
 
 ---
 
-**Developer:** Omar Zapata  
-**Date:** December 21, 2024  
+**Developer:** Omar Zapata
+**Date:** December 21, 2024
 **Status:** ✅ PHASE 1 COMPLETED

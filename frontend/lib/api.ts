@@ -17,13 +17,13 @@ const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const { accessToken } = useAuthStore.getState();
-    
+
     console.log(`🚀 Axios Request: ${config.method?.toUpperCase()} ${config.url}`);
-    
+
     if (accessToken && config.headers) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
-    
+
     return config;
   },
   (error: AxiosError) => {
@@ -44,8 +44,8 @@ apiClient.interceptors.response.use(
     const status = error.response?.status;
 
     // Skip refresh and extra logging for login, register and refresh endpoints
-    const isAuthEndpoint = 
-      url.includes('/auth/login') || 
+    const isAuthEndpoint =
+      url.includes('/auth/login') ||
       url.includes('/auth/register') ||
       url.includes('/auth/refresh');
 
@@ -62,7 +62,7 @@ apiClient.interceptors.response.use(
 
       try {
         const { refreshToken } = useAuthStore.getState();
-        
+
         if (!refreshToken) {
           throw new Error('No refresh token available');
         }
@@ -73,7 +73,7 @@ apiClient.interceptors.response.use(
         });
 
         const { access_token } = response.data;
-        
+
         // Update tokens in store
         useAuthStore.getState().updateTokens(access_token);
 
@@ -81,17 +81,17 @@ apiClient.interceptors.response.use(
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${access_token}`;
         }
-        
+
         return apiClient(originalRequest);
       } catch (refreshError) {
         // Refresh failed, logout user
         useAuthStore.getState().logout();
-        
+
         // Redirect to login if in browser
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }
-        
+
         return Promise.reject(refreshError);
       }
     }

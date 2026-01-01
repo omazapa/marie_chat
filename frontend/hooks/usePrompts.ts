@@ -26,31 +26,29 @@ export function usePrompts(token: string | null) {
     }
   }, [token]);
 
-  const optimizePrompt = useCallback(async (params: {
-    prompt: string;
-    technique?: string;
-    context?: string;
-    profile?: string;
-  }) => {
-    if (!token) return null;
-    
-    setIsOptimizing(true);
-    setError(null);
-    
-    try {
-      const response = await apiClient.post('/prompts/optimize', params, {
-        timeout: 120000 // 2 minutes for LLM optimization
-      });
-      return response.data.optimized as string;
-    } catch (err: any) {
-      const msg = err.response?.data?.error || 'Failed to optimize prompt';
-      setError(msg);
-      console.error('Prompt optimization error:', err);
-      return null;
-    } finally {
-      setIsOptimizing(false);
-    }
-  }, [token]);
+  const optimizePrompt = useCallback(
+    async (params: { prompt: string; technique?: string; context?: string; profile?: string }) => {
+      if (!token) return null;
+
+      setIsOptimizing(true);
+      setError(null);
+
+      try {
+        const response = await apiClient.post('/prompts/optimize', params, {
+          timeout: 120000, // 2 minutes for LLM optimization
+        });
+        return response.data.optimized as string;
+      } catch (err: any) {
+        const msg = err.response?.data?.error || 'Failed to optimize prompt';
+        setError(msg);
+        console.error('Prompt optimization error:', err);
+        return null;
+      } finally {
+        setIsOptimizing(false);
+      }
+    },
+    [token]
+  );
 
   return {
     isOptimizing,
@@ -59,6 +57,6 @@ export function usePrompts(token: string | null) {
     profiles,
     error,
     fetchTechniques,
-    optimizePrompt
+    optimizePrompt,
   };
 }

@@ -4,7 +4,7 @@
 
 # 📘 MARIE - Technical Specifications
 
-> **Machine-Assisted Research Intelligent Environment (MARIE)**  
+> **Machine-Assisted Research Intelligent Environment (MARIE)**
 > Developed by **Omar Zapata**
 
 ---
@@ -384,16 +384,16 @@
   --color-primary: #1B4B73;        /* Dark institutional blue */
   --color-primary-light: #2D6A9F;  /* Primary blue */
   --color-primary-dark: #0F2D47;   /* Very dark blue */
-  
+
   /* Secondary Colors */
   --color-secondary: #17A589;      /* Teal */
   --color-secondary-light: #48C9B0;
   --color-secondary-dark: #0E6655;
-  
+
   /* Colores de Acento */
   --color-accent: #F39C12;         /* Naranja/Dorado para highlights */
   --color-accent-alt: #E74C3C;     /* Rojo para alertas */
-  
+
   /* Neutrales */
   --color-bg-primary: #FFFFFF;
   --color-bg-secondary: #F8FAFC;
@@ -402,7 +402,7 @@
   --color-text-secondary: #4A5568;
   --color-text-muted: #718096;
   --color-border: #E2E8F0;
-  
+
   /* Dark Theme */
   --color-dark-bg-primary: #0F172A;
   --color-dark-bg-secondary: #1E293B;
@@ -410,7 +410,7 @@
   --color-dark-text-primary: #F1F5F9;
   --color-dark-text-secondary: #CBD5E1;
   --color-dark-border: #475569;
-  
+
   /* Chat Specific */
   --color-user-bubble: #1B4B73;
   --color-assistant-bubble: #F8FAFC;
@@ -426,7 +426,7 @@
   --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-heading: 'Plus Jakarta Sans', var(--font-primary);
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-  
+
   /* Font Sizes */
   --text-xs: 0.75rem;    /* 12px */
   --text-sm: 0.875rem;   /* 14px */
@@ -673,7 +673,7 @@ from langchain_ollama import ChatOllama
 class OllamaProvider:
     def __init__(self, base_url: str = "http://localhost:11434"):
         self.base_url = base_url
-    
+
     async def stream_chat(self, model: str, messages: list, **kwargs):
         llm = ChatOllama(
             model=model,
@@ -699,7 +699,7 @@ from langchain_huggingface import HuggingFaceEndpoint
 class HuggingFaceProvider:
     def __init__(self, api_key: str):
         self.api_key = api_key
-    
+
     async def stream_chat(self, model: str, messages: list, **kwargs):
         llm = HuggingFaceEndpoint(
             repo_id=model,
@@ -724,27 +724,27 @@ from langchain_core.messages import HumanMessage, AIMessage
 
 class ResearchAssistantPipeline:
     """Pipeline para asistente de investigación con múltiples pasos"""
-    
+
     def __init__(self, llm):
         self.llm = llm
         self.graph = self._build_graph()
-    
+
     def _build_graph(self):
         workflow = StateGraph(AgentState)
-        
+
         # Nodos
         workflow.add_node("analyze", self.analyze_query)
         workflow.add_node("search", self.search_knowledge)
         workflow.add_node("generate", self.generate_response)
-        
+
         # Edges
         workflow.set_entry_point("analyze")
         workflow.add_edge("analyze", "search")
         workflow.add_edge("search", "generate")
         workflow.add_edge("generate", END)
-        
+
         return workflow.compile()
-    
+
     async def run(self, query: str):
         async for event in self.graph.astream({"query": query}):
             yield event
@@ -764,13 +764,13 @@ models:
       name: "Code Llama"
       provider: "ollama"
       context_length: 16384
-  
+
   huggingface:
     - id: "meta-llama/Llama-3.2-3B-Instruct"
       name: "Llama 3.2 3B (HF)"
       provider: "huggingface"
       context_length: 8192
-  
+
   pipelines:
     - id: "research-assistant"
       name: "Asistente de Investigación"
@@ -870,7 +870,7 @@ class SpeechService:
             device="cuda",  # o "cpu"
             compute_type="float16"  # o "int8" para CPU
         )
-        
+
         # TTS: Voces por defecto
         self.default_voice = "es-CO-GonzaloNeural"  # Voz colombiana
         self.voices = {
@@ -878,14 +878,14 @@ class SpeechService:
             "es-ES": ["es-ES-AlvaroNeural", "es-ES-ElviraNeural"],
             "en-US": ["en-US-GuyNeural", "en-US-JennyNeural"],
         }
-    
+
     # ==================== STT ====================
-    
+
     async def transcribe(self, audio_bytes: bytes, language: str = "es") -> dict:
         """Transcribir audio a texto usando Whisper"""
         # Guardar temporalmente el audio
         audio_file = BytesIO(audio_bytes)
-        
+
         # Transcribir
         segments, info = self.whisper_model.transcribe(
             audio_file,
@@ -893,41 +893,41 @@ class SpeechService:
             beam_size=5,
             vad_filter=True  # Filtrar silencios
         )
-        
+
         # Concatenar segmentos
         text = " ".join([segment.text for segment in segments])
-        
+
         return {
             "text": text.strip(),
             "language": info.language,
             "confidence": info.language_probability,
             "duration": info.duration
         }
-    
+
     # ==================== TTS ====================
-    
+
     async def synthesize(self, text: str, voice: str = None) -> bytes:
         """Convertir texto a audio usando Edge TTS"""
         voice = voice or self.default_voice
-        
+
         communicate = edge_tts.Communicate(text, voice)
         audio_data = BytesIO()
-        
+
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
                 audio_data.write(chunk["data"])
-        
+
         return audio_data.getvalue()
-    
+
     async def synthesize_stream(self, text: str, voice: str = None):
         """Stream de audio para reproducción progresiva"""
         voice = voice or self.default_voice
         communicate = edge_tts.Communicate(text, voice)
-        
+
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
                 yield chunk["data"]
-    
+
     def get_available_voices(self, language: str = None) -> list:
         """Obtener voces disponibles"""
         if language:
@@ -956,18 +956,18 @@ export function useSpeech() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // ==================== STT ====================
-  
+
   const startRecording = useCallback(async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
     const chunks: Blob[] = [];
-    
+
     mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
     mediaRecorder.onstop = async () => {
       const audioBlob = new Blob(chunks, { type: 'audio/webm' });
       const formData = new FormData();
       formData.append('audio', audioBlob);
-      
+
       const response = await fetch('/api/speech/transcribe', {
         method: 'POST',
         body: formData
@@ -975,7 +975,7 @@ export function useSpeech() {
       const { text } = await response.json();
       // Usar el texto transcrito...
     };
-    
+
     mediaRecorderRef.current = mediaRecorder;
     mediaRecorder.start();
     setIsRecording(true);
@@ -987,14 +987,14 @@ export function useSpeech() {
   }, []);
 
   // ==================== TTS ====================
-  
+
   const speak = useCallback(async (text: string, voice?: string) => {
     const url = `/api/speech/synthesize?text=${encodeURIComponent(text)}&voice=${voice || ''}`;
-    
+
     if (!audioRef.current) {
       audioRef.current = new Audio();
     }
-    
+
     audioRef.current.src = url;
     audioRef.current.onended = () => setIsPlaying(false);
     await audioRef.current.play();
@@ -1404,7 +1404,7 @@ class FileService:
             # Texto
             '.txt', '.md', '.csv',
             # Código
-            '.py', '.js', '.ts', '.java', '.cpp', '.c', '.go', '.rs', 
+            '.py', '.js', '.ts', '.java', '.cpp', '.c', '.go', '.rs',
             '.rb', '.php', '.html', '.css', '.json', '.xml', '.yaml', '.yml',
             # Imágenes
             '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp',
@@ -1415,29 +1415,29 @@ class FileService:
             # Comprimidos
             '.zip', '.tar', '.gz'
         }
-    
+
     async def save_file(self, file, user_id: str) -> Dict:
         """Guardar archivo y retornar metadatos"""
         # Validar
         if not self._is_allowed(file.filename):
             raise ValueError(f"Tipo de archivo no permitido: {file.filename}")
-        
+
         if file.content_length > self.max_file_size:
             raise ValueError(f"Archivo muy grande: {file.content_length} bytes")
-        
+
         # Generar ID único
         file_id = f"file_{uuid.uuid4().hex[:16]}"
         file_ext = Path(file.filename).suffix
         user_dir = self.upload_dir / user_id
         user_dir.mkdir(exist_ok=True)
-        
+
         # Guardar archivo
         file_path = user_dir / f"{file_id}{file_ext}"
         file.save(str(file_path))
-        
+
         # Procesar y extraer contenido
         content = await self.extract_content(file_path, file_ext)
-        
+
         return {
             "id": file_id,
             "filename": file.filename,
@@ -1448,7 +1448,7 @@ class FileService:
             "content_length": len(content) if content else 0,
             "created_at": datetime.utcnow().isoformat()
         }
-    
+
     async def extract_content(self, file_path: Path, file_ext: str) -> str:
         """Extraer contenido de archivo según su tipo"""
         try:
@@ -1464,8 +1464,8 @@ class FileService:
                 return self._extract_excel(file_path)
             elif file_ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp']:
                 return await self._extract_image(file_path)
-            elif file_ext in ['.py', '.js', '.ts', '.java', '.cpp', '.c', '.go', 
-                             '.rs', '.rb', '.php', '.html', '.css', '.json', 
+            elif file_ext in ['.py', '.js', '.ts', '.java', '.cpp', '.c', '.go',
+                             '.rs', '.rb', '.php', '.html', '.css', '.json',
                              '.xml', '.yaml', '.yml']:
                 return self._extract_code(file_path)
             elif file_ext == '.zip':
@@ -1474,7 +1474,7 @@ class FileService:
                 return f"[Archivo {file_ext} no procesable]"
         except Exception as e:
             return f"[Error al procesar archivo: {str(e)}]"
-    
+
     def _extract_pdf(self, file_path: Path) -> str:
         """Extraer texto de PDF"""
         text = []
@@ -1483,45 +1483,45 @@ class FileService:
             for page in pdf_reader.pages:
                 text.append(page.extract_text())
         return "\n".join(text)
-    
+
     def _extract_docx(self, file_path: Path) -> str:
         """Extraer texto de Word"""
         doc = Document(file_path)
         return "\n".join([para.text for para in doc.paragraphs])
-    
+
     def _extract_text(self, file_path: Path) -> str:
         """Extraer texto plano"""
         with open(file_path, 'r', encoding='utf-8') as f:
             return f.read()
-    
+
     def _extract_csv(self, file_path: Path) -> str:
         """Extraer CSV como texto formateado"""
         df = pd.read_csv(file_path)
         return df.to_string()
-    
+
     def _extract_excel(self, file_path: Path) -> str:
         """Extraer Excel como texto"""
         df = pd.read_excel(file_path)
         return df.to_string()
-    
+
     async def _extract_image(self, file_path: Path) -> str:
         """Extraer texto de imagen con OCR"""
         image = Image.open(file_path)
         text = pytesseract.image_to_string(image, lang='spa+eng')
         return text if text.strip() else f"[Imagen: {file_path.name} - Sin texto detectado]"
-    
+
     def _extract_code(self, file_path: Path) -> str:
         """Extraer código fuente"""
         with open(file_path, 'r', encoding='utf-8') as f:
             return f.read()
-    
+
     def _extract_zip(self, file_path: Path) -> str:
         """Extraer archivos comprimidos"""
         extracted_texts = []
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
             temp_dir = file_path.parent / f"{file_path.stem}_extracted"
             zip_ref.extractall(temp_dir)
-            
+
             # Procesar archivos extraídos recursivamente
             for extracted_file in temp_dir.rglob('*'):
                 if extracted_file.is_file():
@@ -1529,26 +1529,26 @@ class FileService:
                     if ext in self.allowed_extensions:
                         content = await self.extract_content(extracted_file, ext)
                         extracted_texts.append(f"--- {extracted_file.name} ---\n{content}")
-            
+
             # Limpiar
             shutil.rmtree(temp_dir)
-        
+
         return "\n\n".join(extracted_texts)
-    
+
     def _is_allowed(self, filename: str) -> bool:
         """Verificar si el archivo está permitido"""
         ext = Path(filename).suffix.lower()
         return ext in self.allowed_extensions
-    
+
     def build_prompt_with_files(self, message: str, files: List[Dict]) -> str:
         """Construir prompt incluyendo contenido de archivos"""
         prompt_parts = [message]
-        
+
         for file in files:
             prompt_parts.append(f"\n\n--- Archivo: {file['filename']} ---")
             prompt_parts.append(file['content'])
             prompt_parts.append("--- Fin del archivo ---")
-        
+
         return "\n".join(prompt_parts)
 ```
 
@@ -1560,14 +1560,14 @@ class FileService:
     "properties": {
       "id": { "type": "keyword" },
       "user_id": { "type": "keyword" },
-      "filename": { 
+      "filename": {
         "type": "text",
         "fields": { "keyword": { "type": "keyword" } }
       },
       "file_path": { "type": "keyword", "index": false },
       "file_size": { "type": "long" },
       "file_type": { "type": "keyword" },
-      "content": { 
+      "content": {
         "type": "text",
         "analyzer": "standard"
       },
@@ -1626,7 +1626,7 @@ export function FileUpload({ onFileUploaded, maxFiles = 5 }: FileUploadProps) {
   const handleUpload = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     try {
       const response = await fetch('/api/files/upload', {
         method: 'POST',
@@ -1635,14 +1635,14 @@ export function FileUpload({ onFileUploaded, maxFiles = 5 }: FileUploadProps) {
         },
         body: formData
       });
-      
+
       const data = await response.json();
       onFileUploaded(data.id);
       message.success(`${file.name} subido correctamente`);
     } catch (error) {
       message.error('Error al subir archivo');
     }
-    
+
     return false; // Prevenir upload automático
   };
 
@@ -1683,7 +1683,7 @@ export function FilePreview({ file }: { file: FileMetadata }) {
 // frontend/hooks/useChat.ts - Actualizado
 export function useChat() {
   const [attachedFiles, setAttachedFiles] = useState<string[]>([]);
-  
+
   const sendMessage = async (content: string, files?: string[]) => {
     const payload = {
       content,
@@ -1692,11 +1692,11 @@ export function useChat() {
       model: selectedModel,
       provider: selectedProvider
     };
-    
+
     socket.emit('send_message', payload);
     setAttachedFiles([]);
   };
-  
+
   return {
     sendMessage,
     attachedFiles,
@@ -1725,18 +1725,18 @@ from langchain_core.messages import HumanMessage
 class VisionService:
     def __init__(self):
         self.vision_model = Ollama(model="llava")  # Modelo con visión
-    
+
     async def analyze_image(self, image_path: Path, question: str = None) -> str:
         """Analizar imagen con modelo de visión"""
         prompt = question or "Describe esta imagen en detalle"
-        
+
         message = HumanMessage(
             content=[
                 {"type": "text", "text": prompt},
                 {"type": "image_url", "image_url": str(image_path)}
             ]
         )
-        
+
         response = await self.vision_model.ainvoke([message])
         return response.content
 ```
@@ -1815,28 +1815,28 @@ from datetime import datetime
 class ReferenceService:
     def __init__(self, opensearch_service):
         self.opensearch = opensearch_service
-    
+
     async def get_referenced_conversations(
-        self, 
+        self,
         conversation_ids: List[str],
         user_id: str,
         max_messages_per_conv: int = 20
     ) -> List[Dict]:
         """Obtener conversaciones referenciadas con sus mensajes"""
         referenced_convs = []
-        
+
         for conv_id in conversation_ids:
             # Verificar que la conversación pertenece al usuario
             conv = await self.opensearch.get_conversation(conv_id)
             if not conv or conv["user_id"] != user_id:
                 continue
-            
+
             # Obtener mensajes de la conversación
             messages = await self.opensearch.get_conversation_messages(
-                conv_id, 
+                conv_id,
                 limit=max_messages_per_conv
             )
-            
+
             referenced_convs.append({
                 "id": conv_id,
                 "title": conv.get("title", "Untitled"),
@@ -1844,9 +1844,9 @@ class ReferenceService:
                 "messages": messages,
                 "message_count": len(messages)
             })
-        
+
         return referenced_convs
-    
+
     async def build_context_with_references(
         self,
         user_message: str,
@@ -1857,41 +1857,41 @@ class ReferenceService:
         """Construir prompt incluyendo contexto de conversaciones referenciadas"""
         if not referenced_conv_ids:
             return user_message
-        
+
         referenced_convs = await self.get_referenced_conversations(
             referenced_conv_ids,
             user_id,
             max_messages_per_conv=50 if include_full_history else 20
         )
-        
+
         if not referenced_convs:
             return user_message
-        
+
         context_parts = [
             "=== CONTEXTO DE CONVERSACIONES ANTERIORES ===\n"
         ]
-        
+
         for conv in referenced_convs:
             context_parts.append(f"\n--- Conversación: {conv['title']} ---")
             context_parts.append(f"(ID: {conv['id']}, {conv['message_count']} mensajes)\n")
-            
+
             # Incluir mensajes relevantes
             for msg in conv["messages"]:
                 role = msg.get("role", "unknown")
                 content = msg.get("content", "")
-                
+
                 if role == "user":
                     context_parts.append(f"Usuario: {content}")
                 elif role == "assistant":
                     context_parts.append(f"Asistente: {content}")
-            
+
             context_parts.append("--- Fin de conversación ---\n")
-        
+
         context_parts.append("\n=== FIN DEL CONTEXTO ===\n")
         context_parts.append(f"\nMensaje actual del usuario: {user_message}")
-        
+
         return "\n".join(context_parts)
-    
+
     async def get_conversation_summary(
         self,
         conversation_id: str,
@@ -1901,13 +1901,13 @@ class ReferenceService:
         conv = await self.opensearch.get_conversation(conversation_id)
         if not conv or conv["user_id"] != user_id:
             return None
-        
+
         # Obtener primeros y últimos mensajes
         messages = await self.opensearch.get_conversation_messages(
             conversation_id,
             limit=5
         )
-        
+
         return {
             "id": conversation_id,
             "title": conv.get("title", "Untitled"),
@@ -1918,7 +1918,7 @@ class ReferenceService:
             "model": conv.get("model"),
             "provider": conv.get("provider")
         }
-    
+
     async def search_conversations_for_reference(
         self,
         user_id: str,
@@ -1932,14 +1932,14 @@ class ReferenceService:
             query=query,
             limit=limit
         )
-        
+
         # Enriquecer con preview
         results = []
         for conv in conversations:
             summary = await self.get_conversation_summary(conv["id"], user_id)
             if summary:
                 results.append(summary)
-        
+
         return results
 ```
 
@@ -1973,11 +1973,11 @@ class Message(BaseModel):
       "conversation_id": { "type": "keyword" },
       "user_id": { "type": "keyword" },
       "role": { "type": "keyword" },
-      "content": { 
+      "content": {
         "type": "text",
         "analyzer": "standard"
       },
-      "referenced_conversation_ids": { 
+      "referenced_conversation_ids": {
         "type": "keyword"  // Array de IDs de conversaciones referenciadas
       },
       "file_ids": { "type": "keyword" },
@@ -2024,9 +2024,9 @@ interface ConversationReferenceProps {
   selectedIds: string[];
 }
 
-export function ConversationReference({ 
-  onSelect, 
-  selectedIds 
+export function ConversationReference({
+  onSelect,
+  selectedIds
 }: ConversationReferenceProps) {
   const [visible, setVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -2100,8 +2100,8 @@ export function ConversationReference({
               onClick={() => handleSelect(conv.id)}
               style={{
                 cursor: 'pointer',
-                backgroundColor: selectedIds.includes(conv.id) 
-                  ? '#e6f7ff' 
+                backgroundColor: selectedIds.includes(conv.id)
+                  ? '#e6f7ff'
                   : 'transparent'
               }}
             >
@@ -2134,11 +2134,11 @@ export function ConversationReference({
 }
 
 // frontend/components/chat/ReferenceBadge.tsx
-export function ReferenceBadge({ 
-  conversationId, 
-  title 
-}: { 
-  conversationId: string; 
+export function ReferenceBadge({
+  conversationId,
+  title
+}: {
+  conversationId: string;
   title: string;
 }) {
   return (
@@ -2163,8 +2163,8 @@ export function MessageBubble({ message }: { message: Message }) {
       <div className="message-content">
         {message.content}
       </div>
-      
-      {message.referenced_conversation_ids && 
+
+      {message.referenced_conversation_ids &&
        message.referenced_conversation_ids.length > 0 && (
         <div className="message-references">
           <div className="references-label">Referencias:</div>
@@ -2177,7 +2177,7 @@ export function MessageBubble({ message }: { message: Message }) {
           ))}
         </div>
       )}
-      
+
       {message.file_ids && message.file_ids.length > 0 && (
         <FilePreview files={message.file_ids} />
       )}
@@ -2192,9 +2192,9 @@ export function MessageBubble({ message }: { message: Message }) {
 // frontend/hooks/useChat.ts - Actualizado
 export function useChat() {
   const [referencedConversations, setReferencedConversations] = useState<string[]>([]);
-  
+
   const sendMessage = async (
-    content: string, 
+    content: string,
     files?: string[],
     referencedConvs?: string[]
   ) => {
@@ -2206,11 +2206,11 @@ export function useChat() {
       model: selectedModel,
       provider: selectedProvider
     };
-    
+
     socket.emit('send_message', payload);
     setReferencedConversations([]);
   };
-  
+
   return {
     sendMessage,
     referencedConversations,
@@ -2316,10 +2316,10 @@ Marie implementa un sistema de memoria conversacional que permite recordar infor
       "id": { "type": "keyword" },
       "user_id": { "type": "keyword" },
       "conversation_id": { "type": "keyword" },
-      "memory_type": { 
+      "memory_type": {
         "type": "keyword"  // "user", "conversation", "session", "fact"
       },
-      "content": { 
+      "content": {
         "type": "text",
         "analyzer": "standard",
         "fields": {
@@ -2365,7 +2365,7 @@ class MemoryService:
         self.opensearch = opensearch_service
         self.embedding_service = embedding_service
         self.index = "marie_memory"
-    
+
     async def extract_memory(
         self,
         user_id: str,
@@ -2379,19 +2379,19 @@ class MemoryService:
             language = detect(message_content)
         except:
             language = "es"  # Default
-        
+
         # Usar LLM para extraer información importante
         extraction_prompt = f"""
         Extrae información importante de este mensaje que debería recordarse:
-        
+
         Mensaje: {message_content}
-        
+
         Extrae:
         1. Preferencias del usuario
         2. Hechos importantes
         3. Contexto relevante
         4. Información personal
-        
+
         Formato JSON:
         {{
             "content": "resumen de la información",
@@ -2400,17 +2400,17 @@ class MemoryService:
             "key_points": ["punto1", "punto2"]
         }}
         """
-        
+
         # Llamar a LLM para extracción (simplificado)
         extracted_info = await self._call_extraction_llm(extraction_prompt)
-        
+
         if not extracted_info or extracted_info.get("importance", 0) < 0.3:
             return None
-        
+
         # Generar embedding
         content = extracted_info.get("content", message_content)
         embedding = await self.embedding_service.generate_embedding(content, language)
-        
+
         # Guardar en memoria
         memory_id = str(uuid.uuid4())
         memory_doc = {
@@ -2432,15 +2432,15 @@ class MemoryService:
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat()
         }
-        
+
         self.opensearch.client.index(
             index=self.index,
             id=memory_id,
             body=memory_doc
         )
-        
+
         return memory_doc
-    
+
     async def retrieve_relevant_memory(
         self,
         user_id: str,
@@ -2456,10 +2456,10 @@ class MemoryService:
                 language = detect(query)
             except:
                 language = "es"
-        
+
         # Generar embedding de la consulta
         query_embedding = await self.embedding_service.generate_embedding(query, language)
-        
+
         # Construir query de búsqueda
         bool_query = {
             "must": [
@@ -2477,7 +2477,7 @@ class MemoryService:
                 {"range": {"importance": {"gte": 0.3}}}  # Solo memoria importante
             ]
         }
-        
+
         if conversation_id:
             # Incluir memoria de la conversación actual
             bool_query["should"] = [
@@ -2485,7 +2485,7 @@ class MemoryService:
                 {"term": {"memory_type": "user"}}  # Siempre incluir memoria de usuario
             ]
             bool_query["minimum_should_match"] = 1
-        
+
         query_body = {
             "query": {"bool": bool_query},
             "size": limit,
@@ -2494,18 +2494,18 @@ class MemoryService:
                 {"last_accessed_at": {"order": "desc"}}
             ]
         }
-        
+
         result = self.opensearch.client.search(index=self.index, body=query_body)
-        
+
         memories = []
         for hit in result["hits"]["hits"]:
             memory = hit["_source"]
             # Actualizar acceso
             self._update_access(memory["id"])
             memories.append(memory)
-        
+
         return memories
-    
+
     async def build_context_with_memory(
         self,
         user_id: str,
@@ -2519,25 +2519,25 @@ class MemoryService:
             query=current_message,
             conversation_id=conversation_id
         )
-        
+
         if not memories:
             return current_message
-        
+
         # Construir contexto
         context_parts = ["=== INFORMACIÓN RECORDADA ===\n"]
-        
+
         for memory in memories:
             lang_info = f" (Idioma: {memory.get('language', 'es')})" if memory.get('language') != 'es' else ""
             context_parts.append(f"[{memory.get('category', 'fact').upper()}] {memory['content']}{lang_info}")
             if memory.get('key_points'):
                 for point in memory['key_points']:
                     context_parts.append(f"  - {point}")
-        
+
         context_parts.append("\n=== FIN DE INFORMACIÓN RECORDADA ===\n")
         context_parts.append(f"\nMensaje actual: {current_message}")
-        
+
         return "\n".join(context_parts)
-    
+
     def _update_access(self, memory_id: str):
         """Actualizar estadísticas de acceso"""
         self.opensearch.client.update(
@@ -2550,7 +2550,7 @@ class MemoryService:
                 }
             }
         )
-    
+
     async def _call_extraction_llm(self, prompt: str) -> Dict:
         """Llamar a LLM para extracción (simplificado)"""
         # Implementar llamada real a LLM
@@ -2574,7 +2574,7 @@ class EmbeddingService:
     def __init__(self):
         # Modelo multilingüe
         self.model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-    
+
     async def generate_embedding(self, text: str, language: str = None) -> List[float]:
         """Generar embedding multilingüe"""
         # Detectar idioma si no se proporciona
@@ -2583,7 +2583,7 @@ class EmbeddingService:
                 language = langdetect.detect(text)
             except:
                 language = "es"
-        
+
         # El modelo multilingüe maneja múltiples idiomas automáticamente
         embedding = self.model.encode(text, normalize_embeddings=True)
         return embedding.tolist()
@@ -2637,7 +2637,7 @@ class FollowUpService:
         self.followup_prompt = PromptTemplate(
             input_variables=["assistant_response", "conversation_context", "memory_context"],
             template="""
-Basándote en la siguiente respuesta del asistente y el contexto de la conversación, 
+Basándote en la siguiente respuesta del asistente y el contexto de la conversación,
 genera 3-5 preguntas de seguimiento relevantes que el usuario podría querer hacer.
 
 Respuesta del asistente:
@@ -2670,7 +2670,7 @@ Formato JSON:
 Solo retorna el JSON, sin texto adicional.
 """
         )
-    
+
     async def generate_followup_questions(
         self,
         assistant_response: str,
@@ -2684,14 +2684,14 @@ Solo retorna el JSON, sin texto adicional.
             conversation_context=conversation_context,
             memory_context=memory_context
         )
-        
+
         # Llamar a LLM
         response = await self.llm_service.generate(
             prompt=prompt,
             temperature=0.7,
             max_tokens=200
         )
-        
+
         # Parsear respuesta JSON
         try:
             import json
@@ -2704,21 +2704,21 @@ Solo retorna el JSON, sin texto adicional.
             if response_text.endswith("```"):
                 response_text = response_text[:-3]
             response_text = response_text.strip()
-            
+
             parsed = json.loads(response_text)
             questions = parsed.get("questions", [])
-            
+
             # Validar y filtrar
             valid_questions = [
-                q for q in questions 
+                q for q in questions
                 if q and len(q.strip()) > 10 and len(q.strip()) < 200
             ]
-            
+
             return valid_questions[:5]  # Máximo 5 preguntas
         except Exception as e:
             print(f"Error parsing follow-up questions: {e}")
             return []
-    
+
     async def generate_contextual_followups(
         self,
         user_id: str,
@@ -2732,7 +2732,7 @@ Solo retorna el JSON, sin texto adicional.
             f"{msg.get('role', 'unknown')}: {msg.get('content', '')[:200]}"
             for msg in last_messages[-5:]  # Últimos 5 mensajes
         ])
-        
+
         # Obtener memoria relevante
         memory_service = MemoryService(...)  # Inyectar
         memories = await memory_service.retrieve_relevant_memory(
@@ -2741,18 +2741,18 @@ Solo retorna el JSON, sin texto adicional.
             conversation_id=conversation_id,
             limit=3
         )
-        
+
         memory_context = "\n".join([
             mem.get("content", "") for mem in memories
         ])
-        
+
         # Detectar idioma
         try:
             from langdetect import detect
             language = detect(assistant_response)
         except:
             language = "es"
-        
+
         # Generar follow-ups
         followups = await self.generate_followup_questions(
             assistant_response=assistant_response,
@@ -2760,7 +2760,7 @@ Solo retorna el JSON, sin texto adicional.
             memory_context=memory_context,
             language=language
         )
-        
+
         return followups
 ```
 
@@ -2783,9 +2783,9 @@ interface ConversationHistoryProps {
   onLoadMore?: () => void;
 }
 
-export function ConversationHistory({ 
-  conversationId, 
-  onLoadMore 
+export function ConversationHistory({
+  conversationId,
+  onLoadMore
 }: ConversationHistoryProps) {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -2805,16 +2805,16 @@ export function ConversationHistory({
           }
         }
       );
-      
+
       const data = await response.json();
       const newMessages = data.messages || [];
-      
+
       if (append) {
         setMessages(prev => [...newMessages.reverse(), ...prev]);
       } else {
         setMessages(newMessages.reverse());
       }
-      
+
       setHasMore(data.has_more || false);
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -2865,17 +2865,17 @@ export function ConversationHistory({
       {hasMore && (
         <div id="load-more-trigger" style={{ height: '1px' }} />
       )}
-      
+
       {loading && messages.length === 0 && (
         <div style={{ textAlign: 'center', padding: '20px' }}>
           <Spin size="large" />
         </div>
       )}
-      
+
       {messages.length === 0 && !loading && (
         <Empty description="No hay mensajes en esta conversación" />
       )}
-      
+
       <List
         dataSource={messages}
         renderItem={(message, index) => (
@@ -2886,7 +2886,7 @@ export function ConversationHistory({
           />
         )}
       />
-      
+
       <div ref={messagesEndRef} />
     </div>
   );
@@ -2899,9 +2899,9 @@ export function ConversationHistory({
 // frontend/components/chat/HistoryFilters.tsx
 import { Select, DatePicker, Space } from 'antd';
 
-export function HistoryFilters({ 
-  onFilterChange 
-}: { 
+export function HistoryFilters({
+  onFilterChange
+}: {
   onFilterChange: (filters: any) => void;
 }) {
   return (
@@ -2916,12 +2916,12 @@ export function HistoryFilters({
           { label: 'Por relevancia', value: 'relevance' }
         ]}
       />
-      
+
       <DatePicker
         placeholder="Filtrar por fecha"
         onChange={(date) => onFilterChange({ date: date?.toISOString() })}
       />
-      
+
       <Select
         placeholder="Tipo de mensaje"
         mode="multiple"
@@ -2958,9 +2958,9 @@ interface WelcomeScreenProps {
   userHistory?: any[];
 }
 
-export function WelcomeScreen({ 
-  onQuestionSelect, 
-  userHistory 
+export function WelcomeScreen({
+  onQuestionSelect,
+  userHistory
 }: WelcomeScreenProps) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -2996,7 +2996,7 @@ export function WelcomeScreen({
           'Authorization': `Bearer ${getToken()}`
         }
       });
-      
+
       const data = await response.json();
       if (data.suggestions && data.suggestions.length > 0) {
         setSuggestions(data.suggestions);
@@ -3021,7 +3021,7 @@ export function WelcomeScreen({
           <BulbOutlined /> ¡Hola! Soy Marie
         </Title>
         <Text type="secondary">
-          Tu asistente de IA para investigación y desarrollo. 
+          Tu asistente de IA para investigación y desarrollo.
           ¿En qué puedo ayudarte hoy?
         </Text>
       </div>
@@ -3030,7 +3030,7 @@ export function WelcomeScreen({
         <Title level={4}>
           <ThunderboltOutlined /> Sugerencias para comenzar
         </Title>
-        
+
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           {suggestions.map((suggestion, index) => (
             <Card
@@ -3078,7 +3078,7 @@ class SuggestionService:
     def __init__(self, opensearch_service, memory_service):
         self.opensearch = opensearch_service
         self.memory_service = memory_service
-    
+
     async def get_contextual_suggestions(
         self,
         user_id: str,
@@ -3090,37 +3090,37 @@ class SuggestionService:
             user_id=user_id,
             limit=5
         )
-        
+
         # Obtener memoria relevante
         memories = await self.memory_service.retrieve_relevant_memory(
             user_id=user_id,
             query="",  # Sin query específica, obtener memoria general
             limit=5
         )
-        
+
         # Generar sugerencias basadas en contexto
         suggestions = []
-        
+
         # Sugerencias basadas en conversaciones recientes
         if recent_convs:
             topics = [conv.get("title", "") for conv in recent_convs]
             suggestions.extend([
                 f"Continúa el tema: {topic}" for topic in topics[:2]
             ])
-        
+
         # Sugerencias basadas en memoria
         if memories:
             for memory in memories[:2]:
                 if memory.get("category") == "preference":
                     suggestions.append(f"Basándote en mi preferencia: {memory.get('content', '')[:50]}...")
-        
+
         # Sugerencias por defecto según idioma
         default_suggestions = self._get_default_suggestions(language)
         suggestions.extend(default_suggestions)
-        
+
         # Retornar máximo 5 sugerencias únicas
         return list(dict.fromkeys(suggestions))[:5]
-    
+
     def _get_default_suggestions(self, language: str) -> List[str]:
         """Obtener sugerencias por defecto según idioma"""
         suggestions = {
@@ -3260,7 +3260,7 @@ The administration panel allows generating API keys for both end users and devel
     "properties": {
       "id": { "type": "keyword" },
       "user_id": { "type": "keyword" },
-      "title": { 
+      "title": {
         "type": "text",
         "analyzer": "standard",
         "fields": { "keyword": { "type": "keyword" } }
@@ -3292,10 +3292,10 @@ The administration panel allows generating API keys for both end users and devel
       "conversation_id": { "type": "keyword" },
       "user_id": { "type": "keyword" },
       "role": { "type": "keyword" },
-      "content": { 
+      "content": {
         "type": "text",
         "analyzer": "standard",
-        "fields": { 
+        "fields": {
           "keyword": { "type": "keyword", "ignore_above": 256 }
         }
       },
@@ -3333,7 +3333,7 @@ The administration panel allows generating API keys for both end users and devel
     "properties": {
       "id": { "type": "keyword" },
       "user_id": { "type": "keyword" },
-      "name": { 
+      "name": {
         "type": "text",
         "fields": { "keyword": { "type": "keyword" } }
       },
@@ -3370,13 +3370,13 @@ class OpenSearchService:
             verify_certs=False,
             ssl_show_warn=False
         )
-    
+
     # ==================== USERS ====================
-    
+
     async def create_user(
-        self, 
-        email: str, 
-        password_hash: str, 
+        self,
+        email: str,
+        password_hash: str,
         full_name: str = None,
         role: str = "user",
         created_by: str = None
@@ -3384,7 +3384,7 @@ class OpenSearchService:
         user_id = str(uuid.uuid4())
         roles = [role] if role else ["user"]
         permissions = self._get_default_permissions(role)
-        
+
         doc = {
             "id": user_id,
             "email": email,
@@ -3403,7 +3403,7 @@ class OpenSearchService:
         }
         self.client.index(index="marie_users", id=user_id, body=doc)
         return doc
-    
+
     def _get_default_permissions(self, role: str) -> dict:
         """Obtener permisos por defecto según rol"""
         if role == "admin":
@@ -3420,16 +3420,16 @@ class OpenSearchService:
                 "can_view_logs": False,
                 "can_manage_models": False
             }
-    
+
     async def get_user_by_email(self, email: str) -> dict | None:
         query = {"query": {"term": {"email": email}}}
         result = self.client.search(index="marie_users", body=query)
         hits = result["hits"]["hits"]
         return hits[0]["_source"] if hits else None
-    
+
     # ==================== CONVERSATIONS ====================
-    
-    async def create_conversation(self, user_id: str, model: str, provider: str, 
+
+    async def create_conversation(self, user_id: str, model: str, provider: str,
                                    title: str = None, system_prompt: str = None) -> dict:
         conv_id = str(uuid.uuid4())
         doc = {
@@ -3446,7 +3446,7 @@ class OpenSearchService:
         }
         self.client.index(index="marie_conversations", id=conv_id, body=doc)
         return doc
-    
+
     async def get_user_conversations(self, user_id: str, limit: int = 50) -> list:
         query = {
             "query": {"term": {"user_id": user_id}},
@@ -3455,11 +3455,11 @@ class OpenSearchService:
         }
         result = self.client.search(index="marie_conversations", body=query)
         return [hit["_source"] for hit in result["hits"]["hits"]]
-    
+
     # ==================== MESSAGES ====================
-    
-    async def create_message(self, conversation_id: str, user_id: str, 
-                              role: str, content: str, 
+
+    async def create_message(self, conversation_id: str, user_id: str,
+                              role: str, content: str,
                               content_vector: list = None,
                               tokens_used: int = None) -> dict:
         msg_id = str(uuid.uuid4())
@@ -3475,9 +3475,9 @@ class OpenSearchService:
         }
         if content_vector:
             doc["content_vector"] = content_vector
-        
+
         self.client.index(index="marie_messages", id=msg_id, body=doc)
-        
+
         # Actualizar contador en conversación
         self.client.update(
             index="marie_conversations",
@@ -3490,7 +3490,7 @@ class OpenSearchService:
             }
         )
         return doc
-    
+
     async def get_conversation_messages(self, conversation_id: str) -> list:
         query = {
             "query": {"term": {"conversation_id": conversation_id}},
@@ -3499,9 +3499,9 @@ class OpenSearchService:
         }
         result = self.client.search(index="marie_messages", body=query)
         return [hit["_source"] for hit in result["hits"]["hits"]]
-    
+
     # ==================== BÚSQUEDA ====================
-    
+
     async def search_messages(self, user_id: str, query_text: str, limit: int = 20) -> list:
         """Búsqueda full-text en mensajes del usuario"""
         query = {
@@ -3525,7 +3525,7 @@ class OpenSearchService:
             {**hit["_source"], "highlights": hit.get("highlight", {})}
             for hit in result["hits"]["hits"]
         ]
-    
+
     async def semantic_search(self, user_id: str, query_vector: list, limit: int = 10) -> list:
         """Búsqueda semántica por vectores (RAG)"""
         query = {
@@ -3550,8 +3550,8 @@ class OpenSearchService:
         }
         result = self.client.search(index="marie_messages", body=query)
         return [hit["_source"] for hit in result["hits"]["hits"]]
-    
-    async def hybrid_search(self, user_id: str, query_text: str, 
+
+    async def hybrid_search(self, user_id: str, query_text: str,
                             query_vector: list, limit: int = 10) -> list:
         """Búsqueda híbrida: texto + vectores"""
         query = {
@@ -3578,9 +3578,9 @@ class OpenSearchService:
         }
         result = self.client.search(index="marie_messages", body=query)
         return [hit["_source"] for hit in result["hits"]["hits"]]
-    
+
     # ==================== API KEYS ====================
-    
+
     async def create_api_key(self, user_id: str, name: str, key_hash: str,
                             expires_at: str = None, rate_limit: int = 1000) -> dict:
         """Crear nueva API key"""
@@ -3599,14 +3599,14 @@ class OpenSearchService:
         }
         self.client.index(index="marie_api_keys", id=api_key_id, body=doc)
         return doc
-    
+
     async def get_api_key_by_hash(self, key_hash: str) -> dict | None:
         """Obtener API key por hash"""
         query = {"query": {"term": {"key_hash": key_hash}}}
         result = self.client.search(index="marie_api_keys", body=query)
         hits = result["hits"]["hits"]
         return hits[0]["_source"] if hits else None
-    
+
     async def get_user_api_keys(self, user_id: str) -> list:
         """Listar API keys de un usuario"""
         query = {
@@ -3615,7 +3615,7 @@ class OpenSearchService:
         }
         result = self.client.search(index="marie_api_keys", body=query)
         return [hit["_source"] for hit in result["hits"]["hits"]]
-    
+
     async def update_api_key_usage(self, api_key_id: str):
         """Actualizar estadísticas de uso de API key"""
         self.client.update(
@@ -3628,14 +3628,14 @@ class OpenSearchService:
                 }
             }
         )
-    
+
     async def revoke_api_key(self, api_key_id: str, user_id: str) -> bool:
         """Revocar (desactivar) API key"""
         # Verificar que la key pertenece al usuario
         key_doc = self.client.get(index="marie_api_keys", id=api_key_id)
         if key_doc["_source"]["user_id"] != user_id:
             return False
-        
+
         self.client.update(
             index="marie_api_keys",
             id=api_key_id,
@@ -3746,15 +3746,15 @@ class APIKeyService:
     def __init__(self, opensearch_client: OpenSearch):
         self.client = opensearch_client
         self.index = "marie_api_keys"
-    
-    async def create_api_key(self, user_id: str, name: str, 
+
+    async def create_api_key(self, user_id: str, name: str,
                             expires_in_days: int = None) -> dict:
         """Crear nueva API key para un usuario"""
         api_key = f"mc_{secrets.token_urlsafe(32)}"
         expires_at = None
         if expires_in_days:
             expires_at = (datetime.utcnow() + timedelta(days=expires_in_days)).isoformat()
-        
+
         doc = {
             "id": api_key,
             "user_id": user_id,
@@ -3766,10 +3766,10 @@ class APIKeyService:
             "expires_at": expires_at,
             "created_at": datetime.utcnow().isoformat()
         }
-        
+
         self.client.index(index=self.index, id=api_key, body=doc)
         return {"api_key": api_key, **doc}
-    
+
     async def validate_api_key(self, api_key: str) -> dict | None:
         """Validar API key y retornar información del usuario"""
         key_hash = self._hash_key(api_key)
@@ -3786,14 +3786,14 @@ class APIKeyService:
         result = self.client.search(index=self.index, body=query)
         if not result["hits"]["hits"]:
             return None
-        
+
         key_doc = result["hits"]["hits"][0]["_source"]
-        
+
         # Verificar expiración
         if key_doc.get("expires_at"):
             if datetime.fromisoformat(key_doc["expires_at"]) < datetime.utcnow():
                 return None
-        
+
         # Actualizar último uso
         self.client.update(
             index=self.index,
@@ -3805,9 +3805,9 @@ class APIKeyService:
                 }
             }
         )
-        
+
         return key_doc
-    
+
     def _hash_key(self, api_key: str) -> str:
         """Hash de la API key para almacenamiento seguro"""
         import hashlib
@@ -4145,8 +4145,8 @@ class MarieChatClient:
             "X-API-Key": api_key,
             "Content-Type": "application/json"
         }
-    
-    def chat(self, message: str, model: str = "llama3.2", 
+
+    def chat(self, message: str, model: str = "llama3.2",
              provider: str = "ollama", conversation_id: str = None):
         """Enviar mensaje y recibir respuesta"""
         payload = {
@@ -4156,7 +4156,7 @@ class MarieChatClient:
         }
         if conversation_id:
             payload["conversation_id"] = conversation_id
-        
+
         response = requests.post(
             f"{self.base_url}/chat/completions",
             json=payload,
@@ -4164,7 +4164,7 @@ class MarieChatClient:
         )
         response.raise_for_status()
         return response.json()
-    
+
     def chat_stream(self, message: str, model: str = "llama3.2"):
         """Enviar mensaje y recibir respuesta en streaming"""
         payload = {
@@ -4172,7 +4172,7 @@ class MarieChatClient:
             "model": model,
             "provider": "ollama"
         }
-        
+
         response = requests.post(
             f"{self.base_url}/chat/completions/stream",
             json=payload,
@@ -4180,7 +4180,7 @@ class MarieChatClient:
             stream=True
         )
         response.raise_for_status()
-        
+
         for line in response.iter_lines():
             if line:
                 data = line.decode('utf-8')
@@ -4608,10 +4608,9 @@ NEXT_PUBLIC_WS_URL=ws://localhost:5000
 
 ## 👥 Team
 
-**Developer:** Omar Zapata  
+**Developer:** Omar Zapata
 **Contact:** omar.zapata@example.com
 
 ---
 
 *Last updated: December 2025*
-

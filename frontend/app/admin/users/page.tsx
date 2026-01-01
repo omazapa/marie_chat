@@ -1,14 +1,26 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Table, Tag, Space, Button, Typography, Card, App, Switch, Select, Tooltip, Modal } from 'antd';
-import { 
-  UserOutlined, 
+import {
+  Table,
+  Tag,
+  Space,
+  Button,
+  Typography,
+  Card,
+  App,
+  Switch,
+  Select,
+  Tooltip,
+  Modal,
+} from 'antd';
+import {
+  UserOutlined,
   SafetyCertificateOutlined,
   StopOutlined,
   CheckCircleOutlined,
   DeleteOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import apiClient from '@/lib/api';
 import type { User } from '@/types';
@@ -40,7 +52,7 @@ export default function UserManagement() {
     try {
       await apiClient.put(`/admin/users/${userId}/status`, { is_active: isActive });
       message.success(`User ${isActive ? 'enabled' : 'disabled'} successfully`);
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_active: isActive } : u));
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, is_active: isActive } : u)));
     } catch (err) {
       message.error('Failed to update user status');
     }
@@ -50,7 +62,7 @@ export default function UserManagement() {
     try {
       await apiClient.put(`/admin/users/${userId}/role`, { role });
       message.success(`User role updated to ${role}`);
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role } : u)));
     } catch (err) {
       message.error('Failed to update user role');
     }
@@ -68,7 +80,7 @@ export default function UserManagement() {
         try {
           await apiClient.delete(`/admin/users/${userId}`);
           message.success('User deleted successfully');
-          setUsers(prev => prev.filter(u => u.id !== userId));
+          setUsers((prev) => prev.filter((u) => u.id !== userId));
         } catch (err) {
           message.error('Failed to delete user');
         }
@@ -82,20 +94,26 @@ export default function UserManagement() {
       key: 'user',
       render: (record: User) => (
         <Space>
-          <div style={{ 
-            width: '32px', 
-            height: '32px', 
-            borderRadius: '50%', 
-            background: '#f0f2f5',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: '#f0f2f5',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             <UserOutlined />
           </div>
           <div>
-            <Text strong style={{ display: 'block' }}>{record.full_name || 'No Name'}</Text>
-            <Text type="secondary" style={{ fontSize: '12px' }}>{record.email}</Text>
+            <Text strong style={{ display: 'block' }}>
+              {record.full_name || 'No Name'}
+            </Text>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              {record.email}
+            </Text>
           </div>
         </Space>
       ),
@@ -122,14 +140,12 @@ export default function UserManagement() {
       key: 'is_active',
       render: (isActive: boolean, record: User) => (
         <Space>
-          <Switch 
-            checked={isActive} 
+          <Switch
+            checked={isActive}
             onChange={(checked) => handleStatusChange(record.id, checked)}
             size="small"
           />
-          <Tag color={isActive ? 'success' : 'error'}>
-            {isActive ? 'Active' : 'Inactive'}
-          </Tag>
+          <Tag color={isActive ? 'success' : 'error'}>{isActive ? 'Active' : 'Inactive'}</Tag>
         </Space>
       ),
     },
@@ -144,10 +160,10 @@ export default function UserManagement() {
       key: 'actions',
       render: (record: User) => (
         <Tooltip title="Delete User">
-          <Button 
-            type="text" 
-            danger 
-            icon={<DeleteOutlined />} 
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
             onClick={() => handleDeleteUser(record.id, record.email)}
           />
         </Tooltip>
@@ -157,14 +173,25 @@ export default function UserManagement() {
 
   return (
     <Card variant="borderless">
-      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Title level={4} style={{ margin: 0 }}>User Management</Title>
-        <Button type="primary" onClick={fetchUsers} loading={loading}>Refresh</Button>
+      <div
+        style={{
+          marginBottom: '24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <Title level={4} style={{ margin: 0 }}>
+          User Management
+        </Title>
+        <Button type="primary" onClick={fetchUsers} loading={loading}>
+          Refresh
+        </Button>
       </div>
-      <Table 
-        columns={columns} 
-        dataSource={users} 
-        rowKey="id" 
+      <Table
+        columns={columns}
+        dataSource={users}
+        rowKey="id"
         loading={loading}
         pagination={{ pageSize: 10 }}
       />

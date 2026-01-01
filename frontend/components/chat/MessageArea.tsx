@@ -2,14 +2,14 @@
 
 import React, { memo, useState, useEffect, useCallback } from 'react';
 import { Spin, Empty, Typography, Progress, Card, Space, Button } from 'antd';
-import { 
-  RobotOutlined, 
-  ThunderboltOutlined, 
-  MessageOutlined, 
-  LinkOutlined, 
-  SettingOutlined, 
+import {
+  RobotOutlined,
+  ThunderboltOutlined,
+  MessageOutlined,
+  LinkOutlined,
+  SettingOutlined,
   PictureOutlined,
-  ArrowDownOutlined
+  ArrowDownOutlined,
 } from '@ant-design/icons';
 import { Welcome, Prompts } from '@ant-design/x';
 import { useSettings } from '@/hooks/useSettings';
@@ -32,8 +32,8 @@ interface MessageAreaProps {
   handlePlayMessage: (text: string, id: string) => void;
   playingMessageId: string | null;
   imageProgress?: { progress: number; step: number; total_steps: number; preview?: string } | null;
-  messagesEndRef: React.RefObject<HTMLDivElement>;
-  scrollContainerRef: React.RefObject<HTMLDivElement>;
+  messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export const MessageArea: React.FC<MessageAreaProps> = ({
@@ -79,22 +79,34 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
 
   if (!currentConversation) {
     return (
-      <div style={{ 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column',
-        justifyContent: 'center', 
-        alignItems: 'center',
-        padding: '40px',
-        background: '#ffffff'
-      }}>
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '40px',
+          background: '#ffffff',
+        }}
+      >
         <Welcome
           variant="borderless"
-          icon={<img src={whiteLabel.app_logo} alt="Logo" style={{ width: '120px', marginBottom: '16px' }} />}
+          icon={
+            <img
+              src={whiteLabel.app_logo}
+              alt="Logo"
+              style={{ width: '120px', marginBottom: '16px' }}
+            />
+          }
           title={whiteLabel.welcome_title}
           description={whiteLabel.welcome_subtitle}
           extra={
-            <Space orientation="vertical" size="large" style={{ width: '100%', marginTop: 24, alignItems: 'center' }}>
+            <Space
+              orientation="vertical"
+              size="large"
+              style={{ width: '100%', marginTop: 24, alignItems: 'center' }}
+            >
               <Prompts
                 title="Suggested Topics"
                 vertical
@@ -103,15 +115,23 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
                     whiteSpace: 'normal',
                     height: 'auto',
                     textAlign: 'left',
-                    padding: '8px 12px'
-                  }
+                    padding: '8px 12px',
+                  },
                 }}
                 items={[
                   { key: '1', label: 'What is ImpactU?', icon: <ThunderboltOutlined /> },
                   { key: '2', label: 'How to analyze research data?', icon: <MessageOutlined /> },
                   { key: '3', label: 'Explain RAG technology', icon: <RobotOutlined /> },
-                  { key: '4', label: `How to use references in ${whiteLabel.app_name.replace(/\s*Chat/i, '')}?`, icon: <LinkOutlined /> },
-                  { key: '5', label: 'Tell me about the available LLM models', icon: <SettingOutlined /> },
+                  {
+                    key: '4',
+                    label: `How to use references in ${whiteLabel.app_name.replace(/\s*Chat/i, '')}?`,
+                    icon: <LinkOutlined />,
+                  },
+                  {
+                    key: '5',
+                    label: 'Tell me about the available LLM models',
+                    icon: <SettingOutlined />,
+                  },
                 ]}
                 onItemClick={(info) => handleSend(info.data.label as string)}
               />
@@ -123,48 +143,52 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
   }
 
   return (
-    <div 
-      key={currentConversation.id} 
+    <div
+      key={currentConversation.id}
       ref={scrollContainerRef}
-      style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        flex: 1, 
-        minWidth: 0, 
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        minWidth: 0,
         minHeight: 0,
         overflowY: 'auto',
         overflowX: 'hidden',
-        scrollBehavior: isStreaming ? 'auto' : 'smooth'
+        scrollBehavior: isStreaming ? 'auto' : 'smooth',
       }}
     >
       {/* Messages Area */}
-      <div 
-        style={{ 
-          flex: 1, 
+      <div
+        style={{
+          flex: 1,
           padding: '24px',
           background: '#ffffff',
-          minHeight: 0
+          minHeight: 0,
         }}
       >
         {loading && chatMessages.length === 0 ? (
-          <div style={{ 
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100%'
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '100%',
+            }}
+          >
             <Spin size="large" />
           </div>
-        ) : (chatMessages.length === 0 && !imageProgress) ? (
-          <div style={{ 
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center', 
-            alignItems: 'center',
-            height: '100%',
-            gap: '24px'
-          }}>
-            <Empty 
+        ) : chatMessages.length === 0 && !imageProgress ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '100%',
+              gap: '24px',
+            }}
+          >
+            <Empty
               description="No messages yet. Start the conversation!"
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
@@ -176,24 +200,32 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
                   whiteSpace: 'normal',
                   height: 'auto',
                   textAlign: 'left',
-                  padding: '8px 12px'
-                }
+                  padding: '8px 12px',
+                },
               }}
               items={[
                 { key: '1', label: 'What is ImpactU?', icon: <ThunderboltOutlined /> },
                 { key: '2', label: 'How to analyze research data?', icon: <MessageOutlined /> },
                 { key: '3', label: 'Explain RAG technology', icon: <RobotOutlined /> },
-                { key: '4', label: `How to use references in ${whiteLabel.app_name.replace(/\s*Chat/i, '')}?`, icon: <LinkOutlined /> },
-                { key: '5', label: 'Tell me about the available LLM models', icon: <SettingOutlined /> },
+                {
+                  key: '4',
+                  label: `How to use references in ${whiteLabel.app_name.replace(/\s*Chat/i, '')}?`,
+                  icon: <LinkOutlined />,
+                },
+                {
+                  key: '5',
+                  label: 'Tell me about the available LLM models',
+                  icon: <SettingOutlined />,
+                },
               ]}
               onItemClick={(info) => handleSend(info.data.label as string)}
             />
           </div>
         ) : (
-          <MessageList 
-            messages={chatMessages} 
-            isStreaming={isStreaming} 
-            onEdit={handleEdit} 
+          <MessageList
+            messages={chatMessages}
+            isStreaming={isStreaming}
+            onEdit={handleEdit}
             onReference={toggleMessageReference}
             referencedMsgIds={referencedMsgIds}
             onNavigate={handleNavigate}
@@ -202,10 +234,10 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
             onPlay={handlePlayMessage}
             playingMessageId={playingMessageId}
             imageProgress={imageProgress}
-            messagesEndRef={messagesEndRef} 
+            messagesEndRef={messagesEndRef}
           />
         )}
-        
+
         {showScrollButton && (
           <Button
             type="primary"
@@ -219,11 +251,11 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
               zIndex: 100,
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
               backgroundColor: whiteLabel.primary_color,
-              border: 'none'
+              border: 'none',
             }}
           />
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
     </div>

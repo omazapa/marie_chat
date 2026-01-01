@@ -11,6 +11,7 @@ interface WhiteLabelSettings {
   welcome_title: string;
   welcome_subtitle: string;
   registration_enabled: boolean;
+  suggested_prompts?: string[];
 }
 
 interface SettingsContextType {
@@ -43,10 +44,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         const response = await apiClient.get('/admin/settings/public');
         if (response.data.white_label) {
           setWhiteLabel(response.data.white_label);
-          
+
           // Apply primary color to CSS variable if needed
           if (response.data.white_label.primary_color) {
-            document.documentElement.style.setProperty('--primary-color', response.data.white_label.primary_color);
+            document.documentElement.style.setProperty(
+              '--primary-color',
+              response.data.white_label.primary_color
+            );
           }
         }
       } catch (err) {
@@ -60,9 +64,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <SettingsContext.Provider value={{ whiteLabel, loading }}>
-      {children}
-    </SettingsContext.Provider>
+    <SettingsContext.Provider value={{ whiteLabel, loading }}>{children}</SettingsContext.Provider>
   );
 }
 

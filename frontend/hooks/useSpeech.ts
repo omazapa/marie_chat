@@ -28,7 +28,7 @@ export const useSpeech = ({ accessToken, onTranscription, onTranscribe }: UseSpe
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        
+
         if (onTranscribe) {
           const reader = new FileReader();
           reader.readAsDataURL(audioBlob);
@@ -39,9 +39,9 @@ export const useSpeech = ({ accessToken, onTranscription, onTranscribe }: UseSpe
         } else {
           await transcribeAudio(audioBlob);
         }
-        
+
         // Stop all tracks to release the microphone
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();

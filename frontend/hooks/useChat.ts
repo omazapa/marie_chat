@@ -16,7 +16,10 @@ export interface Conversation {
   updated_at: string;
 }
 
-export function useChat(token: string | null, options?: { onTranscription?: (text: string) => void }) {
+export function useChat(
+  token: string | null,
+  options?: { onTranscription?: (text: string) => void }
+) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -24,13 +27,16 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
   const [isStreaming, setIsStreaming] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [ttsAudio, setTtsAudio] = useState<{ audio: string; message_id?: string } | null>(null);
-  const [searchResults, setSearchResults] = useState<{ conversations: Conversation[]; messages: Message[] }>({ conversations: [], messages: [] });
+  const [searchResults, setSearchResults] = useState<{
+    conversations: Conversation[];
+    messages: Message[];
+  }>({ conversations: [], messages: [] });
   const [isSearching, setIsSearching] = useState(false);
-  const [imageProgress, setImageProgress] = useState<{ 
-    conversation_id: string; 
-    progress: number; 
-    step: number; 
-    total_steps: number; 
+  const [imageProgress, setImageProgress] = useState<{
+    conversation_id: string;
+    progress: number;
+    step: number;
+    total_steps: number;
     preview?: string;
     image_url?: string;
     message?: string;
@@ -38,10 +44,10 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updateTrigger, setUpdateTrigger] = useState(0);
-  
+
   // Use ref to keep track of current conversation for callbacks
   const currentConversationRef = useRef<Conversation | null>(null);
-  
+
   // Update ref when state changes
   useEffect(() => {
     currentConversationRef.current = currentConversation;
@@ -60,7 +66,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       if (chunk.content) {
         setStreamingMessage((prev) => prev + chunk.content);
       }
-      
+
       // If we get follow-ups in a chunk, we can store them
       if (chunk.follow_ups && chunk.follow_ups.length > 0) {
         // We'll handle this in handleStreamEnd or by updating the last message
@@ -72,22 +78,22 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
   const handleStreamEnd = useCallback(
     async (data: { conversation_id: string; message?: Message }) => {
       setIsStreaming(false);
-      
+
       // Add the complete assistant message if provided
       if (data.message && currentConversationRef.current?.id === data.conversation_id) {
         const newMessage = { ...data.message };
         setMessages((prev) => {
           // Check if message already exists
-          const exists = prev.some(m => m.id === newMessage.id);
+          const exists = prev.some((m) => m.id === newMessage.id);
           if (exists) {
             // Update existing message to ensure metadata (like follow-ups) is included
-            return prev.map(m => m.id === newMessage.id ? newMessage : m);
+            return prev.map((m) => (m.id === newMessage.id ? newMessage : m));
           }
           return [...prev, newMessage];
         });
         setStreamingMessage('');
       } else if (currentConversationRef.current?.id === data.conversation_id) {
-        // Fallback: if no message object but we have streaming content, 
+        // Fallback: if no message object but we have streaming content,
         // we should probably keep it or convert it to a message
         console.warn('Stream ended without message object, keeping streaming content as fallback');
         // We don't clear streamingMessage here so it stays visible in the UI
@@ -105,10 +111,10 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       if (currentConversationRef.current?.id === data.conversation_id) {
         setMessages((prev) => {
           // Check if message already exists
-          const exists = prev.some(m => m.id === data.message.id);
+          const exists = prev.some((m) => m.id === data.message.id);
           if (exists) {
             console.log('⚠️ Message already exists, updating:', data.message.id);
-            return prev.map(m => m.id === data.message.id ? data.message : m);
+            return prev.map((m) => (m.id === data.message.id ? data.message : m));
           }
           console.log('✅ Adding new message to state:', data.message.id);
           return [...prev, data.message];
@@ -116,23 +122,27 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         // Clear image progress when the final message arrives
         setImageProgress(null);
       } else {
-        console.warn(`⚠️ Message response for different conversation: ${data.conversation_id}. Current: ${currentConversationRef.current?.id}`);
+        console.warn(
+          `⚠️ Message response for different conversation: ${data.conversation_id}. Current: ${currentConversationRef.current?.id}`
+        );
       }
     },
     []
   );
 
   const handleImageProgress = useCallback(
-    (data: { 
-      conversation_id: string; 
-      step: number; 
-      total_steps: number; 
-      progress: number; 
+    (data: {
+      conversation_id: string;
+      step: number;
+      total_steps: number;
+      progress: number;
       preview?: string;
       image_url?: string;
       message?: string;
     }) => {
-      console.log(`🖼️ Image progress: ${data.progress}% for ${data.conversation_id}. Current: ${currentConversationRef.current?.id}`);
+      console.log(
+        `🖼️ Image progress: ${data.progress}% for ${data.conversation_id}. Current: ${currentConversationRef.current?.id}`
+      );
       if (currentConversationRef.current?.id === data.conversation_id) {
         setImageProgress(data);
       }
@@ -140,23 +150,22 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     []
   );
 
-  const handleTranscriptionResult = useCallback((data: { text: string }) => {
-    setIsTranscribing(false);
-    if (data.text && options?.onTranscription) {
-      options.onTranscription(data.text);
-    }
-  }, [options]);
+  const handleTranscriptionResult = useCallback(
+    (data: { text: string }) => {
+      setIsTranscribing(false);
+      if (data.text && options?.onTranscription) {
+        options.onTranscription(data.text);
+      }
+    },
+    [options]
+  );
 
   const handleTTSResult = useCallback((data: { audio: string; message_id?: string }) => {
     setTtsAudio(data);
   }, []);
 
   const handleImageError = useCallback(
-    (data: { 
-      conversation_id: string;
-      error: string;
-      message?: string;
-    }) => {
+    (data: { conversation_id: string; error: string; message?: string }) => {
       console.error(`❌ Image error for ${data.conversation_id}: ${data.error}`);
       if (currentConversationRef.current?.id === data.conversation_id) {
         setImageProgress(null);
@@ -201,9 +210,9 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
   // Send message
   const sendMessage = useCallback(
     async (
-      content: string, 
-      attachments: any[] = [], 
-      referenced_convs: { id: string, title: string }[] = [],
+      content: string,
+      attachments: any[] = [],
+      referenced_convs: { id: string; title: string }[] = [],
       referenced_msg_ids: string[] = [],
       conversationId?: string
     ) => {
@@ -215,7 +224,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         return;
       }
 
-      const referenced_conv_ids = referenced_convs.map(r => r.id);
+      const referenced_conv_ids = referenced_convs.map((r) => r.id);
 
       // Add user message to UI immediately
       const userMessage: Message = {
@@ -237,57 +246,61 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       if (targetConvId === conv?.id) {
         setMessages((prev) => [...prev, userMessage]);
       }
-      
+
       setImageProgress(null);
 
       // Send via WebSocket
-      wsSendMessage(targetConvId, content, true, attachments, referenced_conv_ids, referenced_msg_ids);
+      wsSendMessage(
+        targetConvId,
+        content,
+        true,
+        attachments,
+        referenced_conv_ids,
+        referenced_msg_ids
+      );
     },
     [isConnected, wsSendMessage]
   );
 
   // Regenerate response
-  const regenerateResponse = useCallback(
-    async () => {
-      const conv = currentConversationRef.current;
-      if (!conv || !isConnected) {
-        setError('Not connected to chat');
-        return;
+  const regenerateResponse = useCallback(async () => {
+    const conv = currentConversationRef.current;
+    if (!conv || !isConnected) {
+      setError('Not connected to chat');
+      return;
+    }
+
+    // Find the last user message
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+    if (!lastUserMsg) {
+      setError('No user message to regenerate from');
+      return;
+    }
+
+    // Remove the last assistant message from UI
+    setMessages((prev) => {
+      const newMessages = [...prev];
+      if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
+        newMessages.pop();
       }
+      return newMessages;
+    });
 
-      // Find the last user message
-      const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
-      if (!lastUserMsg) {
-        setError('No user message to regenerate from');
-        return;
-      }
+    // Send via WebSocket with regenerate flag
+    const attachments = lastUserMsg.metadata?.attachments || [];
+    const referenced_conv_ids = lastUserMsg.metadata?.referenced_conv_ids || [];
+    const referenced_msg_ids = lastUserMsg.metadata?.referenced_msg_ids || [];
 
-      // Remove the last assistant message from UI
-      setMessages(prev => {
-        const newMessages = [...prev];
-        if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
-          newMessages.pop();
-        }
-        return newMessages;
-      });
-
-      // Send via WebSocket with regenerate flag
-      const attachments = lastUserMsg.metadata?.attachments || [];
-      const referenced_conv_ids = lastUserMsg.metadata?.referenced_conv_ids || [];
-      const referenced_msg_ids = lastUserMsg.metadata?.referenced_msg_ids || [];
-
-      wsSendMessage(
-        conv.id, 
-        lastUserMsg.content, 
-        true, 
-        attachments, 
-        referenced_conv_ids, 
-        referenced_msg_ids,
-        true // regenerate flag
-      );
-    },
-    [isConnected, messages, wsSendMessage]
-  );
+    wsSendMessage(
+      conv.id,
+      lastUserMsg.content,
+      true,
+      attachments,
+      referenced_conv_ids,
+      referenced_msg_ids,
+      true // regenerate flag
+    );
+  }, [isConnected, messages, wsSendMessage]);
 
   // Upload file
   const uploadFile = useCallback(
@@ -322,10 +335,10 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
   // Edit and resend message
   const editMessage = useCallback(
     async (
-      messageId: string, 
-      newContent: string, 
-      attachments: any[] = [], 
-      referenced_convs: { id: string, title: string }[] = [],
+      messageId: string,
+      newContent: string,
+      attachments: any[] = [],
+      referenced_convs: { id: string; title: string }[] = [],
       referenced_msg_ids: string[] = []
     ) => {
       const conv = currentConversationRef.current;
@@ -335,7 +348,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       }
 
       // Find the message to edit
-      const messageToEdit = messages.find(m => m.id === messageId);
+      const messageToEdit = messages.find((m) => m.id === messageId);
       if (!messageToEdit) return;
 
       try {
@@ -343,12 +356,12 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         // Truncate conversation at this message (inclusive)
         await apiClient.post(`/conversations/${conv.id}/messages/truncate`, {
           timestamp: messageToEdit.created_at,
-          inclusive: true
+          inclusive: true,
         });
 
         // Remove messages from state
-        setMessages(prev => {
-          const index = prev.findIndex(m => m.id === messageId);
+        setMessages((prev) => {
+          const index = prev.findIndex((m) => m.id === messageId);
           if (index === -1) return prev;
           return prev.slice(0, index);
         });
@@ -382,49 +395,63 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
   }, [token]);
 
   // Search conversations and messages
-  const search = useCallback(async (query: string, scope: 'conversations' | 'messages' = 'conversations', conversationId?: string) => {
-    if (!token || !query) {
-      setSearchResults({ conversations: [], messages: [] });
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const response = await apiClient.get('/conversations/search', {
-        params: {
-          q: query,
-          scope,
-          conversation_id: conversationId,
-          limit: 20
-        }
-      });
-
-      if (scope === 'messages') {
-        setSearchResults(prev => ({ ...prev, messages: response.data.results }));
-      } else {
-        setSearchResults(prev => ({ ...prev, conversations: response.data.results }));
+  const search = useCallback(
+    async (
+      query: string,
+      scope: 'conversations' | 'messages' = 'conversations',
+      conversationId?: string
+    ) => {
+      if (!token || !query) {
+        setSearchResults({ conversations: [], messages: [] });
+        return;
       }
-    } catch (err) {
-      console.error('Search error:', err);
-      setError('Failed to search');
-    } finally {
-      setIsSearching(false);
-    }
-  }, [token]);
+
+      setIsSearching(true);
+      try {
+        const response = await apiClient.get('/conversations/search', {
+          params: {
+            q: query,
+            scope,
+            conversation_id: conversationId,
+            limit: 20,
+          },
+        });
+
+        if (scope === 'messages') {
+          setSearchResults((prev) => ({ ...prev, messages: response.data.results }));
+        } else {
+          setSearchResults((prev) => ({ ...prev, conversations: response.data.results }));
+        }
+      } catch (err) {
+        console.error('Search error:', err);
+        setError('Failed to search');
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [token]
+  );
 
   // Create conversation
   const createConversation = useCallback(
-    async (title: string = 'New Conversation', model: string = 'llama3.2', provider: string = 'ollama', systemPrompt?: string) => {
+    async (
+      title: string = 'New Conversation',
+      model: string = 'llama3.2',
+      provider: string = 'ollama',
+      systemPrompt?: string
+    ) => {
       if (!token) {
         return null;
       }
 
       try {
         setLoading(true);
-        const response = await apiClient.post(
-          '/conversations',
-          { title, model, provider, system_prompt: systemPrompt }
-        );
+        const response = await apiClient.post('/conversations', {
+          title,
+          model,
+          provider,
+          system_prompt: systemPrompt,
+        });
         const newConversation = response.data;
         setConversations((prev) => [newConversation, ...prev]);
         setError(null);
@@ -472,14 +499,14 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       try {
         setLoading(true);
         await apiClient.post('/conversations/bulk-delete', { conversation_ids: conversationIds });
-        
+
         setConversations((prev) => prev.filter((c) => !conversationIds.includes(c.id)));
-        
+
         if (currentConversation && conversationIds.includes(currentConversation.id)) {
           setCurrentConversation(null);
           setMessages([]);
         }
-        
+
         setError(null);
         return true;
       } catch (err: any) {
@@ -524,9 +551,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
 
       try {
         setLoading(true);
-        const response = await apiClient.get(
-          `/conversations/${conversationId}/messages`
-        );
+        const response = await apiClient.get(`/conversations/${conversationId}/messages`);
         setMessages(response.data.messages || []);
         setError(null);
       } catch (err: any) {
@@ -546,13 +571,13 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
 
       if (typeof conversationOrId === 'string') {
         // Try to find in existing conversations
-        conversation = conversations.find(c => c.id === conversationOrId) || null;
-        
+        conversation = conversations.find((c) => c.id === conversationOrId) || null;
+
         // If not found, we might need to fetch it or create a partial one
         if (!conversation) {
           try {
             const response = await apiClient.get(`/conversations/${conversationOrId}`, {
-              headers: { Authorization: `Bearer ${token}` }
+              headers: { Authorization: `Bearer ${token}` },
             });
             conversation = response.data;
           } catch (err) {
@@ -566,7 +591,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
               message_count: 0,
               model: 'unknown',
               provider: 'unknown',
-              user_id: ''
+              user_id: '',
             } as Conversation;
           }
         }
@@ -587,17 +612,25 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
 
       // Set new conversation
       setCurrentConversation(conversation);
-      
+
       // Join new conversation and wait for it to be ready
       await wsJoinConversation(conversation.id);
-      
+
       // Fetch messages
       await fetchMessages(conversation.id);
-      
+
       // Refresh conversation list to ensure the new one is there
       fetchConversations();
     },
-    [currentConversation, conversations, token, wsJoinConversation, wsLeaveConversation, fetchMessages, fetchConversations]
+    [
+      currentConversation,
+      conversations,
+      token,
+      wsJoinConversation,
+      wsLeaveConversation,
+      fetchMessages,
+      fetchConversations,
+    ]
   );
 
   // Load conversations on mount
@@ -608,10 +641,13 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
   }, [token, fetchConversations]);
 
   // Transcribe audio
-  const transcribeAudio = useCallback((base64Audio: string, language?: string) => {
-    setIsTranscribing(true);
-    wsTranscribeAudio(base64Audio, language);
-  }, [wsTranscribeAudio]);
+  const transcribeAudio = useCallback(
+    (base64Audio: string, language?: string) => {
+      setIsTranscribing(true);
+      wsTranscribeAudio(base64Audio, language);
+    },
+    [wsTranscribeAudio]
+  );
 
   return {
     // State
@@ -629,6 +665,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     loading,
     error,
     isConnected,
+    setError,
 
     // Actions
     fetchConversations,

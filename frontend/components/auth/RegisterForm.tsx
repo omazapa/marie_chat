@@ -35,21 +35,23 @@ export function RegisterForm() {
       });
 
       setAuth(response.data);
-      message.success(`Registration successful! Welcome to ${whiteLabel.app_name.replace(/\s*Chat/i, '')}`);
+      message.success(
+        `Registration successful! Welcome to ${whiteLabel.app_name.replace(/\s*Chat/i, '')}`
+      );
       router.push('/chat');
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Registration error';
-      
+
       // Only log if it's not a 409 (User already exists) or other expected auth failure
       if (error.response?.status !== 409 && error.response?.status !== 401) {
         console.error('Register error:', error);
       }
-      
+
       notification.error({
         title: 'Registration Failed',
         description: errorMessage,
         placement: 'top',
-        duration: 5
+        duration: 5,
       });
     } finally {
       setLoading(false);
@@ -57,24 +59,26 @@ export function RegisterForm() {
   };
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      minHeight: '100vh',
-      background: '#f5f7f9',
-      backgroundImage: `radial-gradient(${whiteLabel.primary_color} 0.5px, transparent 0.5px)`,
-      backgroundSize: '20px 20px'
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        background: '#f5f7f9',
+        backgroundImage: `radial-gradient(${whiteLabel.primary_color} 0.5px, transparent 0.5px)`,
+        backgroundSize: '20px 20px',
+      }}
+    >
       <Card style={{ width: 450, padding: '24px 12px' }}>
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <Image 
-              src={whiteLabel.app_logo} 
-              alt="Logo" 
-              width={240} 
+            <Image
+              src={whiteLabel.app_logo}
+              alt="Logo"
+              width={240}
               preview={false}
-              style={{ marginBottom: '16px', objectFit: 'contain' }} 
+              style={{ marginBottom: '16px', objectFit: 'contain' }}
             />
             <Title level={3} style={{ margin: 0, color: whiteLabel.primary_color }}>
               {whiteLabel.app_name.replace(/\s*Chat/i, '')}
@@ -82,22 +86,13 @@ export function RegisterForm() {
             <Text type="secondary">{whiteLabel.welcome_subtitle}</Text>
           </div>
 
-          <Form
-            name="register"
-            onFinish={onFinish}
-            layout="vertical"
-            requiredMark={false}
-          >
+          <Form name="register" onFinish={onFinish} layout="vertical" requiredMark={false}>
             <Form.Item
               name="full_name"
               label="Full Name"
               rules={[{ required: true, message: 'Please enter your name' }]}
             >
-              <Input
-                prefix={<UserOutlined />}
-                placeholder="Your name"
-                size="large"
-              />
+              <Input prefix={<UserOutlined />} placeholder="Your name" size="large" />
             </Form.Item>
 
             <Form.Item
@@ -105,14 +100,10 @@ export function RegisterForm() {
               label="Email"
               rules={[
                 { required: true, message: 'Please enter your email' },
-                { type: 'email', message: 'Please enter a valid email' }
+                { type: 'email', message: 'Please enter a valid email' },
               ]}
             >
-              <Input
-                prefix={<MailOutlined />}
-                placeholder="your@email.com"
-                size="large"
-              />
+              <Input prefix={<MailOutlined />} placeholder="your@email.com" size="large" />
             </Form.Item>
 
             <Form.Item
@@ -120,7 +111,7 @@ export function RegisterForm() {
               label="Password"
               rules={[
                 { required: true, message: 'Please enter your password' },
-                { min: 8, message: 'Password must be at least 8 characters' }
+                { min: 8, message: 'Password must be at least 8 characters' },
               ]}
             >
               <Input.Password
@@ -154,13 +145,7 @@ export function RegisterForm() {
             </Form.Item>
 
             <Form.Item style={{ marginBottom: 0 }}>
-              <Button
-                type="primary"
-                htmlType="submit"
-                size="large"
-                block
-                loading={loading}
-              >
+              <Button type="primary" htmlType="submit" size="large" block loading={loading}>
                 Sign up
               </Button>
             </Form.Item>
@@ -168,8 +153,7 @@ export function RegisterForm() {
 
           <div style={{ textAlign: 'center' }}>
             <Text type="secondary">
-              Already have an account?{' '}
-              <Link href="/login">Sign in</Link>
+              Already have an account? <Link href="/login">Sign in</Link>
             </Text>
           </div>
         </Space>

@@ -31,41 +31,44 @@ export function useImages(token: string | null) {
     }
   }, [token]);
 
-  const generateImage = useCallback(async (params: {
-    prompt: string;
-    model?: string;
-    conversation_id?: string;
-    text_model?: string;
-    text_provider?: string;
-    negative_prompt?: string;
-    width?: number;
-    height?: number;
-  }) => {
-    if (!token) return null;
-    
-    setIsGenerating(true);
-    setError(null);
-    
-    try {
-      const response = await apiClient.post('/images/generate', params, {
-        timeout: 300000 // 5 minutes for local generation
-      });
-      return response.data as GeneratedImage;
-    } catch (err: any) {
-      const msg = err.response?.data?.error || 'Failed to generate image';
-      setError(msg);
-      console.error('Image generation error:', err);
-      return null;
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [token]);
+  const generateImage = useCallback(
+    async (params: {
+      prompt: string;
+      model?: string;
+      conversation_id?: string;
+      text_model?: string;
+      text_provider?: string;
+      negative_prompt?: string;
+      width?: number;
+      height?: number;
+    }) => {
+      if (!token) return null;
+
+      setIsGenerating(true);
+      setError(null);
+
+      try {
+        const response = await apiClient.post('/images/generate', params, {
+          timeout: 300000, // 5 minutes for local generation
+        });
+        return response.data as GeneratedImage;
+      } catch (err: any) {
+        const msg = err.response?.data?.error || 'Failed to generate image';
+        setError(msg);
+        console.error('Image generation error:', err);
+        return null;
+      } finally {
+        setIsGenerating(false);
+      }
+    },
+    [token]
+  );
 
   return {
     isGenerating,
     imageModels,
     error,
     fetchImageModels,
-    generateImage
+    generateImage,
   };
 }

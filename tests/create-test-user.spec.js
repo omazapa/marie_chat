@@ -11,10 +11,10 @@ const TEST_USER = {
 };
 
 test.describe('Create Test User', () => {
-  
+
   test('should create test@example.com user', async ({ page }) => {
     console.log('Creating test user...');
-    
+
     // Navigate to register page
     await page.goto(`${BASE_URL}/register`);
     await page.waitForLoadState('networkidle');
@@ -37,10 +37,10 @@ test.describe('Create Test User', () => {
     if (currentUrl.includes('/chat')) {
       console.log('✅ User created and auto-logged in successfully!');
       console.log('✅ Redirected to chat page');
-      
+
       // Verify we're in the chat interface
       await expect(page.getByRole('heading', { name: 'Marie', exact: true })).toBeVisible({ timeout: 5000 });
-      
+
       console.log('\n📧 User Details:');
       console.log(`Email: ${TEST_USER.email}`);
       console.log(`Password: ${TEST_USER.password}`);
@@ -53,7 +53,7 @@ test.describe('Create Test User', () => {
 
   test('should login with test@example.com', async ({ page }) => {
     console.log('Testing login with test credentials...');
-    
+
     // Navigate to login page
     await page.goto(`${BASE_URL}/login`);
     await page.waitForLoadState('networkidle');
@@ -70,7 +70,7 @@ test.describe('Create Test User', () => {
 
     // Should be redirected to chat page
     await page.waitForURL('**/chat', { timeout: 10000 });
-    
+
     console.log('✅ Login successful!');
     console.log('✅ Redirected to chat page');
 
@@ -96,7 +96,7 @@ test.describe('Create Test User', () => {
       console.log('✅ User verified via API');
       console.log(`✅ Access token received: ${data.access_token.substring(0, 20)}...`);
       console.log(`✅ User: ${data.user.email}`);
-      
+
       expect(data).toHaveProperty('access_token');
       expect(data.user.email).toBe(TEST_USER.email);
     } else {
@@ -108,7 +108,7 @@ test.describe('Create Test User', () => {
 
   test('should create a test conversation', async ({ page }) => {
     console.log('Creating test conversation...');
-    
+
     // Login first
     await page.goto(`${BASE_URL}/login`);
     await page.fill('input[type="email"]', TEST_USER.email);

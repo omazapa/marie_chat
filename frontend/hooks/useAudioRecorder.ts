@@ -32,9 +32,9 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps 
           const base64Audio = reader.result as string;
           onRecordingComplete?.(base64Audio);
         };
-        
+
         // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();

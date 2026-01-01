@@ -26,8 +26,19 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: 'Marie - Machine-Assisted Research Intelligent Environment',
-  description: 'Machine-Assisted Research Intelligent Environment (MARIE) - Intelligent AI chat with multi-provider support, semantic search and advanced capabilities by Omar Zapata',
-  keywords: ['AI', 'Chat', 'LLM', 'OpenSearch', 'Next.js', 'Flask', 'Omar Zapata', 'Research Assistant', 'MARIE'],
+  description:
+    'Machine-Assisted Research Intelligent Environment (MARIE) - Intelligent AI chat with multi-provider support, semantic search and advanced capabilities by Omar Zapata',
+  keywords: [
+    'AI',
+    'Chat',
+    'LLM',
+    'OpenSearch',
+    'Next.js',
+    'Flask',
+    'Omar Zapata',
+    'Research Assistant',
+    'MARIE',
+  ],
 };
 
 export default function RootLayout({
@@ -36,11 +47,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${plusJakarta.variable} ${jetbrainsMono.variable}`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${plusJakarta.variable} ${jetbrainsMono.variable}`}
+    >
       <body suppressHydrationWarning>
-        <ClientProviders>
-          {children}
-        </ClientProviders>
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );

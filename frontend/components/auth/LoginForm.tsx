@@ -37,17 +37,17 @@ export function LoginForm() {
       router.push('/chat');
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Invalid email or password';
-      
+
       // Only log if it's not a 401 (expected auth failure)
       if (error.response?.status !== 401) {
         console.error('Login error:', error);
       }
-      
+
       notification.error({
         title: 'Login Failed',
         description: errorMessage,
         placement: 'top',
-        duration: 5
+        duration: 5,
       });
     } finally {
       setLoading(false);
@@ -55,24 +55,26 @@ export function LoginForm() {
   };
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      minHeight: '100vh',
-      background: '#f5f7f9',
-      backgroundImage: `radial-gradient(${whiteLabel.primary_color} 0.5px, transparent 0.5px)`,
-      backgroundSize: '20px 20px'
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        background: '#f5f7f9',
+        backgroundImage: `radial-gradient(${whiteLabel.primary_color} 0.5px, transparent 0.5px)`,
+        backgroundSize: '20px 20px',
+      }}
+    >
       <Card style={{ width: 450, padding: '24px 12px' }}>
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <Image 
-              src={whiteLabel.app_logo} 
-              alt="Logo" 
-              width={240} 
+            <Image
+              src={whiteLabel.app_logo}
+              alt="Logo"
+              width={240}
               preview={false}
-              style={{ marginBottom: '16px', objectFit: 'contain' }} 
+              style={{ marginBottom: '16px', objectFit: 'contain' }}
             />
             <Title level={3} style={{ margin: 0, color: whiteLabel.primary_color }}>
               {whiteLabel.app_name.replace(/\s*Chat/i, '')}
@@ -80,25 +82,16 @@ export function LoginForm() {
             <Text type="secondary">{whiteLabel.welcome_subtitle}</Text>
           </div>
 
-          <Form
-            name="login"
-            onFinish={onFinish}
-            layout="vertical"
-            requiredMark={false}
-          >
+          <Form name="login" onFinish={onFinish} layout="vertical" requiredMark={false}>
             <Form.Item
               name="email"
               label="Email"
               rules={[
                 { required: true, message: 'Please enter your email' },
-                { type: 'email', message: 'Please enter a valid email' }
+                { type: 'email', message: 'Please enter a valid email' },
               ]}
             >
-              <Input
-                prefix={<MailOutlined />}
-                placeholder="your@email.com"
-                size="large"
-              />
+              <Input prefix={<MailOutlined />} placeholder="your@email.com" size="large" />
             </Form.Item>
 
             <Form.Item
@@ -106,28 +99,20 @@ export function LoginForm() {
               label="Password"
               rules={[{ required: true, message: 'Please enter your password' }]}
             >
-              <Input.Password
-                prefix={<LockOutlined />}
-                placeholder="Your password"
-                size="large"
-              />
+              <Input.Password prefix={<LockOutlined />} placeholder="Your password" size="large" />
             </Form.Item>
 
             <Form.Item>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
                 <Checkbox>Remember me</Checkbox>
                 <Link href="#">Forgot password?</Link>
               </div>
             </Form.Item>
 
             <Form.Item style={{ marginBottom: 0 }}>
-              <Button
-                type="primary"
-                htmlType="submit"
-                size="large"
-                block
-                loading={loading}
-              >
+              <Button type="primary" htmlType="submit" size="large" block loading={loading}>
                 Sign in
               </Button>
             </Form.Item>
@@ -136,8 +121,7 @@ export function LoginForm() {
           {whiteLabel.registration_enabled && (
             <div style={{ textAlign: 'center' }}>
               <Text type="secondary">
-                Don&apos;t have an account?{' '}
-                <Link href="/register">Sign up</Link>
+                Don&apos;t have an account? <Link href="/register">Sign up</Link>
               </Text>
             </div>
           )}

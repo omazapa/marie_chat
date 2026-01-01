@@ -1,11 +1,11 @@
 const { test, expect } = require('@playwright/test');
 
 test.describe('Marie - Backend Services', () => {
-  
+
   test('Backend health check responds correctly', async ({ request }) => {
     const response = await request.get('http://localhost:5000/health');
     expect(response.ok()).toBeTruthy();
-    
+
     const data = await response.json();
     expect(data).toHaveProperty('status');
     expect(data.status).toBe('healthy');
@@ -20,7 +20,7 @@ test.describe('Marie - Backend Services', () => {
       },
       ignoreHTTPSErrors: true,
     });
-    
+
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
     expect(data).toHaveProperty('cluster_name');

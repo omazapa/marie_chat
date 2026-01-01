@@ -55,4 +55,3 @@ For detailed technical information, please refer to:
 
 ---
 Developed by **Omar Zapata**.
-

@@ -1,12 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { Select, Card, Space, Typography, Tag, Spin, Alert, Tooltip } from 'antd';
-import { RobotOutlined, CheckCircleOutlined, CloseCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { useModels, ModelInfo } from '@/hooks/useModels';
+import {
+  RobotOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  InfoCircleOutlined,
+} from '@ant-design/icons';
+import { useModels } from '@/hooks/useModels';
 
-const { Text, Title } = Typography;
-const { Option, OptGroup } = Select;
+const { Text } = Typography;
+const { Option } = Select;
 
 interface ModelSelectorProps {
   token: string | null;
@@ -28,43 +33,30 @@ export default function ModelSelector({
   disabled = false,
 }: ModelSelectorProps) {
   const { models, providers, providersHealth, loading, error, fetchModels } = useModels(token);
-  const [currentProvider, setCurrentProvider] = useState(selectedProvider);
-  const [currentModel, setCurrentModel] = useState(selectedModel);
-  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
 
-  useEffect(() => {
-    setCurrentProvider(selectedProvider);
-    setCurrentModel(selectedModel);
-  }, [selectedProvider, selectedModel]);
-
-  useEffect(() => {
-    // Find current model info
-    if (models[currentProvider]) {
-      const found = models[currentProvider].find((m) => m.id === currentModel);
-      setModelInfo(found || null);
+  const modelInfo = useMemo(() => {
+    if (models[selectedProvider]) {
+      return models[selectedProvider].find((m) => m.id === selectedModel) || null;
     }
-  }, [currentProvider, currentModel, models]);
+    return null;
+  }, [selectedProvider, selectedModel, models]);
 
   const handleProviderChange = (provider: string) => {
-    setCurrentProvider(provider);
-    
     // Select first available model from new provider
     if (models[provider] && models[provider].length > 0) {
       const firstModel = models[provider][0].id;
-      setCurrentModel(firstModel);
       onSelect(provider, firstModel);
     }
   };
 
   const handleModelChange = (modelId: string) => {
-    setCurrentModel(modelId);
-    onSelect(currentProvider, modelId);
+    onSelect(selectedProvider, modelId);
   };
 
   const getProviderStatus = (provider: string) => {
     const health = providersHealth[provider];
     if (!health) return { status: 'unknown', color: 'default' };
-    
+
     if (health.available) {
       return { status: 'available', color: 'success', icon: <CheckCircleOutlined /> };
     } else {
@@ -90,16 +82,13 @@ export default function ModelSelector({
         description={error}
         type="error"
         showIcon
-        action={
-          <a onClick={() => fetchModels(true)}>Retry</a>
-        }
+        action={<a onClick={() => fetchModels(true)}>Retry</a>}
       />
     );
   }
 
-  const availableModels = models[currentProvider] || [];
-  const providerStatus = getProviderStatus(currentProvider);
-  const providerHealthInfo = providersHealth[currentProvider];
+  const availableModels = models[selectedProvider] || [];
+  const providerHealthInfo = providersHealth[selectedProvider];
 
   return (
     <Space orientation="vertical" style={{ width: '100%' }} size="middle">
@@ -109,7 +98,7 @@ export default function ModelSelector({
           Provider
         </Text>
         <Select
-          value={currentProvider}
+          value={selectedProvider}
           onChange={handleProviderChange}
           style={{ width: '100%' }}
           size={size}
@@ -138,7 +127,7 @@ export default function ModelSelector({
           Model
         </Text>
         <Select
-          value={currentModel}
+          value={selectedModel}
           onChange={handleModelChange}
           style={{ width: '100%' }}
           size={size}
@@ -190,15 +179,17 @@ export default function ModelSelector({
           style={{
             background: '#f0f5ff',
             border: '1px solid #adc6ff',
-            borderRadius: '8px'
+            borderRadius: '8px',
           }}
         >
           <Space orientation="vertical" size="small" style={{ width: '100%' }}>
             <Space orientation="horizontal">
               <RobotOutlined style={{ color: '#1B4B73', fontSize: '18px' }} />
-              <Text strong style={{ color: '#1B4B73', fontSize: '15px' }}>{modelInfo.name}</Text>
+              <Text strong style={{ color: '#1B4B73', fontSize: '15px' }}>
+                {modelInfo.name}
+              </Text>
             </Space>
-            
+
             {modelInfo.description && (
               <Text type="secondary" style={{ fontSize: '13px' }}>
                 {modelInfo.description}

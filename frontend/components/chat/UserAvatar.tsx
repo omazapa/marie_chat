@@ -9,16 +9,21 @@ import { useSettings } from '@/hooks/useSettings';
 export const UserAvatar: React.FC = () => {
   const { whiteLabel } = useSettings();
   const { user } = useAuthStore();
-  
+
   if (!user) return <Avatar icon={<UserOutlined />} />;
-  
-  const initials = user.full_name 
-    ? user.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2)
+
+  const initials = user.full_name
+    ? user.full_name
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2)
     : user.email[0].toUpperCase();
 
   return (
-    <Avatar 
-      style={{ backgroundColor: whiteLabel.primary_color, verticalAlign: 'middle' }} 
+    <Avatar
+      style={{ backgroundColor: whiteLabel.primary_color, verticalAlign: 'middle' }}
       size="large"
     >
       {initials}
@@ -29,18 +34,26 @@ export const UserAvatar: React.FC = () => {
 export const AssistantAvatar: React.FC = () => {
   const { whiteLabel } = useSettings();
   return (
-    <Avatar 
-      style={{ 
-        backgroundColor: '#ffffff', 
-        color: whiteLabel.primary_color, 
+    <Avatar
+      style={{
+        backgroundColor: '#ffffff',
+        color: whiteLabel.primary_color,
         border: '1px solid #f0f0f0',
         padding: '6px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-      }} 
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+      }}
       size={40}
-      icon={whiteLabel.app_icon ? (
-        <img src={whiteLabel.app_icon} style={{ objectFit: 'contain', width: '100%', height: '100%' }} alt="Assistant" />
-      ) : <RobotOutlined />}
+      icon={
+        whiteLabel.app_icon ? (
+          <img
+            src={whiteLabel.app_icon}
+            style={{ objectFit: 'contain', width: '100%', height: '100%' }}
+            alt="Assistant"
+          />
+        ) : (
+          <RobotOutlined />
+        )
+      }
     />
   );
 };

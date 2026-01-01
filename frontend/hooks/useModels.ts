@@ -107,9 +107,7 @@ export function useModels(token: string | null) {
       if (!token) return null;
 
       try {
-        const response = await apiClient.get<ModelInfo>(
-          `/models/${provider}/${modelId}`
-        );
+        const response = await apiClient.get<ModelInfo>(`/models/${provider}/${modelId}`);
 
         return response.data;
       } catch (err: any) {
@@ -126,9 +124,10 @@ export function useModels(token: string | null) {
       if (!token || !query.trim()) return [];
 
       try {
-        const response = await apiClient.get<{ query: string; results: Array<{ provider: string; model: ModelInfo }> }>(
-          `/models/search?q=${encodeURIComponent(query)}`
-        );
+        const response = await apiClient.get<{
+          query: string;
+          results: Array<{ provider: string; model: ModelInfo }>;
+        }>(`/models/search?q=${encodeURIComponent(query)}`);
 
         return response.data.results;
       } catch (err: any) {
