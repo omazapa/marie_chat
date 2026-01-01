@@ -24,6 +24,13 @@
 - **Check for content cutoff** - Verify nothing is cut off on edges (left, right, top, bottom).
 - **Procedure**: Make changes → Take snapshot → Verify visually → Report actual visual state.
 
+### Playwright MCP UI/UX Verification
+- **Use Playwright MCP for UI/UX checks**: drive the page, scroll through all sections, and capture snapshots at each critical viewport.
+- **Snapshot discipline**: capture before/after for changed components, include scrolled states (top, mid, bottom) to ensure lazy or offscreen elements render correctly.
+- **Component coverage**: verify chat bubbles, sidebars, modals, hover/pressed states, and dynamic lists while scrolling.
+- **Report**: attach the snapshot set you inspected and explicitly list which components were validated in each image.
+- **Scrollable containers**: if a component lives inside a scrollable area, scroll it fully (top → bottom) and snapshot the states where relevant content appears; do not assume folded content is correct without visual proof.
+
 ### Architecture Principles
 - **Hexagonal Architecture (Ports & Adapters)**: Mandatory for all new code.
   - **Domain**: Entities and Ports (Protocols) in `backend/app/domain/`. No external dependencies.

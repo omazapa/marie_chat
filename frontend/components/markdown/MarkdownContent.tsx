@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useMemo, useState, useCallback } from 'react';
+import React, { memo, useMemo, useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -149,8 +149,19 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
   const components = useMemo(() => ({
     code({ node, inline, className, children, ...props }: any) {
       const match = /language-(\w+)/.exec(className || '');
-      const language = match ? match[1] : '';
+      let language = match ? match[1] : '';
       const codeContent = String(children).replace(/\n$/, '');
+
+      // Fallback detection for HTML/SVG if no language tag is provided
+      if (!language && !inline) {
+        const lowerContent = codeContent.toLowerCase().trim();
+        if (lowerContent.startsWith('<!doctype html>') || 
+            lowerContent.startsWith('<html') || 
+            lowerContent.startsWith('<body>') ||
+            (lowerContent.startsWith('<svg') && lowerContent.includes('</svg>'))) {
+          language = lowerContent.startsWith('<svg') ? 'svg' : 'html';
+        }
+      }
 
       // Handle HTML artifacts
       if (language === 'html' || language === 'svg') {
@@ -165,6 +176,29 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
         </code>
       );
     },
+    pre({ node, children, ...props }: any) {
+      // Check if the child is a code block that we've handled as an artifact
+      const isArtifact = React.Children.toArray(children).some((child: any) => {
+        if (React.isValidElement(child) && child.props) {
+          const childProps = child.props as any;
+          const className = childProps.className || '';
+          const content = String(childProps.children || '').toLowerCase().trim();
+          
+          return className.includes('language-html') || 
+                 className.includes('language-svg') ||
+                 content.startsWith('<!doctype html>') ||
+                 content.startsWith('<html') ||
+                 content.startsWith('<body>') ||
+                 (content.startsWith('<svg') && content.includes('</svg>'));
+        }
+        return false;
+      });
+
+      if (isArtifact) {
+        return <>{children}</>;
+      }
+      return <pre {...props}>{children}</pre>;
+    },
     table({ children }: any) {
       return <MarkdownTable>{children}</MarkdownTable>;
     },
@@ -178,7 +212,7 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
   }), [isStreaming]);
 
   return (
-    <div className={`markdown-content ${className || ''}`} style={{ maxWidth: '100%', overflowWrap: 'break-word' }}>
+    <div className={`markdown-content ${className || ''}`} style={{ width: '100%', maxWidth: '100%', overflowWrap: 'break-word' }}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex, rehypeRaw]}

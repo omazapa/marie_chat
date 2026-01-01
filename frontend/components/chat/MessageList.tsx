@@ -42,7 +42,7 @@ export const MessageList = memo(({
   const { whiteLabel } = useSettings();
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+    <div style={{ width: '100%', maxWidth: '1100px', margin: '0 auto', padding: '0 16px 24px 16px', boxSizing: 'border-box' }}>
       {messages.map((msg, index) => (
         <div key={msg.id}>
           <MessageItem 

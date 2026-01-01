@@ -9,7 +9,8 @@ import {
   ExportOutlined,
   CodeOutlined,
   EyeOutlined,
-  LoadingOutlined
+  LoadingOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -41,7 +42,7 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
     const timer = setTimeout(() => {
       setDisplayHtml(html);
       setIsUpdating(false);
-    }, 800);
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [html, isStreaming]);
@@ -59,10 +60,17 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
     }
   };
 
+  const handleRefresh = () => {
+    setDisplayHtml('');
+    setTimeout(() => setDisplayHtml(html), 50);
+  };
+
   // Use useMemo for the full HTML to avoid recalculating on every render
   const fullHtml = useMemo(() => {
     const contentToRender = isStreaming ? displayHtml : html;
-    if (contentToRender.includes('<html') || contentToRender.includes('<body')) {
+    const lowerContent = contentToRender.toLowerCase();
+    
+    if (lowerContent.includes('<html') || lowerContent.includes('<body') || lowerContent.includes('<!doctype')) {
       return contentToRender;
     }
     return `
@@ -99,17 +107,18 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
       className={`html-artifact-card ${className || ''}`}
       size="small"
       style={{ 
-        margin: '16px 0', 
-        borderRadius: '8px',
+        margin: '12px 0', 
+        borderRadius: '12px',
         overflow: 'hidden',
-        border: '1px solid #d9d9d9',
+        border: '1px solid #e8e8e8',
         width: '100%',
+        minWidth: '800px',
         maxWidth: '100%',
-        boxShadow: isStreaming ? '0 0 15px rgba(27, 75, 115, 0.1)' : 'none'
+        boxShadow: isStreaming ? '0 0 15px rgba(27, 75, 115, 0.1)' : '0 2px 8px rgba(0,0,0,0.05)'
       }}
       styles={{
-        header: { background: '#f5f5f5', padding: '8px 12px' },
-        body: { padding: 0, height: isExpanded ? '70vh' : '400px', position: 'relative' }
+        header: { background: '#fafafa', padding: '8px 12px', borderBottom: '1px solid #f0f0f0' },
+        body: { padding: 0, height: isExpanded ? '80vh' : '450px', position: 'relative', background: '#fff' }
       }}
       title={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -124,6 +133,9 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
             )}
           </Space>
           <Space orientation="horizontal" size="small">
+            <Tooltip title="Refresh Preview">
+              <Button size="small" type="text" icon={<ReloadOutlined />} onClick={handleRefresh} />
+            </Tooltip>
             <Tooltip title={viewMode === 'preview' ? "Show Code" : "Show Preview"}>
               <Button 
                 size="small" 

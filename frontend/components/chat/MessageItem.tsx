@@ -56,13 +56,13 @@ export const MessageItem = memo(({
         </div>
       )}
       {(msg.content || msg.id !== 'streaming') && (
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
-          maxWidth: '85%',
-          alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start'
-        }}>
+        <div style={{ width: '100%', display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
+            maxWidth: msg.role === 'user' ? '100%' : '85%'
+          }}>
           {msg.metadata?.attachments && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
               {msg.metadata.attachments.map((att: any) => (
@@ -90,6 +90,7 @@ export const MessageItem = memo(({
             </div>
           )}
           <Bubble
+            placement={msg.role === 'user' ? 'end' : 'start'}
             avatar={
               <Avatar 
                 icon={msg.role === 'assistant' ? (
@@ -113,7 +114,10 @@ export const MessageItem = memo(({
                 overflowWrap: 'break-word',
                 wordBreak: 'break-word'
               }}>
-                <MarkdownContent content={msg.content} />
+                <MarkdownContent 
+                  content={msg.content} 
+                  isStreaming={isStreaming && msg.id === 'streaming'} 
+                />
                 {msg.metadata?.type === 'image_generation' && msg.metadata?.image?.url && (
                   <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ 
@@ -165,6 +169,7 @@ export const MessageItem = memo(({
                 padding: '12px 16px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                 maxWidth: '100%',
+                width: 'auto',
                 overflow: 'hidden'
               }
             }}
@@ -217,6 +222,7 @@ export const MessageItem = memo(({
             }
           />
         </div>
+      </div>
       )}
     </div>
   );
