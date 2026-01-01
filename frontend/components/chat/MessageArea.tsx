@@ -94,16 +94,26 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
   }
 
   return (
-    <div key={currentConversation.id} style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>
+    <div 
+      key={currentConversation.id} 
+      ref={scrollContainerRef}
+      style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        flex: 1, 
+        minWidth: 0, 
+        minHeight: 0,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        scrollBehavior: isStreaming ? 'auto' : 'smooth'
+      }}
+    >
       {/* Messages Area */}
       <div 
-        ref={scrollContainerRef}
         style={{ 
           flex: 1, 
-          overflowY: 'auto',
           padding: '24px',
           background: '#ffffff',
-          scrollBehavior: isStreaming ? 'auto' : 'smooth',
           minHeight: 0
         }}
       >

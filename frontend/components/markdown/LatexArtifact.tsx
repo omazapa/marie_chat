@@ -96,7 +96,7 @@ export const LatexArtifact = memo(function LatexArtifact({ latex, className, isS
       }
     >
       {viewMode === 'preview' ? (
-        <div className="latex-preview" style={{ display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
+        <div className="latex-preview" style={{ display: 'flex', justifyContent: 'center', overflowX: 'auto', maxWidth: '100%' }}>
           <ReactMarkdown 
             remarkPlugins={[remarkMath]} 
             rehypePlugins={[rehypeKatex]}
@@ -112,8 +112,8 @@ export const LatexArtifact = memo(function LatexArtifact({ latex, className, isS
           borderRadius: '4px',
           fontSize: '13px',
           overflowX: 'auto',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-all'
+          maxWidth: '100%',
+          whiteSpace: 'pre'
         }}>
           {latex}
         </pre>

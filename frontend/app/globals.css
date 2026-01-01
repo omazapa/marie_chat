@@ -98,7 +98,37 @@ mark {
 .markdown-content pre {
   margin: 1em 0;
   border-radius: 8px;
-  overflow: hidden;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  white-space: pre !important;
+  word-break: normal !important;
+}
+
+/* Fix for Ant Design X Bubble overflow */
+.ant-bubble {
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.ant-bubble-content {
+  display: block !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+
+.ant-bubble-body {
+  display: block !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+
+.ant-bubble-content-filled {
+  max-width: 100% !important;
 }
 
 .markdown-content code {

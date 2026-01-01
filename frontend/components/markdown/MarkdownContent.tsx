@@ -32,7 +32,7 @@ const CodeBlock = memo(({ language, value }: { language: string; value: string }
   }, [value]);
 
   return (
-    <div style={{ position: 'relative', marginBottom: '1em' }}>
+    <div style={{ position: 'relative', marginBottom: '1em', maxWidth: '100%' }}>
       <div style={{
         position: 'absolute',
         right: '8px',
@@ -55,12 +55,17 @@ const CodeBlock = memo(({ language, value }: { language: string; value: string }
       <SyntaxHighlighter
         style={vscDarkPlus}
         language={language}
-        PreTag="div"
+        PreTag="pre"
         customStyle={{
           margin: 0,
           borderRadius: '8px',
           padding: '16px',
-          fontSize: '13px'
+          fontSize: '13px',
+          width: '100%',
+          maxWidth: '100%',
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          whiteSpace: 'pre'
         }}
       >
         {value}
@@ -282,7 +287,7 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
   }
 
   return (
-    <div className={`markdown-content ${className || ''}`} style={{ width: '100%', maxWidth: '100%', overflowWrap: 'break-word' }}>
+    <div className={`markdown-content ${className || ''}`} style={{ width: '100%', maxWidth: '100%', overflowWrap: 'break-word', minWidth: 0 }}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex, rehypeRaw]}

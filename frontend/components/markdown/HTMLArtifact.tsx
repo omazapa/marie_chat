@@ -91,6 +91,13 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
             }
             * { box-sizing: border-box; }
             img { max-width: 100%; height: auto; }
+            pre { 
+              max-width: 100%; 
+              overflow-x: auto;
+              overflow-y: hidden;
+              white-space: pre;
+              word-break: normal;
+            }
             /* Hide scrollbars during streaming to prevent layout shifts */
             ${isStreaming ? 'body { overflow: hidden; }' : ''}
           </style>
@@ -112,7 +119,6 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
         overflow: 'hidden',
         border: '1px solid #e8e8e8',
         width: '100%',
-        minWidth: '800px',
         maxWidth: '100%',
         boxShadow: isStreaming ? '0 0 15px rgba(27, 75, 115, 0.1)' : '0 2px 8px rgba(0,0,0,0.05)'
       }}
@@ -199,11 +205,17 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
           />
         </>
       ) : (
-        <div style={{ height: '100%', overflow: 'auto' }}>
+        <div style={{ height: '100%', overflow: 'hidden' }}>
           <SyntaxHighlighter
             language="html"
             style={vscDarkPlus}
-            customStyle={{ margin: 0, borderRadius: 0, height: '100%' }}
+            customStyle={{ 
+              margin: 0, 
+              borderRadius: 0, 
+              height: '100%',
+              overflowX: 'auto',
+              overflowY: 'hidden'
+            }}
           >
             {html}
           </SyntaxHighlighter>

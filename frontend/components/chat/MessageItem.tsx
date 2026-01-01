@@ -56,12 +56,13 @@ export const MessageItem = memo(({
         </div>
       )}
       {(msg.content || msg.id !== 'streaming') && (
-        <div style={{ width: '100%', display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+        <div style={{ width: '100%', display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', minWidth: 0 }}>
           <div style={{ 
             display: 'flex', 
             flexDirection: 'column', 
             alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
-            maxWidth: msg.role === 'user' ? '100%' : '85%'
+            maxWidth: '85%',
+            minWidth: 0
           }}>
           {msg.metadata?.attachments && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
@@ -170,7 +171,8 @@ export const MessageItem = memo(({
                 boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                 maxWidth: '100%',
                 width: 'auto',
-                overflow: 'hidden'
+                minWidth: 0,
+                overflow: 'visible'
               }
             }}
             footer={
