@@ -12,6 +12,7 @@ import { Button, Tooltip, Table, Typography, Spin } from 'antd';
 import { CopyOutlined, CheckOutlined, TableOutlined } from '@ant-design/icons';
 import 'katex/dist/katex.min.css';
 import { HTMLArtifact } from './HTMLArtifact';
+import { LatexArtifact } from './LatexArtifact';
 
 const { Text } = Typography;
 
@@ -152,27 +153,48 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
 
     // Regex to find substantial HTML blocks
     const htmlBlockRegex = /(<!doctype html>[\s\S]*?<\/html>|<html[\s\S]*?<\/html>|<body[\s\S]*?<\/body>)/gi;
+    // Regex to find LaTeX environments and display math blocks
+    const latexBlockRegex = /(\\begin\{([a-z\*]+)\}[\s\S]*?\\end\{\2\}|\\\[[\s\S]*?\\\])/gi;
     
     // Check if the block is already inside a code block
     let lastIndex = 0;
     let result = '';
+    
+    // Combine and sort matches by index
+    const matches: { index: number; length: number; content: string; type: 'html' | 'latex' }[] = [];
+    
     let match;
-
     while ((match = htmlBlockRegex.exec(content)) !== null) {
-      const before = content.substring(lastIndex, match.index);
-      const fullBefore = content.substring(0, match.index);
+      matches.push({ index: match.index, length: match[0].length, content: match[0], type: 'html' });
+    }
+    while ((match = latexBlockRegex.exec(content)) !== null) {
+      matches.push({ index: match.index, length: match[0].length, content: match[0], type: 'latex' });
+    }
+    
+    matches.sort((a, b) => a.index - b.index);
+
+    for (const m of matches) {
+      if (m.index < lastIndex) continue; // Skip overlapping matches
+
+      const before = content.substring(lastIndex, m.index);
+      const fullBefore = content.substring(0, m.index);
       
       // Count triple backticks to see if we are inside a code block
       const isInsideCode = (fullBefore.match(/```/g) || []).length % 2 !== 0;
+      // Count double dollar signs to see if we are inside a math block
+      const isInsideMath = (fullBefore.match(/\$\$/g) || []).length % 2 !== 0;
       
       result += before;
-      if (!isInsideCode) {
-        // Add newlines to ensure it's treated as a block by ReactMarkdown
-        result += `\n\n\`\`\`html\n${match[0].trim()}\n\`\`\`\n\n`;
+      if (!isInsideCode && !isInsideMath) {
+        if (m.type === 'html') {
+          result += `\n\n\`\`\`html\n${m.content.trim()}\n\`\`\`\n\n`;
+        } else {
+          result += `\n\n\`\`\`latex\n${m.content.trim()}\n\`\`\`\n\n`;
+        }
       } else {
-        result += match[0];
+        result += m.content;
       }
-      lastIndex = htmlBlockRegex.lastIndex;
+      lastIndex = m.index + m.length;
     }
     result += content.substring(lastIndex);
     
@@ -216,6 +238,11 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
         return <HTMLArtifact html={codeContent} isStreaming={isStreaming} />;
       }
 
+      // Handle LaTeX artifacts
+      if (language === 'latex' || language === 'math') {
+        return <LatexArtifact latex={codeContent} isStreaming={isStreaming} />;
+      }
+
       return !inline && match ? (
         <CodeBlock language={language} value={codeContent} />
       ) : (
@@ -225,11 +252,12 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
       );
     },
     pre({ node, children, ...props }: any) {
-      // If the child is an HTMLArtifact (returned by the code component), don't wrap in <pre>
+      // If the child is an HTMLArtifact or LatexArtifact (returned by the code component), don't wrap in <pre>
       const childrenArray = React.Children.toArray(children);
       const isArtifact = childrenArray.some((child: any) => {
         return React.isValidElement(child) && 
-               (child.type as any)?.displayName === 'HTMLArtifact';
+               ((child.type as any)?.displayName === 'HTMLArtifact' || 
+                (child.type as any)?.displayName === 'LatexArtifact');
       });
 
       if (isArtifact) {
