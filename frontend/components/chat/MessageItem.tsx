@@ -61,7 +61,7 @@ export const MessageItem = memo(({
             display: 'flex', 
             flexDirection: 'column', 
             alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
-            maxWidth: '85%',
+            maxWidth: '95%',
             minWidth: 0
           }}>
           {msg.metadata?.attachments && (

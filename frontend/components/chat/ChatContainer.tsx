@@ -690,7 +690,7 @@ export default function ChatContainer() {
               boxSizing: 'border-box',
               flexShrink: 0
             }}>
-              <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+              <div style={{ maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
                 {/* Attachments and References List */}
                 {(attachments.length > 0 || referencedConvIds.length > 0 || referencedMsgIds.length > 0) && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>

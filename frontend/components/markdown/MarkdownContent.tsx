@@ -5,7 +5,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import rehypeRaw from 'rehype-raw';
 import { PrismAsync as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Button, Tooltip, Table, Typography, Spin } from 'antd';
@@ -272,13 +271,6 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
     },
     table({ children }: any) {
       return <MarkdownTable>{children}</MarkdownTable>;
-    },
-    // Custom rendering for math blocks if needed
-    div({ node, className, children, ...props }: any) {
-      if (className === 'math math-display') {
-        return <div className={className} {...props}>{children}</div>;
-      }
-      return <div className={className} {...props}>{children}</div>;
     }
   }), [isStreaming]);
 
@@ -290,7 +282,7 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
     <div className={`markdown-content ${className || ''}`} style={{ width: '100%', maxWidth: '100%', overflowWrap: 'break-word', minWidth: 0 }}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex, rehypeRaw]}
+        rehypePlugins={[rehypeKatex]}
         components={components}
       >
         {processedContent}
