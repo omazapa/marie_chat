@@ -67,6 +67,15 @@ class Settings(BaseSettings):
     UPLOAD_FOLDER: str = os.getenv("UPLOAD_FOLDER", "./uploads")
     MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 50MB
 
+    # Models Cache
+    MODELS_CACHE_DIR: str = os.getenv(
+        "MODELS_CACHE_DIR",
+        os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "models_cache",
+        ),
+    )
+
     class Config:
         case_sensitive = True
         env_file = ".env"

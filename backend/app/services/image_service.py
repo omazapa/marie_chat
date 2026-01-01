@@ -13,6 +13,7 @@ from typing import Any
 import requests  # type: ignore
 import torch  # type: ignore
 
+from app.services.huggingface_hub_service import huggingface_hub_service
 from app.services.settings_service import settings_service
 
 
@@ -42,17 +43,22 @@ class ImageService:
     def local_pipe(self):
         """Lazy-initialize local diffusion pipeline"""
         if self._local_pipe is None:
-            print(f"🚀 Loading local image model: {self.local_model_id}...")
+            # Check if we have a local version
+            local_path = huggingface_hub_service.get_local_path(self.local_model_id, "image")
+            model_to_load = local_path if local_path else self.local_model_id
+
+            print(f"🚀 Loading local image model: {model_to_load}...")
             from diffusers import StableDiffusionPipeline  # type: ignore
 
             device = "cuda" if torch.cuda.is_available() else "cpu"
             print(f"💻 Using device: {device}")
 
             self._local_pipe = StableDiffusionPipeline.from_pretrained(
-                self.local_model_id,
+                model_to_load,
                 torch_dtype=torch.float16 if device == "cuda" else torch.float32,
                 safety_checker=None,
                 requires_safety_checker=False,
+                local_files_only=True if local_path else False,
             )
 
             if device == "cuda":

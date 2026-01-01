@@ -43,6 +43,7 @@ Centralized control panel for system administrators:
 - **HuggingFace Integration**: Access thousands of cloud-hosted models.
 - **Image Generation**: Create visual content using integrated AI models.
 - **Voice Features**: Speech-to-Text (STT) and Text-to-Speech (TTS) capabilities.
+- **Local Model Management**: Pre-download and cache models for offline use (embeddings, audio, image).
 
 ## 🛠 Tech Stack
 
@@ -68,6 +69,16 @@ Centralized control panel for system administrators:
    - **Frontend**: [http://localhost:3000](http://localhost:3000)
    - **API Docs**: [http://localhost:5000/api/v1/docs](http://localhost:5000/api/v1/docs)
    - **OpenSearch Dashboards**: [http://localhost:5601](http://localhost:5601)
+
+## 🧠 Local Model Management
+
+To download models for local use (embeddings, audio, image generation), run:
+
+```bash
+python download_models.py
+```
+
+This will download the models specified in your configuration to the `models_cache` directory. The system will automatically detect and use these local models.
 
 ---
 Developed by **ImpactU / CoLaV Team**.

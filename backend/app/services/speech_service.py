@@ -7,6 +7,7 @@ from faster_whisper import WhisperModel
 from langdetect import DetectorFactory, detect
 
 from app.config import Settings
+from app.services.huggingface_hub_service import huggingface_hub_service
 from app.services.settings_service import settings_service
 
 # For consistent language detection
@@ -47,19 +48,23 @@ class SpeechService:
 
                 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-            print(f"🎙️ Initializing Whisper model: {self.stt_model_size} on {device}")
+            # Check if we have a local version
+            # Note: faster-whisper models on HF are usually under 'Systran/faster-whisper-...'
+            repo_id = f"Systran/faster-whisper-{self.stt_model_size}"
+            local_path = huggingface_hub_service.get_local_path(repo_id, "audio")
+            model_to_load = local_path if local_path else self.stt_model_size
+
+            print(f"🎙️ Initializing Whisper model: {model_to_load} on {device}")
             try:
                 self._stt_model = WhisperModel(
-                    self.stt_model_size,
+                    model_to_load,
                     device=device,
                     compute_type="float16" if device == "cuda" else "int8",
                 )
             except Exception as e:
                 if device == "cuda":
                     print(f"⚠️ Failed to initialize Whisper on GPU: {e}. Falling back to CPU.")
-                    self._stt_model = WhisperModel(
-                        self.stt_model_size, device="cpu", compute_type="int8"
-                    )
+                    self._stt_model = WhisperModel(model_to_load, device="cpu", compute_type="int8")
                 else:
                     raise e
         return self._stt_model

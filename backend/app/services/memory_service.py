@@ -10,7 +10,9 @@ from typing import Any
 from opensearchpy import OpenSearch
 from sentence_transformers import SentenceTransformer
 
+from app.config import settings
 from app.db import opensearch_client
+from app.services.huggingface_hub_service import huggingface_hub_service
 
 
 class MemoryService:
@@ -20,18 +22,25 @@ class MemoryService:
         self.client: OpenSearch = opensearch_client.client
         self.index = "marie_memory"
         self._embedding_model = None
+        self.model_name = settings.EMBEDDING_MODEL
 
     @property
     def embedding_model(self):
         """Lazy-initialize embedding model"""
         if self._embedding_model is None:
-            print("🧠 Loading embedding model for MemoryService...")
+            print(f"🧠 Loading embedding model: {self.model_name}...")
             import torch
 
             device = "cuda" if torch.cuda.is_available() else "cpu"
-            self._embedding_model = SentenceTransformer(
-                "paraphrase-multilingual-MiniLM-L12-v2", device=device
-            )
+
+            # Check if we have a local version
+            local_path = huggingface_hub_service.get_local_path(self.model_name, "embedding")
+            model_to_load = local_path if local_path else self.model_name
+
+            if local_path:
+                print(f"📂 Using local embedding model from: {local_path}")
+
+            self._embedding_model = SentenceTransformer(model_to_load, device=device)
             print(f"✅ Memory embedding model loaded on {device}")
         return self._embedding_model
 
