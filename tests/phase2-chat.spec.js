@@ -16,9 +16,38 @@ test.describe('Phase 2: Chat Core Functionality', () => {
   let conversationId = null;
 
   test.beforeAll(async ({ request }) => {
-    console.log('Setting up test user...');
+    console.log('Setting up test environment...');
 
-    // Register test user
+    // 1. Login as admin to enable registration
+    const adminLoginResponse = await request.post(`${API_URL}/api/auth/login`, {
+      data: {
+        email: 'admin@example.com',
+        password: 'AdminPassword123!'
+      }
+    });
+
+    if (adminLoginResponse.ok()) {
+      const adminData = await adminLoginResponse.json();
+      const adminToken = adminData.access_token;
+
+      // 2. Enable registration
+      await request.put(`${API_URL}/api/settings`, {
+        headers: {
+          'Authorization': `Bearer ${adminToken}`
+        },
+        data: {
+          white_label: {
+            registration_enabled: true
+          }
+        }
+      });
+      console.log('✓ Registration enabled temporarily');
+    } else {
+      console.warn('⚠️ Could not login as admin, registration might fail if disabled');
+    }
+
+    // 3. Register test user
+    console.log('Registering test user...');
     const registerResponse = await request.post(`${API_URL}/api/auth/register`, {
       data: TEST_USER
     });
@@ -28,6 +57,33 @@ test.describe('Phase 2: Chat Core Functionality', () => {
     authToken = registerData.access_token;
 
     console.log('✅ Test user created and authenticated');
+  });
+
+  test.afterAll(async ({ request }) => {
+    // Disable registration again
+    const adminLoginResponse = await request.post(`${API_URL}/api/auth/login`, {
+      data: {
+        email: 'admin@example.com',
+        password: 'AdminPassword123!'
+      }
+    });
+
+    if (adminLoginResponse.ok()) {
+      const adminData = await adminLoginResponse.json();
+      const adminToken = adminData.access_token;
+
+      await request.put(`${API_URL}/api/settings`, {
+        headers: {
+          'Authorization': `Bearer ${adminToken}`
+        },
+        data: {
+          white_label: {
+            registration_enabled: false
+          }
+        }
+      });
+      console.log('✓ Registration disabled after tests');
+    }
   });
 
   test.beforeEach(async ({ page }) => {
@@ -54,7 +110,7 @@ test.describe('Phase 2: Chat Core Functionality', () => {
     await expect(page.getByRole('heading', { name: 'Marie', exact: true })).toBeVisible();
 
     // Check for connection status
-    const connectionStatus = page.locator('text=/Connected|Disconnected/');
+    const connectionStatus = page.locator('text=/System Online|System Offline/');
     await expect(connectionStatus).toBeVisible();
 
     // Check for new conversation button
@@ -156,9 +212,9 @@ test.describe('Phase 2: Chat Core Functionality', () => {
     await page.waitForTimeout(2000);
 
     // Check if new conversation appears in sidebar
-    const conversations = page.locator('.ant-list-item');
-    const count = await conversations.count();
-    expect(count).toBeGreaterThan(0);
+    // We look for the text "New Conversation" which should appear in the list
+    // (The first one is usually the button, the second one is the list item)
+    await expect(page.locator('text=New Conversation').nth(1)).toBeVisible({ timeout: 5000 });
 
     console.log('✅ Conversation created from UI');
   });
@@ -173,7 +229,7 @@ test.describe('Phase 2: Chat Core Functionality', () => {
     await page.waitForTimeout(3000);
 
     // Check connection status indicator
-    const connectedIndicator = page.locator('text=Connected');
+    const connectedIndicator = page.locator('text=System Online');
     await expect(connectedIndicator).toBeVisible({ timeout: 10000 });
 
     console.log('✅ WebSocket connected');

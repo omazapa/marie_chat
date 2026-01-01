@@ -10,7 +10,45 @@ const TEST_USER = {
   full_name: 'Test User'
 };
 
+const ADMIN_API_KEY = 'mc_IOM7nahO9fOev-Fp5ukRDdqHV7uhBG9bJUIejq040YE';
+
 test.describe('Create Test User', () => {
+
+  test.beforeAll(async ({ request }) => {
+    console.log('Enabling registration via Developer API...');
+    const response = await request.put(`${API_URL}/api/v1/settings/registration`, {
+      headers: {
+        'X-API-Key': ADMIN_API_KEY
+      },
+      data: {
+        enabled: true
+      }
+    });
+
+    if (response.ok()) {
+      console.log('✅ Registration enabled successfully');
+    } else {
+      console.error('❌ Failed to enable registration:', await response.text());
+    }
+  });
+
+  test.afterAll(async ({ request }) => {
+    console.log('Disabling registration via Developer API...');
+    const response = await request.put(`${API_URL}/api/v1/settings/registration`, {
+      headers: {
+        'X-API-Key': ADMIN_API_KEY
+      },
+      data: {
+        enabled: false
+      }
+    });
+
+    if (response.ok()) {
+      console.log('✅ Registration disabled successfully');
+    } else {
+      console.error('❌ Failed to disable registration:', await response.text());
+    }
+  });
 
   test('should create test@example.com user', async ({ page }) => {
     console.log('Creating test user...');

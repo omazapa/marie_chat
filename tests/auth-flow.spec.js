@@ -1,6 +1,44 @@
 const { test, expect } = require('@playwright/test');
 
 test.describe('Marie - Authentication and Chat', () => {
+  const API_URL = 'http://localhost:5000';
+  const ADMIN_API_KEY = 'mc_IOM7nahO9fOev-Fp5ukRDdqHV7uhBG9bJUIejq040YE';
+
+  test.beforeAll(async ({ request }) => {
+    // Enable registration via Developer API
+    const response = await request.put(`${API_URL}/api/v1/settings/registration`, {
+      headers: {
+        'X-API-Key': ADMIN_API_KEY
+      },
+      data: {
+        enabled: true
+      }
+    });
+
+    if (response.ok()) {
+      console.log('✓ Registration enabled for UI test');
+    } else {
+      console.error('❌ Failed to enable registration:', await response.text());
+    }
+  });
+
+  test.afterAll(async ({ request }) => {
+    // Disable registration via Developer API
+    const response = await request.put(`${API_URL}/api/v1/settings/registration`, {
+      headers: {
+        'X-API-Key': ADMIN_API_KEY
+      },
+      data: {
+        enabled: false
+      }
+    });
+
+    if (response.ok()) {
+      console.log('✓ Registration disabled after UI test');
+    } else {
+      console.error('❌ Failed to disable registration:', await response.text());
+    }
+  });
 
   test('Registration, Login and Chat access', async ({ page }) => {
     const timestamp = Date.now();

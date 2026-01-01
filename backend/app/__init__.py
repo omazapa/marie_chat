@@ -45,6 +45,7 @@ def create_app():
     from app.routes.v1.conversations import v1_conversations_bp
     from app.routes.v1.docs import v1_docs_bp
     from app.routes.v1.search import v1_search_bp
+    from app.routes.v1.settings import v1_settings_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(conversations_bp, url_prefix="/api/conversations")
@@ -59,6 +60,7 @@ def create_app():
     app.register_blueprint(v1_chat_bp, url_prefix="/api/v1/chat")
     app.register_blueprint(v1_conversations_bp, url_prefix="/api/v1/conversations")
     app.register_blueprint(v1_search_bp, url_prefix="/api/v1/search")
+    app.register_blueprint(v1_settings_bp, url_prefix="/api/v1/settings")
     app.register_blueprint(v1_docs_bp, url_prefix="/api/v1/docs")
 
     # Register socket events

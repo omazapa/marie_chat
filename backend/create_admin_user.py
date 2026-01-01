@@ -44,6 +44,16 @@ def create_admin(email, password, full_name):
                 refresh=True,
             )
             print(f"User {email} is now an admin with the new password.")
+
+            # Create an API key for the admin if they don't have one
+            from app.services.api_key_service import api_key_service
+
+            keys = api_key_service.list_api_keys(user["id"])
+            if not keys:
+                key_info = api_key_service.create_api_key(user["id"], "Admin Master Key")
+                print(f"✅ Created Admin Master API Key: {key_info['api_key']}")
+            else:
+                print(f"Admin already has {len(keys)} API keys.")
             return
 
         # Create new admin user
@@ -52,6 +62,17 @@ def create_admin(email, password, full_name):
         )
         print(f"Admin user created successfully: {email}")
         print(f"User ID: {user['id']}")
+
+        # Create an API key for the admin
+        from app.services.api_key_service import api_key_service
+
+        # Check if an API key already exists for this user
+        keys = api_key_service.list_api_keys(user["id"])
+        if not keys:
+            key_info = api_key_service.create_api_key(user["id"], "Admin Master Key")
+            print(f"✅ Created Admin Master API Key: {key_info['api_key']}")
+        else:
+            print(f"Admin already has {len(keys)} API keys.")
 
 
 if __name__ == "__main__":
