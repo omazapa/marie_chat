@@ -10,7 +10,8 @@ import {
   CodeOutlined,
   EyeOutlined,
   LoadingOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  DownloadOutlined
 } from '@ant-design/icons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -63,6 +64,16 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
   const handleRefresh = () => {
     setDisplayHtml('');
     setTimeout(() => setDisplayHtml(html), 50);
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([fullHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'artifact.html';
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   // Use useMemo for the full HTML to avoid recalculating on every render
@@ -152,6 +163,9 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
             </Tooltip>
             <Tooltip title="Copy Code">
               <Button size="small" type="text" icon={<CopyOutlined />} onClick={handleCopy} />
+            </Tooltip>
+            <Tooltip title="Download HTML">
+              <Button size="small" type="text" icon={<DownloadOutlined />} onClick={handleDownload} />
             </Tooltip>
             <Tooltip title={isExpanded ? "Shrink" : "Expand"}>
               <Button 

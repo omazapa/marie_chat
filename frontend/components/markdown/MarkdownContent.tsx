@@ -7,7 +7,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { PrismAsync as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Button, Tooltip, Table, Typography, Spin } from 'antd';
+import { Button, Tooltip, Table, Typography, Spin, App } from 'antd';
 import { CopyOutlined, CheckOutlined, TableOutlined, DownloadOutlined } from '@ant-design/icons';
 import 'katex/dist/katex.min.css';
 import { HTMLArtifact } from './HTMLArtifact';
@@ -23,6 +23,7 @@ interface MarkdownContentProps {
 
 const CodeBlock = memo(({ language, value }: { language: string; value: string }) => {
   const [copied, setCopied] = useState(false);
+  const [wrapLines, setWrapLines] = useState(false);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(value);
@@ -30,12 +31,27 @@ const CodeBlock = memo(({ language, value }: { language: string; value: string }
     setTimeout(() => setCopied(false), 2000);
   }, [value]);
 
+  const handleDownload = useCallback(() => {
+    const extension = language === 'python' ? 'py' : 
+                     language === 'javascript' ? 'js' :
+                     language === 'typescript' ? 'ts' :
+                     language === 'html' ? 'html' :
+                     language === 'css' ? 'css' : 'txt';
+    const blob = new Blob([value], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `code_snippet.${extension}`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [value, language]);
+
   return (
-    <div style={{ 
+    <div className="code-block-container" style={{ 
       margin: '1.5em 0', 
       borderRadius: '12px', 
       overflow: 'hidden',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
       border: '1px solid #30363d',
       background: '#1e1e1e'
     }}>
@@ -48,39 +64,69 @@ const CodeBlock = memo(({ language, value }: { language: string; value: string }
         borderBottom: '1px solid #30363d',
         userSelect: 'none'
       }}>
-        <Text style={{ 
-          color: '#8b949e', 
-          fontSize: '12px', 
-          textTransform: 'uppercase', 
-          fontWeight: 600,
-          letterSpacing: '0.5px'
-        }}>
-          {language || 'code'}
-        </Text>
-        <Tooltip title={copied ? 'Copied!' : 'Copy code'}>
-          <Button
-            size="small"
-            type="text"
-            icon={copied ? <CheckOutlined style={{ color: '#52c41a' }} /> : <CopyOutlined style={{ color: '#8b949e' }} />}
-            onClick={handleCopy}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '24px',
-              padding: '0 8px',
-              fontSize: '12px',
-              color: '#8b949e'
-            }}
-          >
-            {copied ? 'Copied' : 'Copy'}
-          </Button>
-        </Tooltip>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Text style={{ 
+            color: '#8b949e', 
+            fontSize: '12px', 
+            textTransform: 'uppercase', 
+            fontWeight: 600,
+            letterSpacing: '0.5px'
+          }}>
+            {language || 'code'}
+          </Text>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Tooltip title="Toggle line wrap">
+            <Button
+              size="small"
+              type="text"
+              onClick={() => setWrapLines(!wrapLines)}
+              style={{ 
+                color: wrapLines ? '#58a6ff' : '#8b949e',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              Wrap
+            </Button>
+          </Tooltip>
+          <Tooltip title="Download code">
+            <Button
+              size="small"
+              type="text"
+              icon={<DownloadOutlined />}
+              onClick={handleDownload}
+              style={{ color: '#8b949e' }}
+            />
+          </Tooltip>
+          <Tooltip title={copied ? 'Copied!' : 'Copy code'}>
+            <Button
+              size="small"
+              type="text"
+              icon={copied ? <CheckOutlined style={{ color: '#52c41a' }} /> : <CopyOutlined style={{ color: '#8b949e' }} />}
+              onClick={handleCopy}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '24px',
+                padding: '0 8px',
+                fontSize: '12px',
+                color: '#8b949e'
+              }}
+            >
+              {copied ? 'Copied' : 'Copy'}
+            </Button>
+          </Tooltip>
+        </div>
       </div>
       <SyntaxHighlighter
         style={vscDarkPlus}
         language={language}
         PreTag="div"
+        wrapLines={wrapLines}
+        lineProps={{ style: { wordBreak: 'break-all', whiteSpace: 'pre-wrap' } }}
         customStyle={{
           margin: 0,
           borderRadius: 0,
@@ -88,9 +134,9 @@ const CodeBlock = memo(({ language, value }: { language: string; value: string }
           fontSize: '13px',
           width: '100%',
           maxWidth: '100%',
-          overflowX: 'auto',
+          overflowX: wrapLines ? 'hidden' : 'auto',
           overflowY: 'hidden',
-          whiteSpace: 'pre',
+          whiteSpace: wrapLines ? 'pre-wrap' : 'pre',
           background: 'transparent'
         }}
       >
@@ -144,6 +190,47 @@ const MarkdownTable = memo(({ children }: { children: any }) => {
     message.success('CSV downloaded successfully');
   };
 
+  const handleCopyMarkdown = (columns: any[], dataSource: any[]) => {
+    const headers = columns.map(col => {
+      if (React.isValidElement(col.title)) {
+        return extractText(col.title);
+      }
+      return col.title;
+    }).join(' | ');
+
+    const separator = columns.map(() => '---').join(' | ');
+
+    const rows = dataSource.map(row => {
+      return columns.map(col => {
+        return String(row[col.dataIndex] || '').replace(/\n/g, ' ');
+      }).join(' | ');
+    }).join('\n');
+
+    const markdown = `| ${headers} |\n| ${separator} |\n| ${rows.replace(/\n/g, ' |\n| ')} |`;
+    navigator.clipboard.writeText(markdown);
+    message.success('Table copied as Markdown');
+  };
+
+  const handleCopyCSV = (columns: any[], dataSource: any[]) => {
+    const headers = columns.map(col => {
+      if (React.isValidElement(col.title)) {
+        return extractText(col.title);
+      }
+      return col.title;
+    }).join(',');
+
+    const rows = dataSource.map(row => {
+      return columns.map(col => {
+        const val = String(row[col.dataIndex] || '').replace(/"/g, '""');
+        return `"${val}"`;
+      }).join(',');
+    }).join('\n');
+
+    const csv = `${headers}\n${rows}`;
+    navigator.clipboard.writeText(csv);
+    message.success('Table copied as CSV');
+  };
+
   try {
     const childrenArray = Array.isArray(children) ? children : [children];
     const thead = childrenArray.find((c: any) => c?.type === 'thead');
@@ -181,7 +268,29 @@ const MarkdownTable = memo(({ children }: { children: any }) => {
 
     return (
       <div className="markdown-table-container" style={{ marginBottom: '1.5em' }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px', gap: '8px' }}>
+          <Tooltip title="Copy as Markdown">
+            <Button 
+              size="small" 
+              type="text" 
+              icon={<CopyOutlined />} 
+              onClick={() => handleCopyMarkdown(columns, dataSource)}
+              style={{ color: '#8c8c8c' }}
+            >
+              Copy Markdown
+            </Button>
+          </Tooltip>
+          <Tooltip title="Copy as CSV">
+            <Button 
+              size="small" 
+              type="text" 
+              icon={<CopyOutlined />} 
+              onClick={() => handleCopyCSV(columns, dataSource)}
+              style={{ color: '#8c8c8c' }}
+            >
+              Copy CSV
+            </Button>
+          </Tooltip>
           <Tooltip title="Download as CSV">
             <Button 
               size="small" 
