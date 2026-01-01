@@ -46,6 +46,29 @@ a {
 /* Markdown Content Styles */
 .markdown-content {
   word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+.markdown-content ul, 
+.markdown-content ol {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+  max-width: 100%;
+}
+
+.markdown-content li {
+  margin-bottom: 0.5em;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+.markdown-content li > p {
+  margin-bottom: 0;
+}
+
+.markdown-content * {
+  max-width: 100%;
 }
 
 /* Search Highlighting */
@@ -62,20 +85,89 @@ mark {
   color: inherit;
   padding: 0 2px;
   border-radius: 2px;
+}
+
+.markdown-content {
+  line-height: 1.6;
+  color: #262626;
 }
 
 .markdown-content p {
-  margin-bottom: 1em;
+  margin-bottom: 1.2em;
 }
 
 .markdown-content p:last-child {
   margin-bottom: 0;
 }
 
+.markdown-content h1, 
+.markdown-content h2, 
+.markdown-content h3, 
+.markdown-content h4 {
+  margin-top: 1.5em;
+  margin-bottom: 0.8em;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.markdown-content h1 { font-size: 1.8em; border-bottom: 1px solid #f0f0f0; padding-bottom: 0.3em; }
+.markdown-content h2 { font-size: 1.5em; border-bottom: 1px solid #f0f0f0; padding-bottom: 0.3em; }
+.markdown-content h3 { font-size: 1.25em; }
+
+.markdown-content ul, 
+.markdown-content ol {
+  margin-bottom: 1.2em;
+  padding-left: 1.5em;
+}
+
+.markdown-content li {
+  margin-bottom: 0.5em;
+}
+
+.markdown-content blockquote {
+  margin: 1.5em 0;
+  padding: 0.5em 1.5em;
+  color: #595959;
+  border-left: 4px solid #d9d9d9;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+
 .markdown-content pre {
-  margin: 1em 0;
-  border-radius: 8px;
-  overflow: hidden;
+  margin: 1.5em 0;
+  border-radius: 12px;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  white-space: pre !important;
+  word-break: normal !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* Fix for Ant Design X Bubble overflow */
+.ant-bubble {
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.ant-bubble-content {
+  display: block !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+
+.ant-bubble-body {
+  display: block !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+
+.ant-bubble-content-filled {
+  max-width: 100% !important;
 }
 
 .markdown-content code {

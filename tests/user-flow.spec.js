@@ -59,7 +59,7 @@ test.describe('Marie - User Flow', () => {
     
     // Verify it's on login or there's an authentication message
     const isLoginPage = url.includes('/login');
-    const hasAuthMessage = await page.locator('text=/login|sign in|autenticación|authenticate/i').count() > 0;
+    const hasAuthMessage = await page.locator('text=/login|sign in|authentication|authenticate/i').count() > 0;
     
     expect(isLoginPage || hasAuthMessage).toBeTruthy();
   });

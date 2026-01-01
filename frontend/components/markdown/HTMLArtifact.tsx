@@ -9,7 +9,9 @@ import {
   ExportOutlined,
   CodeOutlined,
   EyeOutlined,
-  LoadingOutlined
+  LoadingOutlined,
+  ReloadOutlined,
+  DownloadOutlined
 } from '@ant-design/icons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -41,7 +43,7 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
     const timer = setTimeout(() => {
       setDisplayHtml(html);
       setIsUpdating(false);
-    }, 800);
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [html, isStreaming]);
@@ -59,10 +61,27 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
     }
   };
 
+  const handleRefresh = () => {
+    setDisplayHtml('');
+    setTimeout(() => setDisplayHtml(html), 50);
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([fullHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'artifact.html';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Use useMemo for the full HTML to avoid recalculating on every render
   const fullHtml = useMemo(() => {
     const contentToRender = isStreaming ? displayHtml : html;
-    if (contentToRender.includes('<html') || contentToRender.includes('<body')) {
+    const lowerContent = contentToRender.toLowerCase();
+    
+    if (lowerContent.includes('<html') || lowerContent.includes('<body') || lowerContent.includes('<!doctype')) {
       return contentToRender;
     }
     return `
@@ -83,6 +102,28 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
             }
             * { box-sizing: border-box; }
             img { max-width: 100%; height: auto; }
+            pre { 
+              max-width: 100%; 
+              overflow-x: auto;
+              overflow-y: hidden;
+              white-space: pre;
+              word-break: normal;
+            }
+            /* Custom scrollbar for better UX */
+            ::-webkit-scrollbar {
+              width: 8px;
+              height: 8px;
+            }
+            ::-webkit-scrollbar-track {
+              background: #f1f1f1;
+            }
+            ::-webkit-scrollbar-thumb {
+              background: #ccc;
+              border-radius: 4px;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+              background: #999;
+            }
             /* Hide scrollbars during streaming to prevent layout shifts */
             ${isStreaming ? 'body { overflow: hidden; }' : ''}
           </style>
@@ -99,17 +140,17 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
       className={`html-artifact-card ${className || ''}`}
       size="small"
       style={{ 
-        margin: '16px 0', 
-        borderRadius: '8px',
+        margin: '12px 0', 
+        borderRadius: '12px',
         overflow: 'hidden',
-        border: '1px solid #d9d9d9',
+        border: '1px solid #e8e8e8',
         width: '100%',
         maxWidth: '100%',
-        boxShadow: isStreaming ? '0 0 15px rgba(27, 75, 115, 0.1)' : 'none'
+        boxShadow: isStreaming ? '0 0 15px rgba(27, 75, 115, 0.1)' : '0 2px 8px rgba(0,0,0,0.05)'
       }}
       styles={{
-        header: { background: '#f5f5f5', padding: '8px 12px' },
-        body: { padding: 0, height: isExpanded ? '70vh' : '400px', position: 'relative' }
+        header: { background: '#fafafa', padding: '8px 12px', borderBottom: '1px solid #f0f0f0' },
+        body: { padding: 0, height: isExpanded ? '80vh' : '450px', position: 'relative', background: '#fff' }
       }}
       title={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -124,6 +165,9 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
             )}
           </Space>
           <Space orientation="horizontal" size="small">
+            <Tooltip title="Refresh Preview">
+              <Button size="small" type="text" icon={<ReloadOutlined />} onClick={handleRefresh} />
+            </Tooltip>
             <Tooltip title={viewMode === 'preview' ? "Show Code" : "Show Preview"}>
               <Button 
                 size="small" 
@@ -134,6 +178,9 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
             </Tooltip>
             <Tooltip title="Copy Code">
               <Button size="small" type="text" icon={<CopyOutlined />} onClick={handleCopy} />
+            </Tooltip>
+            <Tooltip title="Download HTML">
+              <Button size="small" type="text" icon={<DownloadOutlined />} onClick={handleDownload} />
             </Tooltip>
             <Tooltip title={isExpanded ? "Shrink" : "Expand"}>
               <Button 
@@ -187,11 +234,17 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
           />
         </>
       ) : (
-        <div style={{ height: '100%', overflow: 'auto' }}>
+        <div style={{ height: '100%', overflow: 'hidden' }}>
           <SyntaxHighlighter
             language="html"
             style={vscDarkPlus}
-            customStyle={{ margin: 0, borderRadius: 0, height: '100%' }}
+            customStyle={{ 
+              margin: 0, 
+              borderRadius: 0, 
+              height: '100%',
+              overflowX: 'auto',
+              overflowY: 'hidden'
+            }}
           >
             {html}
           </SyntaxHighlighter>
@@ -200,5 +253,7 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
     </Card>
   );
 });
+
+HTMLArtifact.displayName = 'HTMLArtifact';
 
 

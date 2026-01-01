@@ -16,7 +16,7 @@ export function RegisterForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const { setAuth } = useAuthStore();
-  const { message } = useApp();
+  const { message, notification } = useApp();
   const { whiteLabel, loading: settingsLoading } = useSettings();
 
   // Redirect if registration is disabled
@@ -38,9 +38,19 @@ export function RegisterForm() {
       message.success(`Registration successful! Welcome to ${whiteLabel.app_name.replace(/\s*Chat/i, '')}`);
       router.push('/chat');
     } catch (error: any) {
-      console.error('Register error:', error);
       const errorMessage = error.response?.data?.error || 'Registration error';
-      message.error(errorMessage);
+      
+      // Only log if it's not a 409 (User already exists) or other expected auth failure
+      if (error.response?.status !== 409 && error.response?.status !== 401) {
+        console.error('Register error:', error);
+      }
+      
+      notification.error({
+        title: 'Registration Failed',
+        description: errorMessage,
+        placement: 'top',
+        duration: 5
+      });
     } finally {
       setLoading(false);
     }

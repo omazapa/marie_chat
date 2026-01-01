@@ -96,15 +96,20 @@ class OpenSearchService:
     
     def update_last_login(self, user_id: str):
         """Update user's last login timestamp"""
-        self.client.update(
-            index="marie_users",
-            id=user_id,
-            body={
-                "doc": {
-                    "last_login_at": datetime.utcnow().isoformat()
-                }
-            }
-        )
+        try:
+            self.client.update(
+                index="marie_users",
+                id=user_id,
+                body={
+                    "doc": {
+                        "last_login_at": datetime.utcnow().isoformat()
+                    }
+                },
+                retry_on_conflict=3
+            )
+        except Exception as e:
+            # Log but don't fail login if last_login update fails
+            print(f"⚠️ Warning: Failed to update last_login for {user_id}: {str(e)}")
     
     # ==================== CONVERSATIONS ====================
     

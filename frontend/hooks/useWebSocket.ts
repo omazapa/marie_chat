@@ -40,6 +40,11 @@ interface UseWebSocketProps {
     image_url?: string;
     message?: string;
   }) => void;
+  onImageError?: (data: {
+    conversation_id: string;
+    error: string;
+    message?: string;
+  }) => void;
 }
 
 export function useWebSocket({
@@ -55,6 +60,7 @@ export function useWebSocket({
   onTTSResult,
   onUserTyping,
   onImageProgress,
+  onImageError,
 }: UseWebSocketProps) {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -74,6 +80,7 @@ export function useWebSocket({
     onTTSResult,
     onUserTyping,
     onImageProgress,
+    onImageError,
   });
 
   // Update handlers ref when they change
@@ -90,6 +97,7 @@ export function useWebSocket({
       onTTSResult,
       onUserTyping,
       onImageProgress,
+      onImageError,
     };
   }, [
     onConnected,
@@ -103,6 +111,7 @@ export function useWebSocket({
     onTTSResult,
     onUserTyping,
     onImageProgress,
+    onImageError,
   ]);
 
   // Keep ref in sync with state
@@ -113,10 +122,12 @@ export function useWebSocket({
   // Initialize socket connection
   useEffect(() => {
     if (!token) {
+      console.log('⚠️ No token provided for WebSocket, skipping connection');
       return;
     }
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    console.log(`🔌 Connecting to WebSocket at ${API_URL}...`);
     
     const socket = io(API_URL, {
       auth: { token },
@@ -174,9 +185,14 @@ export function useWebSocket({
       handlersRef.current.onImageProgress?.(data);
     });
 
+    socket.on('image_error', (data) => {
+      console.error('❌ Socket event: image_error', data);
+      handlersRef.current.onImageError?.(data);
+    });
+
     // Connection handlers - AFTER message handlers
     socket.on('connect', () => {
-      console.log('✅ WebSocket connected');
+      console.log(`✅ WebSocket connected! ID: ${socket.id}, Transport: ${socket.io.engine.transport.name}`);
       setIsConnected(true);
       
       // Re-join current conversation on reconnect
@@ -191,14 +207,23 @@ export function useWebSocket({
       handlersRef.current.onConnected?.();
     });
 
-    socket.on('disconnect', () => {
-      console.log('👋 WebSocket disconnected');
+    socket.on('disconnect', (reason) => {
+      console.log(`👋 WebSocket disconnected: ${reason}`);
       setIsConnected(false);
       handlersRef.current.onDisconnected?.();
     });
 
+    socket.on('connect_error', (error) => {
+      console.error('❌ WebSocket connection error:', error.message, error);
+      handlersRef.current.onError?.(error);
+    });
+
     socket.on('error', (error) => {
       console.error('❌ WebSocket error:', error);
+      // If error is an empty object, it might be a non-serializable Error object
+      if (error && typeof error === 'object' && Object.keys(error).length === 0) {
+        console.error('   Note: Error object appears empty. This often happens with connection rejections or CORS issues.');
+      }
       handlersRef.current.onError?.(error);
     });
 

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Spin } from 'antd';
 import { useAuthStore } from '@/stores/authStore';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -20,7 +21,19 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, user, router, legacyHydrated]);
 
   if (!legacyHydrated || !isAuthenticated || !user) {
-    return null;
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        background: '#f5f7f9'
+      }}>
+        <Spin size="large" tip="Authenticating...">
+          <div style={{ padding: '50px' }} />
+        </Spin>
+      </div>
+    );
   }
 
   return <>{children}</>;

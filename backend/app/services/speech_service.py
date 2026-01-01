@@ -43,22 +43,43 @@ class SpeechService:
                 device = "cuda" if torch.cuda.is_available() else "cpu"
             
             print(f"🎙️ Initializing Whisper model: {self.stt_model_size} on {device}")
-            self._stt_model = WhisperModel(self.stt_model_size, device=device, compute_type="float16" if device == "cuda" else "int8")
+            try:
+                self._stt_model = WhisperModel(
+                    self.stt_model_size, 
+                    device=device, 
+                    compute_type="float16" if device == "cuda" else "int8"
+                )
+            except Exception as e:
+                if device == "cuda":
+                    print(f"⚠️ Failed to initialize Whisper on GPU: {e}. Falling back to CPU.")
+                    self._stt_model = WhisperModel(self.stt_model_size, device="cpu", compute_type="int8")
+                else:
+                    raise e
         return self._stt_model
 
     def transcribe(self, audio_path: str, language: Optional[str] = None) -> str:
         """Transcribe audio file to text using faster-whisper"""
         try:
             # language=None triggers auto-detection
-            segments, info = self.stt_model.transcribe(audio_path, beam_size=5, language=language)
-            
-            print(f"🎙️ Detected language '{info.language}' with probability {info.language_probability:.2f}")
-            
-            full_text = ""
-            for segment in segments:
-                full_text += segment.text + " "
+            model = self.stt_model
+            try:
+                segments, info = model.transcribe(audio_path, beam_size=5, language=language)
                 
-            return full_text.strip()
+                print(f"🎙️ Detected language '{info.language}' with probability {info.language_probability:.2f}")
+                
+                full_text = ""
+                for segment in segments:
+                    full_text += segment.text + " "
+                    
+                return full_text.strip()
+            except Exception as e:
+                if model.device == "cuda":
+                    print(f"⚠️ Error during GPU transcription: {e}. Retrying on CPU...")
+                    # Force re-initialization on CPU
+                    self._stt_model = WhisperModel(self.stt_model_size, device="cpu", compute_type="int8")
+                    return self.transcribe(audio_path, language=language)
+                else:
+                    raise e
         except Exception as e:
             print(f"❌ Transcription error: {e}")
             return ""
@@ -72,7 +93,8 @@ class SpeechService:
             
             audio_data = base64.b64decode(base64_audio)
             
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
+            # Use a generic suffix or none, ffmpeg/av will detect the format
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".tmp") as temp_audio:
                 temp_audio.write(audio_data)
                 temp_path = temp_audio.name
             

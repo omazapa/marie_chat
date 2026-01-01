@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo, memo, useCallback } from '
 import { useRouter } from 'next/navigation';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
-import { Spin, Button, Typography, Tag, Tooltip, Layout, App, Input } from 'antd';
+import { Spin, Button, Typography, Tag, Tooltip, Layout, App, Input, Alert, Space } from 'antd';
 import { 
   RobotOutlined, 
   EditOutlined, 
@@ -12,6 +12,7 @@ import {
   SettingOutlined,
   FileOutlined,
   LinkOutlined,
+  PlusOutlined,
 } from '@ant-design/icons';
 import type { ConversationsProps } from '@ant-design/x';
 import type { Message as WebSocketMessage } from '@/hooks/useWebSocket';
@@ -84,6 +85,7 @@ export default function ChatContainer() {
     fetchMessages,
     createConversation,
     deleteConversation,
+    bulkDeleteConversations,
     updateConversation,
     selectConversation,
     sendMessage,
@@ -319,7 +321,7 @@ export default function ChatContainer() {
   };
 
   const handleSend = async (content: string) => {
-    if (!content.trim() && attachments.length === 0) return;
+    if (!content || (!content.trim() && attachments.length === 0)) return;
     
     setInputValue('');
     const currentAttachments = [...attachments];
@@ -344,10 +346,8 @@ export default function ChatContainer() {
       const conv = await createConversation('New Chat', selectedModel, selectedProvider);
       if (conv) {
         await selectConversation(conv);
-        // Use a slightly longer delay and call sendMessage directly with the captured values
-        setTimeout(() => {
-          sendMessage(content, currentAttachments, currentReferences, currentMsgRefs);
-        }, 600);
+        // Call sendMessage directly with the new conversation ID
+        await sendMessage(content, currentAttachments, currentReferences, currentMsgRefs, conv.id);
       }
     } else {
       await sendMessage(content, currentAttachments, currentReferences, currentMsgRefs);
@@ -366,9 +366,20 @@ export default function ChatContainer() {
   const handleGenerateImage = useCallback(async () => {
     if (!imagePrompt.trim()) return;
     
+    let convId = currentConversation?.id;
+    
+    if (!convId) {
+      const conv = await createConversation('Image Generation', selectedModel, selectedProvider);
+      if (conv) {
+        await selectConversation(conv);
+        convId = conv.id;
+      } else {
+        return;
+      }
+    }
+    
     const prompt = imagePrompt;
     const model = selectedImageModel;
-    const convId = currentConversation?.id;
     
     setShowImageModal(false);
     setImagePrompt('');
@@ -384,40 +395,35 @@ export default function ChatContainer() {
     if (result && result.conversation_id) {
       console.log('✅ Image generation started:', result);
       
-      // Set initial progress state so the user sees something immediately
-      setImageProgress({
-        conversation_id: result.conversation_id,
-        progress: 0,
-        step: 0,
-        total_steps: 15, // Default or estimate
-        message: 'Starting generation...'
-      });
-      
-      // Switch to the conversation immediately so the user sees the progress
-      if (!currentConversation || currentConversation.id !== result.conversation_id) {
-        await selectConversation(result.conversation_id);
+      // Only update progress for the current conversation
+      if (convId === result.conversation_id) {
+        setImageProgress({
+          conversation_id: result.conversation_id,
+          progress: 0,
+          step: 0,
+          total_steps: 15,
+          message: 'Starting generation...'
+        });
+        
+        // Optimistically add the user message
+        const modelParts = model.split('/');
+        const displayModel = modelParts[modelParts.length - 1] || model || "default";
+        const userMessage = {
+          id: `temp-${Date.now()}`,
+          conversation_id: result.conversation_id,
+          user_id: user?.id || 'user',
+          role: 'user',
+          content: `Generate an image using ${displayModel}: ${prompt}`,
+          created_at: new Date().toISOString()
+        };
+        
+        setMessages(prev => {
+          if (prev.some(m => m.content === userMessage.content)) return prev;
+          return [...prev, userMessage];
+        });
       }
-
-      // Optimistically add the user message to the chat list
-      // This ensures it appears in the "chat field" as requested
-      const modelParts = model.split('/');
-      const displayModel = modelParts[modelParts.length - 1] || model || "default";
-      const userMessage = {
-        id: `temp-${Date.now()}`,
-        conversation_id: result.conversation_id,
-        user_id: user?.id || 'user',
-        role: 'user',
-        content: `Generate an image using ${displayModel}: ${prompt}`,
-        created_at: new Date().toISOString()
-      };
-      
-      setMessages(prev => {
-        // Avoid duplicates if fetchMessages already got it
-        if (prev.some(m => m.content === userMessage.content)) return prev;
-        return [...prev, userMessage];
-      });
     }
-  }, [imagePrompt, selectedImageModel, selectedModel, selectedProvider, currentConversation, generateImage, selectConversation, user, setMessages, setImageProgress]);
+  }, [imagePrompt, selectedImageModel, selectedModel, selectedProvider, currentConversation, createConversation, selectConversation, generateImage, user, setMessages, setImageProgress]);
 
   const toggleReference = (id: string) => {
     setReferencedConvIds(prev => 
@@ -558,6 +564,7 @@ export default function ChatContainer() {
         handleSelectConversation={handleSelectConversation}
         handleRenameConversation={handleRenameConversation}
         handleDeleteConversation={handleDeleteConversation}
+        handleBulkDeleteConversations={bulkDeleteConversations}
         handleLogout={handleLogout}
         user={user}
         isConnected={isConnected}
@@ -566,17 +573,19 @@ export default function ChatContainer() {
       <Layout style={{ height: '100vh' }}>
         <Content style={{ display: 'flex', flexDirection: 'column', background: '#ffffff', minWidth: 0, height: '100%' }}>
           {error && (
-            <div style={{ 
-              background: '#fff2f0',
-              borderLeft: '4px solid #ff4d4f',
-              padding: '16px',
-              margin: '16px'
-            }}>
-              <Text style={{ color: '#cf1322' }}>{error}</Text>
+            <div style={{ padding: '16px 16px 0 16px' }}>
+              <Alert
+                message="Error"
+                description={error}
+                type="error"
+                showIcon
+                closable
+                onClose={() => setError(null)}
+              />
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minWidth: 0, overflow: 'hidden' }}>
             {!currentConversation ? (
               <WelcomeScreen 
                 onSend={handleSend} 
@@ -591,7 +600,8 @@ export default function ChatContainer() {
                   background: '#ffffff',
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  flexShrink: 0
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <RobotOutlined style={{ fontSize: '20px', color: '#1B4B73' }} />
@@ -635,16 +645,28 @@ export default function ChatContainer() {
                       </div>
                     </div>
                   </div>
-                  <Tooltip title="Change model">
-                    <Button
-                      icon={<SettingOutlined />}
-                      onClick={handleChangeModel}
-                      size="small"
-                      type="text"
-                    >
-                      Change Model
-                    </Button>
-                  </Tooltip>
+                  <Space orientation="horizontal" size="small">
+                    <Tooltip title="New Chat">
+                      <Button
+                        icon={<PlusOutlined />}
+                        onClick={handleNewConversation}
+                        size="small"
+                        type="text"
+                      >
+                        New Chat
+                      </Button>
+                    </Tooltip>
+                    <Tooltip title="Change model">
+                      <Button
+                        icon={<SettingOutlined />}
+                        onClick={handleChangeModel}
+                        size="small"
+                        type="text"
+                      >
+                        Change Model
+                      </Button>
+                    </Tooltip>
+                  </Space>
                 </div>
 
                 {/* Messages Area */}
@@ -663,19 +685,27 @@ export default function ChatContainer() {
                   regenerateResponse={regenerateResponse}
                   handlePlayMessage={handlePlayMessage}
                   playingMessageId={playingMessageId}
-                  imageProgress={imageProgress}
+                  imageProgress={
+                    imageProgress?.conversation_id === currentConversation?.id 
+                      ? imageProgress 
+                      : null
+                  }
                   messagesEndRef={messagesEndRef}
                 />
+
               </div>
             )}
 
-            {/* Input Area - Always visible */}
+            {/* Common Input Area */}
             <div style={{ 
               borderTop: '1px solid #E2E8F0',
               background: '#ffffff',
-              padding: '16px 24px'
+              padding: '16px 24px',
+              width: '100%',
+              boxSizing: 'border-box',
+              flexShrink: 0
             }}>
-              <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+              <div style={{ maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
                 {/* Attachments and References List */}
                 {(attachments.length > 0 || referencedConvIds.length > 0 || referencedMsgIds.length > 0) && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
@@ -691,7 +721,7 @@ export default function ChatContainer() {
                       </Tag>
                     ))}
                     {referencedConvIds.map(id => {
-                      const conv = conversations.find(c => c.id === id);
+                      const conv = conversations.find((c: any) => c.id === id);
                       return (
                         <Tag 
                           key={id} 
@@ -716,10 +746,23 @@ export default function ChatContainer() {
                           color="cyan"
                           style={{ padding: '4px 8px', borderRadius: '6px' }}
                         >
-                          Mensaje: {msg?.content?.substring(0, 20)}...
+                          Message: {msg?.content?.substring(0, 20)}...
                         </Tag>
                       );
                     })}
+                    <Button 
+                      type="text" 
+                      size="small" 
+                      danger 
+                      onClick={() => {
+                        setAttachments([]);
+                        setReferencedConvIds([]);
+                        setReferencedMsgIds([]);
+                      }}
+                      style={{ fontSize: '12px' }}
+                    >
+                      Clear All
+                    </Button>
                   </div>
                 )}
 

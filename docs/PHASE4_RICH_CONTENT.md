@@ -33,15 +33,15 @@ This phase focused on fixing critical real-time communication issues and enhanci
   - Sandboxed-like rendering within the chat bubble.
 - **Verification**: Confirmed working via Playwright E2E tests.
 
-### 4. Interrupción de Diálogo (Botón Stop)
+### 4. Dialogue Interruption (Stop Button)
 - **Backend**:
-  - Se añadió el evento `stop_generation` en Socket.IO.
-  - Se implementó un mecanismo de banderas (`stopped_generations`) para interrumpir el bucle de streaming del LLM de forma inmediata.
+  - Added `stop_generation` event in Socket.IO.
+  - Implemented a flag mechanism (`stopped_generations`) to immediately interrupt the LLM streaming loop.
 - **Frontend**:
-  - Se añadió la función `stopGeneration` en los hooks `useWebSocket` y `useChat`.
-  - Se integró un botón de parada dinámico en `ChatContainer.tsx` que aparece únicamente durante el streaming.
-  - El botón utiliza el estilo `danger` de Ant Design y el icono `StopOutlined`.
-- **Verificación**: Confirmado mediante pruebas automatizadas que la generación se detiene inmediatamente al pulsar el botón.
+  - Added `stopGeneration` function in `useWebSocket` and `useChat` hooks.
+  - Integrated a dynamic stop button in `ChatContainer.tsx` that appears only during streaming.
+  - The button uses Ant Design's `danger` style and the `StopOutlined` icon.
+- **Verification**: Confirmed via automated tests that generation stops immediately when the button is pressed.
 
 ## 🧪 Testing & Validation
 - **E2E Suite**: Created `tests/verify-chat.spec.js` to automate the verification of:

@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
-import { Layout, Button, Input, Typography, Space, Tooltip, App } from 'antd';
-import { PlusOutlined, SettingOutlined, SearchOutlined, MessageOutlined, EditOutlined, DeleteOutlined, LogoutOutlined, SafetyCertificateOutlined, KeyOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
+import { Layout, Button, Input, Typography, Space, Tooltip, App, Checkbox } from 'antd';
+import { PlusOutlined, SettingOutlined, SearchOutlined, MessageOutlined, EditOutlined, DeleteOutlined, LogoutOutlined, SafetyCertificateOutlined, KeyOutlined, CheckSquareOutlined, CloseOutlined } from '@ant-design/icons';
 import { Conversations } from '@ant-design/x';
 import Link from 'next/link';
 import { UserAvatar } from './UserAvatar';
@@ -22,6 +22,7 @@ interface ChatSidebarProps {
   handleSelectConversation: (id: string) => void;
   handleRenameConversation: (id: string, title: string) => void;
   handleDeleteConversation: (id: string) => void;
+  handleBulkDeleteConversations: (ids: string[]) => Promise<boolean>;
   handleLogout: () => void;
   user: any;
   isConnected: boolean;
@@ -38,12 +39,48 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   handleSelectConversation,
   handleRenameConversation,
   handleDeleteConversation,
+  handleBulkDeleteConversations,
   handleLogout,
   user,
   isConnected,
 }) => {
   const { modal } = App.useApp();
   const { whiteLabel } = useSettings();
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === filteredConversations.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredConversations.map(c => c.id));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedIds.length === 0) return;
+    
+    modal.confirm({
+      title: 'Bulk Delete Conversations',
+      content: `Are you sure you want to delete ${selectedIds.length} conversations? This action cannot be undone.`,
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        const success = await handleBulkDeleteConversations(selectedIds);
+        if (success) {
+          setIsSelectionMode(false);
+          setSelectedIds([]);
+        }
+      },
+    });
+  };
 
   return (
     <Sider 
@@ -85,25 +122,73 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
         {/* New Conversation Button */}
         <div style={{ padding: '16px' }}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleNewConversation}
-            disabled={loading}
-            block
-            size="large"
-            style={{
-              height: '44px',
-              fontWeight: 600
-            }}
-          >
-            New Conversation
-          </Button>
+          <Space orientation="vertical" style={{ width: '100%' }} size="small">
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleNewConversation}
+              disabled={loading || isSelectionMode}
+              block
+              size="large"
+              style={{
+                height: '44px',
+                fontWeight: 600
+              }}
+            >
+              New Conversation
+            </Button>
+            
+            <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+              {!isSelectionMode ? (
+                <Button
+                  icon={<CheckSquareOutlined />}
+                  onClick={() => setIsSelectionMode(true)}
+                  block
+                  size="small"
+                  style={{ fontSize: '12px' }}
+                >
+                  Manage History
+                </Button>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <Button
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={handleBulkDelete}
+                      disabled={selectedIds.length === 0}
+                      style={{ flex: 1, fontSize: '12px' }}
+                      size="small"
+                    >
+                      Delete ({selectedIds.length})
+                    </Button>
+                    <Button
+                      icon={<CloseOutlined />}
+                      onClick={() => {
+                        setIsSelectionMode(false);
+                        setSelectedIds([]);
+                      }}
+                      size="small"
+                    />
+                  </div>
+                  <Button
+                    size="small"
+                    onClick={handleSelectAll}
+                    style={{ fontSize: '11px' }}
+                  >
+                    {selectedIds.length === filteredConversations.length ? 'Deselect All' : 'Select All'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Space>
+          
           <Button
             type="text"
             icon={<SettingOutlined />}
             onClick={handleOpenModelSelector}
             block
+            disabled={isSelectionMode}
             style={{ marginTop: 8, color: whiteLabel.primary_color }}
           >
             Configure Model
@@ -129,37 +214,52 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               items={filteredConversations.map((conv: any) => ({
                 key: conv.id,
                 label: (
-                  <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                    <div style={{ 
-                      overflow: 'hidden', 
-                      textOverflow: 'ellipsis', 
-                      whiteSpace: 'nowrap',
-                      fontWeight: 500 
-                    }}>
-                      {conv.highlight_title ? (
-                        <span dangerouslySetInnerHTML={{ __html: conv.highlight_title }} />
-                      ) : conv.title}
-                    </div>
-                    {conv.highlight_message && (
-                      <div 
-                        style={{ 
-                          fontSize: '11px', 
-                          color: '#8c8c8c', 
-                          marginTop: '2px', 
-                          overflow: 'hidden', 
-                          textOverflow: 'ellipsis', 
-                          whiteSpace: 'nowrap' 
-                        }}
-                        dangerouslySetInnerHTML={{ __html: `...${conv.highlight_message}...` }}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+                    {isSelectionMode && (
+                      <Checkbox 
+                        checked={selectedIds.includes(conv.id)} 
+                        onChange={() => toggleSelection(conv.id)}
+                        onClick={(e) => e.stopPropagation()}
                       />
                     )}
+                    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+                      <div style={{ 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis', 
+                        whiteSpace: 'nowrap',
+                        fontWeight: 500 
+                      }}>
+                        {conv.highlight_title ? (
+                          <span dangerouslySetInnerHTML={{ __html: conv.highlight_title }} />
+                        ) : conv.title}
+                      </div>
+                      {conv.highlight_message && (
+                        <div 
+                          style={{ 
+                            fontSize: '11px', 
+                            color: '#8c8c8c', 
+                            marginTop: '2px', 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis', 
+                            whiteSpace: 'nowrap' 
+                          }}
+                          dangerouslySetInnerHTML={{ __html: `...${conv.highlight_message}...` }}
+                        />
+                      )}
+                    </div>
                   </div>
                 ),
                 timestamp: new Date(conv.updated_at).getTime(),
               }))}
-              activeKey={currentConversation?.id}
-              onActiveChange={handleSelectConversation}
-              menu={(info: any) => ({
+              activeKey={isSelectionMode ? undefined : currentConversation?.id}
+              onActiveChange={(id) => {
+                if (isSelectionMode) {
+                  toggleSelection(id);
+                } else {
+                  handleSelectConversation(id);
+                }
+              }}
+              menu={isSelectionMode ? undefined : (info: any) => ({
                 items: [
                   {
                     key: 'rename',
@@ -276,7 +376,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           </Link>
 
           <Space orientation="vertical" size={4} style={{ width: '100%' }}>
-            <Text type="secondary" style={{ fontSize: '10px' }}>© 2025 ImpactU</Text>
+            <Text type="secondary" style={{ fontSize: '10px' }}>© 2026 ImpactU</Text>
           </Space>
         </div>
       </div>

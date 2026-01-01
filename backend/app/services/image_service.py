@@ -206,11 +206,38 @@ class ImageService:
                     callback_on_step_end_tensor_inputs=["latents"]
                 ).images[0]
             except Exception as e:
-                if "CUDA out of memory" in str(e) or "OOM" in str(e):
+                error_str = str(e)
+                if "CUDA out of memory" in error_str or "OOM" in error_str:
                     print(f"⚠️ CUDA OOM detected, falling back to CPU: {e}")
-                    # Force CPU
-                    self._local_pipe = self.local_pipe.to("cpu")
-                    image = self.local_pipe(
+                    # Clear cache and force move to CPU
+                    torch.cuda.empty_cache()
+                    self._local_pipe.to("cpu", torch.float32)
+                    # Retry on CPU
+                    image = self._local_pipe(
+                        prompt=prompt,
+                        negative_prompt=negative_prompt,
+                        num_inference_steps=num_inference_steps,
+                        guidance_scale=guidance_scale,
+                        width=width,
+                        height=height,
+                        callback_on_step_end=callback_on_step_end,
+                        callback_on_step_end_tensor_inputs=["latents"]
+                    ).images[0]
+                elif "meta tensor" in error_str:
+                    # This is the specific error we're seeing - pipeline not properly initialized
+                    print(f"⚠️ Meta tensor error, reinitializing pipeline on CPU...")
+                    torch.cuda.empty_cache()
+                    # Force recreation on CPU
+                    self._local_pipe = None
+                    from diffusers import StableDiffusionPipeline
+                    self._local_pipe = StableDiffusionPipeline.from_pretrained(
+                        self.local_model_id,
+                        torch_dtype=torch.float32,
+                        safety_checker=None,
+                        requires_safety_checker=False
+                    ).to("cpu")
+                    # Retry
+                    image = self._local_pipe(
                         prompt=prompt,
                         negative_prompt=negative_prompt,
                         num_inference_steps=num_inference_steps,

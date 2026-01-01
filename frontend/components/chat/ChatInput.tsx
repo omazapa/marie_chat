@@ -83,7 +83,7 @@ export const ChatInput = memo(({
           />
         </div>
       )}
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch', width: '100%' }}>
         <Sender
           value={value}
           onChange={onChange}
@@ -93,65 +93,86 @@ export const ChatInput = memo(({
           disabled={!isConnected}
           placeholder={isRecording ? "Listening..." : isTranscribing ? "Transcribing..." : "Type your message here..."}
           prefix={
-            <div style={{ display: 'flex', gap: '4px' }}>
-              <Tooltip title="Attach files">
+            <div style={{ display: 'flex', gap: '0px', alignItems: 'center' }}>
+              <Tooltip title="Attach">
                 <Button 
                   type="text" 
+                  size="small"
                   icon={<PaperClipOutlined />} 
                   onClick={onFileClick}
                   disabled={isStreaming || isUploading}
+                  style={{ padding: '4px' }}
                 />
               </Tooltip>
-              <Tooltip title="Reference content">
+              <Tooltip title="Reference">
                 <Badge count={referencedCount} size="small" offset={[-2, 2]}>
                   <Button 
                     type="text" 
+                    size="small"
                     icon={<LinkOutlined />} 
                     onClick={onReferenceClick}
                     disabled={isStreaming}
+                    style={{ padding: '4px' }}
                   />
                 </Badge>
               </Tooltip>
-              <Tooltip title="Generate image">
+              <Tooltip title="Image">
                 <Button 
                   type="text" 
+                  size="small"
                   icon={<PictureOutlined />} 
                   onClick={onImageClick}
                   disabled={isStreaming}
+                  style={{ padding: '4px' }}
                 />
               </Tooltip>
-              <Tooltip title="Optimize prompt">
+              <Tooltip title="Optimize">
                 <Button 
                   type="text" 
+                  size="small"
                   icon={<BulbOutlined style={{ color: whiteLabel.primary_color }} />} 
                   onClick={onOptimizeClick}
                   disabled={isStreaming}
+                  style={{ padding: '4px' }}
                 />
               </Tooltip>
             </div>
           }
-          actions={(info) => (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <Tooltip title={isRecording ? "Stop recording" : "Voice input"}>
-                <Button
-                  type={isRecording ? "primary" : "text"}
-                  danger={isRecording}
-                  shape="circle"
-                  icon={isRecording ? <AudioMutedOutlined /> : <AudioOutlined />}
-                  onClick={isRecording ? onStopRecording : onStartRecording}
-                  disabled={isStreaming || isTranscribing}
-                />
-              </Tooltip>
-              {info.components.send}
-            </div>
-          )}
           style={{
             flex: 1,
             boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
             borderRadius: '12px',
-            border: '1px solid #e2e8f0'
+            border: '1px solid #e2e8f0',
+            minWidth: '0'
+          }}
+          styles={{
+            textarea: {
+              maxHeight: '200px',
+              minHeight: '54px',
+              lineHeight: '1.5',
+              padding: '12px',
+              resize: 'none',
+              overflow: 'auto',
+              wordBreak: 'break-all'
+            }
           }}
         />
+        <Tooltip title={isRecording ? "Stop" : "Voice"}>
+          <Button
+            type={isRecording ? "primary" : "default"}
+            danger={isRecording}
+            shape="circle"
+            size="large"
+            icon={isRecording ? <AudioMutedOutlined /> : <AudioOutlined />}
+            onClick={isRecording ? onStopRecording : onStartRecording}
+            disabled={isStreaming || isTranscribing}
+            style={{ 
+              minWidth: '54px',
+              height: '54px',
+              flexShrink: 0
+            }}
+          />
+        </Tooltip>
       </div>
     </div>
   );

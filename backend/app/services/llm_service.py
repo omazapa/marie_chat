@@ -408,6 +408,46 @@ class LLMService:
             print(f"Error deleting conversation: {e}")
             return False
     
+    def delete_conversations(self, conversation_ids: List[str], user_id: str) -> bool:
+        """Delete multiple conversations and all their messages"""
+        try:
+            # Delete all messages in these conversations
+            self.client.delete_by_query(
+                index="marie_messages",
+                body={
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {"terms": {"conversation_id": conversation_ids}},
+                                {"term": {"user_id": user_id}}
+                            ]
+                        }
+                    }
+                },
+                refresh=True
+            )
+            
+            # Delete the conversations
+            self.client.delete_by_query(
+                index="marie_conversations",
+                body={
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {"ids": {"values": conversation_ids}},
+                                {"term": {"user_id": user_id}}
+                            ]
+                        }
+                    }
+                },
+                refresh=True
+            )
+            
+            return True
+        except Exception as e:
+            print(f"Error deleting conversations: {e}")
+            return False
+    
     # ==================== Message Management ====================
     
     def save_message(
@@ -424,7 +464,7 @@ class LLMService:
         now = datetime.utcnow().isoformat()
         
         # Generate embedding for semantic search
-        content_vector = []
+        content_vector = None
         try:
             if content and len(content.strip()) > 0:
                 content_vector = self.embedding_model.encode(content).tolist()
@@ -437,11 +477,13 @@ class LLMService:
             "user_id": user_id,
             "role": role,
             "content": content,
-            "content_vector": content_vector,
             "tokens_used": tokens_used,
             "metadata": metadata or {},
             "created_at": now
         }
+        
+        if content_vector:
+            message["content_vector"] = content_vector
         
         self.client.index(
             index="marie_messages",
@@ -689,7 +731,7 @@ class LLMService:
         # Retrieve relevant memories and add to context
         memories = self.memory_service.retrieve_memories(user_id, user_message)
         if memories:
-            memory_context = "--- INFORMACIÓN RECORDADA DEL USUARIO ---\n"
+            memory_context = "--- REMEMBERED USER INFORMATION ---\n"
             for mem in memories:
                 memory_context += f"- {mem['content']}\n"
             memory_context += "------------------------------------------\n\n"
@@ -699,7 +741,7 @@ class LLMService:
             else:
                 llm_messages.insert(0, {
                     "role": "system",
-                    "content": memory_context + "Eres Marie, una asistente de investigación inteligente."
+                    "content": memory_context + "You are Marie, an intelligent research assistant."
                 })
         
         # Add conversation history
@@ -732,7 +774,7 @@ class LLMService:
         print(f"[DEBUG] Final LLM Messages count: {len(llm_messages)}")
         for i, m in enumerate(llm_messages):
             print(f"[DEBUG] Msg {i} ({m['role']}): {m['content'][:200]}...")
-            if "CONTEXTO DE CONVERSACIONES" in m['content']:
+            if "CONTEXT FROM REFERENCES" in m['content']:
                 print(f"[DEBUG] Context found in message {i}!")
         
         # Get model settings
@@ -1013,7 +1055,7 @@ class LLMService:
         prompt = f"""
         Extract important facts, user preferences, or entities from the following interaction.
         Only extract information that is worth remembering for future conversations.
-        Format each fact as a single concise sentence in Spanish.
+        Format each fact as a single concise sentence in English.
         If no important information is found, return "NONE".
         
         User: {user_msg}
@@ -1068,8 +1110,8 @@ class LLMService:
             
             # Create a prompt for title generation
             title_prompt = (
-                f"Genera un título muy conciso (máximo 5 palabras) en español para una conversación que comienza con este mensaje: \"{user_message}\". "
-                "Responde ÚNICAMENTE con el título, sin comillas, sin punto al final y sin texto adicional."
+                f"Generate a very concise title (maximum 5 words) in English for a conversation that starts with this message: \"{user_message}\". "
+                "Respond ONLY with the title, without quotes, without a period at the end, and without additional text."
             )
             
             title = ""

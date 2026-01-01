@@ -16,7 +16,7 @@ export function LoginForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const { setAuth } = useAuthStore();
-  const { message } = useApp();
+  const { message, notification } = useApp();
   const { whiteLabel } = useSettings();
 
   // Prefetch chat page to improve perceived performance
@@ -36,9 +36,19 @@ export function LoginForm() {
       message.success(`Welcome back to ${whiteLabel.app_name.replace(/\s*Chat/i, '')}!`);
       router.push('/chat');
     } catch (error: any) {
-      console.error('Login error:', error);
-      const errorMessage = error.response?.data?.error || 'Login error';
-      message.error(errorMessage);
+      const errorMessage = error.response?.data?.error || 'Invalid email or password';
+      
+      // Only log if it's not a 401 (expected auth failure)
+      if (error.response?.status !== 401) {
+        console.error('Login error:', error);
+      }
+      
+      notification.error({
+        title: 'Login Failed',
+        description: errorMessage,
+        placement: 'top',
+        duration: 5
+      });
     } finally {
       setLoading(false);
     }

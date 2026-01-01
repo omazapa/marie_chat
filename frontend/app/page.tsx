@@ -11,11 +11,7 @@ export default function Home() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (user?.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/chat');
-      }
+      router.push('/chat');
     } else {
       router.push('/login');
     }

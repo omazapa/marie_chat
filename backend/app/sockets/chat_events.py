@@ -39,18 +39,27 @@ def get_async_loop():
 
 
 @socketio.on('connect')
-def handle_connect():
+def handle_connect(auth=None):
     """Handle client connection"""
-    # Get token from auth header or query params
-    token = request.args.get('token')
+    # Get token from auth object, auth header or query params
+    token = None
     
+    # 1. Check auth object (Socket.IO v4+)
+    if auth and isinstance(auth, dict):
+        token = auth.get('token')
+    
+    # 2. Check query params
+    if not token:
+        token = request.args.get('token')
+    
+    # 3. Check Authorization header
     if not token:
         auth_header = request.headers.get('Authorization', '')
         if auth_header.startswith('Bearer '):
             token = auth_header[7:]
     
     if not token:
-        print("❌ Connection rejected: No token provided")
+        print(f"❌ Connection rejected: No token provided. SID: {request.sid}")
         return False
     
     try:
@@ -68,7 +77,7 @@ def handle_connect():
         emit('connected', {'message': 'Connected successfully', 'user_id': user_id})
         return True
     except Exception as e:
-        print(f"❌ Connection rejected: {e}")
+        print(f"❌ Connection rejected for SID {request.sid}: {e}")
         return False
 
 
@@ -386,16 +395,18 @@ def handle_transcribe_audio(data):
     
     print(f"🎙️ Transcribing audio from {request.sid} (language hint: {language or 'auto'})")
     
-    def process_transcription():
+    sid = request.sid
+    
+    def process_transcription(target_sid):
         try:
             text = speech_service.transcribe_base64(audio_data, language=language)
-            socketio.emit('transcription_result', {'text': text}, room=request.sid)
+            socketio.emit('transcription_result', {'text': text}, room=target_sid)
         except Exception as e:
             print(f"❌ Transcription error: {e}")
-            socketio.emit('error', {'message': f'Transcription error: {str(e)}'}, room=request.sid)
+            socketio.emit('error', {'message': f'Transcription error: {str(e)}'}, room=target_sid)
     
     # Run in a separate thread to avoid blocking the event loop
-    threading.Thread(target=process_transcription).start()
+    threading.Thread(target=process_transcription, args=(sid,)).start()
 
 
 @socketio.on('text_to_speech')
@@ -415,20 +426,22 @@ def handle_text_to_speech(data):
     
     print(f"🔊 Converting text to speech for {request.sid}")
     
-    async def process_tts():
+    sid = request.sid
+    
+    async def process_tts(target_sid):
         try:
             audio_base64 = await speech_service.text_to_speech_base64(text, voice)
             socketio.emit('tts_result', {
                 'audio': audio_base64,
                 'message_id': message_id
-            }, room=request.sid)
+            }, room=target_sid)
         except Exception as e:
             print(f"❌ TTS error: {e}")
-            socketio.emit('error', {'message': f'TTS error: {str(e)}'}, room=request.sid)
+            socketio.emit('error', {'message': f'TTS error: {str(e)}'}, room=target_sid)
     
     # Run in the global async loop
     loop = get_async_loop()
-    asyncio.run_coroutine_threadsafe(process_tts(), loop)
+    asyncio.run_coroutine_threadsafe(process_tts(sid), loop)
 
 
 # Error handler

@@ -42,7 +42,7 @@ export const MessageList = memo(({
   const { whiteLabel } = useSettings();
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+    <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto', padding: '0 16px 24px 16px', boxSizing: 'border-box', minWidth: 0 }}>
       {messages.map((msg, index) => (
         <div key={msg.id}>
           <MessageItem 
@@ -73,7 +73,8 @@ export const MessageList = memo(({
         <div style={{ 
           display: 'flex', 
           justifyContent: 'flex-start', 
-          marginBottom: '16px',
+          marginBottom: '24px',
+          marginTop: '16px',
           padding: '0 16px'
         }}>
           <Card 
@@ -136,7 +137,7 @@ export const MessageList = memo(({
         </div>
       )}
 
-      <div ref={messagesEndRef} />
+      <div ref={messagesEndRef} style={{ height: '20px' }} />
     </div>
   );
 });

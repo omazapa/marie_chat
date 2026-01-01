@@ -41,19 +41,26 @@ class MemoryService:
         now = datetime.utcnow().isoformat()
         
         # Generate embedding
-        content_vector = self.embedding_model.encode(content).tolist()
+        content_vector = None
+        try:
+            if content and len(content.strip()) > 0:
+                content_vector = self.embedding_model.encode(content).tolist()
+        except Exception as e:
+            print(f"Error generating memory embedding: {e}")
         
         memory_doc = {
             "id": memory_id,
             "user_id": user_id,
             "content": content,
-            "content_vector": content_vector,
             "memory_type": memory_type,
             "importance": importance,
             "metadata": metadata or {},
             "created_at": now,
             "updated_at": now
         }
+        
+        if content_vector:
+            memory_doc["content_vector"] = content_vector
         
         self.client.index(
             index=self.index,

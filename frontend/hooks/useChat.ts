@@ -151,6 +151,21 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     setTtsAudio(data);
   }, []);
 
+  const handleImageError = useCallback(
+    (data: { 
+      conversation_id: string;
+      error: string;
+      message?: string;
+    }) => {
+      console.error(`❌ Image error for ${data.conversation_id}: ${data.error}`);
+      if (currentConversationRef.current?.id === data.conversation_id) {
+        setImageProgress(null);
+        setError(data.message || data.error);
+      }
+    },
+    []
+  );
+
   // Initialize WebSocket
   const {
     isConnected,
@@ -170,6 +185,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     onTranscriptionResult: handleTranscriptionResult,
     onTTSResult: handleTTSResult,
     onImageProgress: handleImageProgress,
+    onImageError: handleImageError,
     onError: (err) => setError(err.message),
   });
 
@@ -188,10 +204,13 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       content: string, 
       attachments: any[] = [], 
       referenced_convs: { id: string, title: string }[] = [],
-      referenced_msg_ids: string[] = []
+      referenced_msg_ids: string[] = [],
+      conversationId?: string
     ) => {
       const conv = currentConversationRef.current;
-      if (!conv || !isConnected) {
+      const targetConvId = conversationId || conv?.id;
+
+      if (!targetConvId || !isConnected) {
         setError('Not connected to chat');
         return;
       }
@@ -201,7 +220,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       // Add user message to UI immediately
       const userMessage: Message = {
         id: `temp-${Date.now()}`,
-        conversation_id: conv.id,
+        conversation_id: targetConvId,
         user_id: 'current-user',
         role: 'user',
         content,
@@ -213,11 +232,16 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         },
         created_at: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, userMessage]);
+
+      // Only update messages if we are in the target conversation
+      if (targetConvId === conv?.id) {
+        setMessages((prev) => [...prev, userMessage]);
+      }
+      
       setImageProgress(null);
 
       // Send via WebSocket
-      wsSendMessage(conv.id, content, true, attachments, referenced_conv_ids, referenced_msg_ids);
+      wsSendMessage(targetConvId, content, true, attachments, referenced_conv_ids, referenced_msg_ids);
     },
     [isConnected, wsSendMessage]
   );
@@ -279,6 +303,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
           headers: {
             'Content-Type': 'multipart/form-data',
           },
+          timeout: 300000, // 5 minutes for file uploads
         });
 
         return response.data;
@@ -389,7 +414,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
 
   // Create conversation
   const createConversation = useCallback(
-    async (title: string = 'New Conversation', model: string = 'llama3.2', provider: string = 'ollama') => {
+    async (title: string = 'New Conversation', model: string = 'llama3.2', provider: string = 'ollama', systemPrompt?: string) => {
       if (!token) {
         return null;
       }
@@ -398,7 +423,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         setLoading(true);
         const response = await apiClient.post(
           '/conversations',
-          { title, model, provider }
+          { title, model, provider, system_prompt: systemPrompt }
         );
         const newConversation = response.data;
         setConversations((prev) => [newConversation, ...prev]);
@@ -434,6 +459,35 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         setError(err.response?.data?.error || 'Failed to delete conversation');
         console.error('Error deleting conversation:', err);
         return false;
+      }
+    },
+    [token, currentConversation]
+  );
+
+  // Bulk delete conversations
+  const bulkDeleteConversations = useCallback(
+    async (conversationIds: string[]) => {
+      if (!token || conversationIds.length === 0) return false;
+
+      try {
+        setLoading(true);
+        await apiClient.post('/conversations/bulk-delete', { conversation_ids: conversationIds });
+        
+        setConversations((prev) => prev.filter((c) => !conversationIds.includes(c.id)));
+        
+        if (currentConversation && conversationIds.includes(currentConversation.id)) {
+          setCurrentConversation(null);
+          setMessages([]);
+        }
+        
+        setError(null);
+        return true;
+      } catch (err: any) {
+        setError(err.response?.data?.error || 'Failed to delete conversations');
+        console.error('Error bulk deleting conversations:', err);
+        return false;
+      } finally {
+        setLoading(false);
       }
     },
     [token, currentConversation]
@@ -581,6 +635,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     fetchMessages,
     createConversation,
     deleteConversation,
+    bulkDeleteConversations,
     updateConversation,
     selectConversation,
     sendMessage,

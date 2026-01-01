@@ -25,7 +25,9 @@ import {
   AudioOutlined,
   GlobalOutlined,
   BgColorsOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  DeleteOutlined,
+  PlusOutlined
 } from '@ant-design/icons';
 import apiClient from '@/lib/api';
 import { useModels } from '@/hooks/useModels';
@@ -160,6 +162,13 @@ export default function SystemSettings() {
                         </Form.Item>
                       </Col>
                     </Row>
+                    <Form.Item 
+                      name={['llm', 'default_system_prompt']} 
+                      label="Default System Prompt"
+                      extra="This prompt will be used for all new conversations unless overridden."
+                    >
+                      <Input.TextArea rows={4} placeholder="Enter default system prompt..." />
+                    </Form.Item>
                   </Card>
                 )
               },
@@ -329,6 +338,37 @@ export default function SystemSettings() {
                     >
                       <Input.TextArea rows={2} placeholder="e.g. Machine-Assisted Research Intelligent Environment" />
                     </Form.Item>
+
+                    <Divider />
+
+                    <Title level={4}>Suggested Prompts</Title>
+                    <Paragraph type="secondary">
+                      These prompts will appear on the welcome screen for new conversations.
+                    </Paragraph>
+                    <Form.List name={['white_label', 'suggested_prompts']}>
+                      {(fields, { add, remove }) => (
+                        <>
+                          {fields.map(({ key, name, ...restField }) => (
+                            <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                              <Form.Item
+                                {...restField}
+                                name={[name]}
+                                rules={[{ required: true, message: 'Missing prompt' }]}
+                                style={{ width: '500px', marginBottom: 0 }}
+                              >
+                                <Input placeholder="Enter a suggested prompt" />
+                              </Form.Item>
+                              <Button type="text" danger onClick={() => remove(name)} icon={<DeleteOutlined />} />
+                            </Space>
+                          ))}
+                          <Form.Item>
+                            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                              Add Suggested Prompt
+                            </Button>
+                          </Form.Item>
+                        </>
+                      )}
+                    </Form.List>
                   </Card>
                 )
               }

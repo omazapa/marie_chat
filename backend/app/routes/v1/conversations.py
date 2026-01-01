@@ -71,6 +71,23 @@ def delete_conversation(conversation_id):
         
     return jsonify({'message': 'Conversation deleted'}), 200
 
+@v1_conversations_bp.route('/bulk-delete', methods=['POST'])
+@api_key_required
+def bulk_delete_conversations():
+    """Delete multiple conversations via API"""
+    user_id = request.user_id
+    data = request.get_json()
+    
+    conversation_ids = data.get('conversation_ids', [])
+    if not conversation_ids:
+        return jsonify({'error': 'No conversation IDs provided'}), 400
+        
+    success = llm_service.delete_conversations(conversation_ids, user_id)
+    if not success:
+        return jsonify({'error': 'Bulk delete failed'}), 500
+        
+    return jsonify({'message': f'{len(conversation_ids)} conversations deleted'}), 200
+
 @v1_conversations_bp.route('/<conversation_id>/messages', methods=['GET'])
 @api_key_required
 def get_messages(conversation_id):

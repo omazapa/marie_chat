@@ -2,7 +2,17 @@
 
 import React, { memo } from 'react';
 import { Typography, Tag, Tooltip, Button, Space, Image, Avatar } from 'antd';
-import { LinkOutlined, RobotOutlined, UserOutlined, EditOutlined, ReloadOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons';
+import { 
+  LinkOutlined, 
+  RobotOutlined, 
+  UserOutlined, 
+  EditOutlined, 
+  ReloadOutlined, 
+  PlayCircleOutlined, 
+  PauseCircleOutlined,
+  CopyOutlined,
+  CheckOutlined
+} from '@ant-design/icons';
 import { Think, Bubble } from '@ant-design/x';
 import { FileCard } from './FileCard';
 import { API_URL } from '@/lib/api';
@@ -35,6 +45,13 @@ export const MessageItem = memo(({
   isPlaying
 }: MessageItemProps) => {
   const { whiteLabel } = useSettings();
+  const [copied, setCopied] = React.useState(false);
+
+  const handleCopyAll = () => {
+    navigator.clipboard.writeText(msg.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div id={`message-${msg.id}`} style={{ marginBottom: '24px', transition: 'background-color 0.5s' }}>
@@ -56,7 +73,14 @@ export const MessageItem = memo(({
         </div>
       )}
       {(msg.content || msg.id !== 'streaming') && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+        <div style={{ width: '100%', display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', minWidth: 0 }}>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
+            maxWidth: '95%',
+            minWidth: 0
+          }}>
           {msg.metadata?.attachments && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
               {msg.metadata.attachments.map((att: any) => (
@@ -84,6 +108,7 @@ export const MessageItem = memo(({
             </div>
           )}
           <Bubble
+            placement={msg.role === 'user' ? 'end' : 'start'}
             avatar={
               <Avatar 
                 icon={msg.role === 'assistant' ? (
@@ -101,8 +126,16 @@ export const MessageItem = memo(({
               />
             }
             content={
-              <div style={{ minWidth: '40px' }}>
-                <MarkdownContent content={msg.content} />
+              <div style={{ 
+                minWidth: 0, 
+                maxWidth: '100%', 
+                overflowWrap: 'break-word',
+                wordBreak: 'break-word'
+              }}>
+                <MarkdownContent 
+                  content={msg.content} 
+                  isStreaming={isStreaming && msg.id === 'streaming'} 
+                />
                 {msg.metadata?.type === 'image_generation' && msg.metadata?.image?.url && (
                   <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ 
@@ -152,7 +185,11 @@ export const MessageItem = memo(({
                 border: msg.role === 'user' ? 'none' : '1px solid #f0f0f0',
                 borderRadius: '12px',
                 padding: '12px 16px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                maxWidth: '100%',
+                width: 'auto',
+                minWidth: 0,
+                overflow: 'visible'
               }
             }}
             footer={
@@ -161,6 +198,14 @@ export const MessageItem = memo(({
                   {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                 </Text>
                 <Space size={4}>
+                  <Tooltip title={copied ? "Copied!" : "Copy message"}>
+                    <Button 
+                      type="text" 
+                      size="small" 
+                      icon={copied ? <CheckOutlined style={{ color: '#52c41a' }} /> : <CopyOutlined />} 
+                      onClick={handleCopyAll}
+                    />
+                  </Tooltip>
                   {onPlay && msg.content && (
                     <Tooltip title={isPlaying ? "Stop" : "Listen"}>
                       <Button 
@@ -204,6 +249,7 @@ export const MessageItem = memo(({
             }
           />
         </div>
+      </div>
       )}
     </div>
   );

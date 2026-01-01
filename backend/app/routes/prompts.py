@@ -11,10 +11,11 @@ prompts_bp = Blueprint('prompts', __name__)
 @prompts_bp.route('/techniques', methods=['GET'])
 @jwt_required()
 def get_techniques():
-    """Get available prompt engineering techniques and templates"""
+    """Get available prompt engineering techniques, templates, and user profiles"""
     return jsonify({
         "techniques": prompt_service.get_available_techniques(),
-        "templates": prompt_service.get_available_templates()
+        "templates": prompt_service.get_available_templates(),
+        "profiles": prompt_service.get_available_profiles()
     })
 
 @prompts_bp.route('/optimize', methods=['POST'])
@@ -28,11 +29,13 @@ def optimize_prompt():
     user_input = data.get('prompt')
     technique = data.get('technique')
     context = data.get('context')
+    profile = data.get('profile')
     
-    optimized = prompt_service.optimize_prompt(user_input, technique, context)
+    optimized = prompt_service.optimize_prompt(user_input, technique, context, profile)
     
     return jsonify({
         "original": user_input,
         "optimized": optimized,
-        "technique": technique
+        "technique": technique,
+        "profile": profile
     })

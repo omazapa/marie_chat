@@ -2,15 +2,10 @@
 Prompt Engineering Service
 Handles prompt optimization and technique application
 """
-import asyncio
-import nest_asyncio
 from typing import List, Dict, Any, Optional
 from app.services.llm_service import llm_service
 from app.services.llm_provider import ChatMessage
 from app.config import settings
-
-# Allow nested event loops
-nest_asyncio.apply()
 
 class PromptService:
     def __init__(self):
@@ -20,7 +15,11 @@ class PromptService:
             "persona": "Persona: Assigns a specific role or character to the model.",
             "delimited": "Delimited: Uses clear delimiters to separate different parts of the prompt.",
             "structured": "Structured Output: Requests the output in a specific format like JSON or Markdown.",
-            "tot": "Tree of Thoughts: Explores multiple reasoning paths simultaneously."
+            "tot": "Tree of Thoughts: Explores multiple reasoning paths simultaneously.",
+            "step_back": "Step-Back Prompting: Asks the model to first identify the broader principles or concepts involved.",
+            "self_critique": "Self-Critique: Instructs the model to review and refine its own response for accuracy and quality.",
+            "analogical": "Analogical Reasoning: Uses analogies to explain complex or abstract concepts more clearly.",
+            "rit": "Reasoning in Thought: Encourages the model to use a <thought> block for internal reasoning before responding."
         }
         self.templates = {
             "creative": "Write a creative story or poem about {topic}. Use vivid imagery and emotional depth.",
@@ -28,6 +27,14 @@ class PromptService:
             "academic": "Provide a scholarly analysis of {topic}. Cite potential sources and use formal academic language.",
             "summary": "Summarize the following text into a concise set of bullet points: {topic}",
             "code_review": "Review the following code for bugs, performance issues, and best practices: {topic}"
+        }
+        self.profiles = {
+            "developer": "Software Developer: Expert in multiple programming languages, focuses on clean code (SOLID, DRY), performance optimization, security, and comprehensive documentation. Prefers technical, concise, and implementation-ready responses.",
+            "researcher": "Researcher/Academic: Expert in scientific methodology, focuses on evidence-based analysis, peer-reviewed citations, formal academic tone, and exploring theoretical implications. Prefers deep, nuanced, and well-structured scholarly content.",
+            "creator": "Content Creator: Expert in digital storytelling and marketing, focuses on audience psychology, viral potential, creative hooks, and multi-platform adaptation. Prefers engaging, imaginative, and emotionally resonant content.",
+            "business": "Business Professional: Expert in corporate strategy and communication, focuses on ROI, actionable executive summaries, professional etiquette, and market alignment. Prefers clear, high-level, and results-oriented insights.",
+            "student": "Student/Learner: Focuses on building foundational knowledge, clear analogies, step-by-step explanations, and identifying key learning objectives. Prefers educational, encouraging, and easy-to-digest information.",
+            "data_scientist": "Data Scientist: Expert in statistics and machine learning, focuses on data integrity, algorithmic efficiency, statistical significance, and clear data visualization. Prefers rigorous, mathematical, and reproducible analysis."
         }
 
     def get_available_techniques(self) -> Dict[str, str]:
@@ -38,27 +45,45 @@ class PromptService:
         """Returns a list of available prompt templates"""
         return self.templates
 
-    async def _generate_optimized_prompt(self, user_input: str, technique: Optional[str] = None, context: Optional[str] = None) -> str:
-        """Internal async method to generate the optimized prompt"""
+    def get_available_profiles(self) -> Dict[str, str]:
+        """Returns a list of available user profiles"""
+        return self.profiles
+
+    def _generate_optimized_prompt(self, user_input: str, technique: Optional[str] = None, context: Optional[str] = None, profile: Optional[str] = None) -> str:
+        """Internal method to generate the optimized prompt synchronously"""
         system_content = (
-            "You are an expert Prompt Engineer. Your task is to take a simple user request "
-            "and transform it into a high-quality, effective prompt for a Large Language Model. "
-            "Use advanced prompt engineering techniques to ensure the best possible results."
+            "You are a world-class Prompt Engineer specializing in Large Language Models. "
+            "Your goal is to rewrite the user's request into a highly effective, professional, and structured prompt. "
+            "\n\nFollow these principles for the optimized prompt:"
+            "\n1. Role & Context: Define a clear persona for the LLM based on the user's profile."
+            "\n2. Task Specification: Be extremely specific about what the LLM should do."
+            "\n3. Constraints & Requirements: Include technical, stylistic, or structural constraints."
+            "\n4. Output Format: Specify exactly how the response should be formatted (Markdown, JSON, etc.)."
+            "\n5. Tone & Style: Match the tone to the user's profile and intent."
+            "\n\nIMPORTANT: Return ONLY the rewritten prompt. Do not include any explanations, 'Here is your prompt', or conversational filler."
         )
         
         technique_instruction = ""
         if technique and technique in self.techniques:
-            technique_instruction = f"\nApply the following technique: {self.techniques[technique]}"
+            technique_instruction = f"\n- MANDATORY TECHNIQUE: {self.techniques[technique]}"
+        
+        profile_instruction = ""
+        if profile and profile in self.profiles:
+            profile_instruction = f"\n- TARGET USER PROFILE: {self.profiles[profile]}"
         
         context_instruction = ""
         if context:
-            context_instruction = f"\nConsider this additional context: {context}"
+            context_instruction = f"\n- ADDITIONAL CONTEXT: {context}"
 
         user_content = (
-            f"User Request: {user_input}"
+            "Please optimize the following user request into a professional prompt:\n"
+            f"--- USER REQUEST START ---\n{user_input}\n--- USER REQUEST END ---\n"
+            "\nInstructions for optimization:"
+            f"{profile_instruction}"
             f"{technique_instruction}"
             f"{context_instruction}"
-            "\n\nPlease provide the optimized prompt only, without any introductory or concluding text."
+            "\n\nRewrite this request into a comprehensive prompt that will yield the highest quality response from an LLM. "
+            "The resulting prompt should be ready to be used directly with another AI model."
         )
 
         messages = [
@@ -67,55 +92,43 @@ class PromptService:
         ]
 
         try:
+            # Get current settings for default model/provider
+            config = llm_service.settings_service.get_settings()
+            provider_name = config.get("llm", {}).get("default_provider", settings.DEFAULT_LLM_PROVIDER)
+            model_name = config.get("llm", {}).get("default_model", settings.DEFAULT_LLM_MODEL)
+
             from app.services.provider_factory import provider_factory
-            provider = provider_factory.get_provider(settings.DEFAULT_LLM_PROVIDER)
+            provider = provider_factory.get_provider(provider_name)
             
             if not provider:
-                return f"Error: Provider {settings.DEFAULT_LLM_PROVIDER} not available."
+                print(f"❌ Provider {provider_name} not found in provider_factory")
+                return f"Error: Provider {provider_name} not available."
             
-            response = ""
-            # Use the async generator directly
-            async_gen = provider.chat_completion(
-                model=settings.DEFAULT_LLM_MODEL,
-                messages=messages,
-                stream=True
+            print(f"🤖 Optimizing prompt with {provider_name} ({model_name})")
+            
+            # Use the synchronous version to avoid event loop conflicts with eventlet
+            chunk = provider.chat_completion_sync(
+                model=model_name,
+                messages=messages
             )
             
-            async for chunk in async_gen:
-                response += chunk.content
+            response = chunk.content
             
+            if not response:
+                print("⚠️ LLM returned empty response for prompt optimization")
+                return f"Error: LLM returned empty response. Original: {user_input}"
+
             return response.strip()
         except Exception as e:
-            print(f"Error in _generate_optimized_prompt: {e}")
+            print(f"❌ Error in _generate_optimized_prompt: {e}")
+            import traceback
+            traceback.print_exc()
             return f"Error: Could not optimize prompt. Original: {user_input}"
 
-    def optimize_prompt(self, user_input: str, technique: Optional[str] = None, context: Optional[str] = None) -> str:
+    def optimize_prompt(self, user_input: str, technique: Optional[str] = None, context: Optional[str] = None, profile: Optional[str] = None) -> str:
         """
-        Uses an LLM to optimize a user prompt based on a specific technique.
-        Runs the async generation in a synchronous way.
+        Uses an LLM to optimize a user prompt based on a specific technique and user profile.
         """
-        try:
-            # Get the current event loop or create a new one
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            
-            # Run the coroutine
-            if loop.is_running():
-                # If the loop is already running (thanks to nest_asyncio), we can use run_until_complete
-                return loop.run_until_complete(self._generate_optimized_prompt(user_input, technique, context))
-            else:
-                # If the loop is not running, we can run it
-                return loop.run_until_complete(self._generate_optimized_prompt(user_input, technique, context))
-        except Exception as e:
-            print(f"Error optimizing prompt: {e}")
-            # Last resort fallback
-            try:
-                return asyncio.run(self._generate_optimized_prompt(user_input, technique, context))
-            except Exception as e2:
-                print(f"Fallback optimization failed: {e2}")
-                return f"Error: Could not optimize prompt. Original: {user_input}"
+        return self._generate_optimized_prompt(user_input, technique, context, profile)
 
 prompt_service = PromptService()

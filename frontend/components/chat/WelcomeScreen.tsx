@@ -30,10 +30,12 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSend, onNewConve
       flexDirection: 'column',
       justifyContent: 'flex-start', 
       alignItems: 'center',
-      padding: '80px 40px 40px 40px',
+      padding: '40px 40px 20px 40px',
       background: '#ffffff',
       maxWidth: '800px',
-      margin: '0 auto'
+      margin: '0 auto',
+      overflow: 'auto',
+      minHeight: 0
     }}>
       <div style={{ textAlign: 'center', marginBottom: '24px' }}>
         <Image 
@@ -67,13 +69,24 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSend, onNewConve
               transition: 'all 0.3s'
             }
           }}
-          items={[
-            { key: '1', label: 'What is ImpactU?', icon: <ThunderboltOutlined style={{ color: '#faad14' }} /> },
-            { key: '2', label: 'How to analyze research data?', icon: <MessageOutlined style={{ color: '#1890ff' }} /> },
-            { key: '3', label: 'Explain RAG technology', icon: <RobotOutlined style={{ color: '#52c41a' }} /> },
-            { key: '4', label: `How to use references in ${whiteLabel.app_name.replace(/\s*Chat/i, '')}?`, icon: <LinkOutlined style={{ color: '#722ed1' }} /> },
-          ]}
-          onItemClick={(info) => onSend(info.data.label as string)}
+          items={
+            whiteLabel.suggested_prompts && whiteLabel.suggested_prompts.length > 0
+              ? whiteLabel.suggested_prompts.map((prompt: string, index: number) => ({
+                  key: String(index),
+                  label: prompt,
+                  icon: index % 4 === 0 ? <ThunderboltOutlined style={{ color: '#faad14' }} /> :
+                        index % 4 === 1 ? <MessageOutlined style={{ color: '#1890ff' }} /> :
+                        index % 4 === 2 ? <RobotOutlined style={{ color: '#52c41a' }} /> :
+                        <LinkOutlined style={{ color: '#722ed1' }} />
+                }))
+              : [
+                  { key: '1', label: 'What is ImpactU?', icon: <ThunderboltOutlined style={{ color: '#faad14' }} /> },
+                  { key: '2', label: 'How to analyze research data?', icon: <MessageOutlined style={{ color: '#1890ff' }} /> },
+                  { key: '3', label: 'Explain RAG technology', icon: <RobotOutlined style={{ color: '#52c41a' }} /> },
+                  { key: '4', label: `How to use references in ${whiteLabel.app_name.replace(/\s*Chat/i, '')}?`, icon: <LinkOutlined style={{ color: '#722ed1' }} /> },
+                ]
+          }
+          onItemClick={(info) => onSend(info.item.label as string)}
         />
       </div>
     </div>

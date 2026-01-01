@@ -11,6 +11,7 @@ export function usePrompts(token: string | null) {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [techniques, setTechniques] = useState<Record<string, string>>({});
   const [templates, setTemplates] = useState<Record<string, string>>({});
+  const [profiles, setProfiles] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
   const fetchTechniques = useCallback(async () => {
@@ -19,6 +20,7 @@ export function usePrompts(token: string | null) {
       const response = await apiClient.get('/prompts/techniques');
       setTechniques(response.data.techniques);
       setTemplates(response.data.templates);
+      setProfiles(response.data.profiles);
     } catch (err) {
       console.error('Error fetching prompt techniques:', err);
     }
@@ -28,6 +30,7 @@ export function usePrompts(token: string | null) {
     prompt: string;
     technique?: string;
     context?: string;
+    profile?: string;
   }) => {
     if (!token) return null;
     
@@ -35,7 +38,9 @@ export function usePrompts(token: string | null) {
     setError(null);
     
     try {
-      const response = await apiClient.post('/prompts/optimize', params);
+      const response = await apiClient.post('/prompts/optimize', params, {
+        timeout: 120000 // 2 minutes for LLM optimization
+      });
       return response.data.optimized as string;
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Failed to optimize prompt';
@@ -51,6 +56,7 @@ export function usePrompts(token: string | null) {
     isOptimizing,
     techniques,
     templates,
+    profiles,
     error,
     fetchTechniques,
     optimizePrompt
