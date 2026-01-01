@@ -138,7 +138,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               New Conversation
             </Button>
             
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
               {!isSelectionMode ? (
                 <Button
                   icon={<CheckSquareOutlined />}

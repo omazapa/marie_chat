@@ -464,7 +464,7 @@ class LLMService:
         now = datetime.utcnow().isoformat()
         
         # Generate embedding for semantic search
-        content_vector = []
+        content_vector = None
         try:
             if content and len(content.strip()) > 0:
                 content_vector = self.embedding_model.encode(content).tolist()
@@ -477,11 +477,13 @@ class LLMService:
             "user_id": user_id,
             "role": role,
             "content": content,
-            "content_vector": content_vector,
             "tokens_used": tokens_used,
             "metadata": metadata or {},
             "created_at": now
         }
+        
+        if content_vector:
+            message["content_vector"] = content_vector
         
         self.client.index(
             index="marie_messages",

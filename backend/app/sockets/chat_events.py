@@ -39,18 +39,27 @@ def get_async_loop():
 
 
 @socketio.on('connect')
-def handle_connect():
+def handle_connect(auth=None):
     """Handle client connection"""
-    # Get token from auth header or query params
-    token = request.args.get('token')
+    # Get token from auth object, auth header or query params
+    token = None
     
+    # 1. Check auth object (Socket.IO v4+)
+    if auth and isinstance(auth, dict):
+        token = auth.get('token')
+    
+    # 2. Check query params
+    if not token:
+        token = request.args.get('token')
+    
+    # 3. Check Authorization header
     if not token:
         auth_header = request.headers.get('Authorization', '')
         if auth_header.startswith('Bearer '):
             token = auth_header[7:]
     
     if not token:
-        print("❌ Connection rejected: No token provided")
+        print(f"❌ Connection rejected: No token provided. SID: {request.sid}")
         return False
     
     try:
@@ -68,7 +77,7 @@ def handle_connect():
         emit('connected', {'message': 'Connected successfully', 'user_id': user_id})
         return True
     except Exception as e:
-        print(f"❌ Connection rejected: {e}")
+        print(f"❌ Connection rejected for SID {request.sid}: {e}")
         return False
 
 

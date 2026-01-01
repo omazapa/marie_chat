@@ -39,11 +39,25 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
-    console.error(`❌ Axios Response Error: ${error.message} (${error.config?.url})`);
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const config = error.config;
+    const url = config?.url || '';
+    const status = error.response?.status;
 
-    // If error is 401 and we haven't tried to refresh yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Skip refresh and extra logging for login, register and refresh endpoints
+    const isAuthEndpoint = 
+      url.includes('/auth/login') || 
+      url.includes('/auth/register') ||
+      url.includes('/auth/refresh');
+
+    // Log error only if it's not an expected auth failure (401 on auth endpoints)
+    if (!(isAuthEndpoint && status === 401)) {
+      console.error(`❌ Axios Response Error: ${error.message} (${url})`);
+    }
+
+    const originalRequest = config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // If error is 401 and we haven't tried to refresh yet and it's not an auth endpoint
+    if (status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
 
       try {

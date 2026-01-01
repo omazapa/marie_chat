@@ -57,6 +57,7 @@ const handleEvent = useCallback(() => {
 ### Ant Design 6 Deprecations
 - **Collapse**: Use `expandIconPlacement` instead of `expandIconPosition`.
 - **Space**: Use `orientation` instead of `direction`.
+- **Notification**: Use `title` instead of `message`.
 
 ### Naming Conventions
 - **Ports**: `*_port.py` (e.g., `llm_port.py`).
