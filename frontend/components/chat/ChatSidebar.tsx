@@ -376,7 +376,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           </Link>
 
           <Space orientation="vertical" size={4} style={{ width: '100%' }}>
-            <Text type="secondary" style={{ fontSize: '10px' }}>© 2025 ImpactU</Text>
+            <Text type="secondary" style={{ fontSize: '10px' }}>© 2026 ImpactU</Text>
           </Space>
         </div>
       </div>

@@ -109,7 +109,7 @@ test.describe('Rich Content & UX Suite', () => {
 
   test('Code Blocks: Syntax Highlighting, Copy, and Language Label', async ({ page }) => {
     const input = page.getByPlaceholder('Type your message here...');
-    const codePrompt = 'Genera un ejemplo de código en Python que use una clase y un decorador.';
+    const codePrompt = 'Generate a Python code example that uses a class and a decorator.';
     
     await input.fill(codePrompt);
     await page.keyboard.press('Enter');
@@ -137,7 +137,7 @@ test.describe('Rich Content & UX Suite', () => {
 
   test('LaTeX Artifacts: Preview and Code Toggle', async ({ page }) => {
     const input = page.getByPlaceholder('Type your message here...');
-    await input.fill('Escribe la ecuación de Schrödinger en un bloque LaTeX.');
+    await input.fill('Write the Schrödinger equation in a LaTeX block.');
     await page.keyboard.press('Enter');
 
     const latexCard = page.locator('.latex-artifact-card').last();
@@ -159,12 +159,12 @@ test.describe('Rich Content & UX Suite', () => {
   test('Interactive Tables: Sorting and CSV Download', async ({ page }) => {
     const input = page.getByPlaceholder('Type your message here...');
     const tablePrompt = `
-Genera una tabla con los siguientes datos:
-| Nombre | Edad | Ciudad |
-|--------|------|--------|
+Generate a table with the following data:
+| Name   | Age  | City     |
+|--------|------|----------|
 | Alice  | 30   | New York |
-| Bob    | 25   | London |
-| Charlie| 35   | Paris |
+| Bob    | 25   | London   |
+| Charlie| 35   | Paris    |
     `;
     
     await input.fill(tablePrompt);
@@ -180,8 +180,8 @@ Genera una tabla con los siguientes datos:
     const downloadBtn = tableContainer.locator('button:has-text("Download CSV")');
     await expect(downloadBtn).toBeVisible();
 
-    // Test sorting (click on "Edad" header)
-    const ageHeader = tableContainer.locator('th:has-text("Edad")');
+    // Test sorting (click on "Age" header)
+    const ageHeader = tableContainer.locator('th:has-text("Age")');
     await ageHeader.click();
     
     // Verify first row age (should be 25 after sort)
@@ -191,7 +191,7 @@ Genera una tabla con los siguientes datos:
 
   test('HTML Artifacts: Iframe and Fullscreen', async ({ page }) => {
     const input = page.getByPlaceholder('Type your message here...');
-    await input.fill('Genera un dashboard HTML simple con un gráfico SVG.');
+    await input.fill('Generate a simple HTML dashboard with an SVG chart.');
     await page.keyboard.press('Enter');
 
     const htmlCard = page.locator('.ant-card').filter({ hasText: 'HTML Artifact' }).last();

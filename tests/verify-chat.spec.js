@@ -23,7 +23,7 @@ test('Chat functionality and artifacts rendering', async ({ page }) => {
 
   // 3. Send a message for LaTeX
   console.log('Step 3: Testing LaTeX...');
-  await input.fill('Muestra la fórmula de la relatividad en LaTeX usando bloques $$');
+  await input.fill('Show the relativity formula in LaTeX using $$ blocks');
   await page.keyboard.press('Enter');
 
   // 4. Verify LaTeX rendering (KaTeX)
@@ -32,7 +32,7 @@ test('Chat functionality and artifacts rendering', async ({ page }) => {
 
   // 5. Send a message for HTML Artifact
   console.log('Step 5: Testing HTML Artifact...');
-  await input.fill('Genera un bloque de código HTML (usando ```html) que contenga un botón con id "test-button".');
+  await input.fill('Generate an HTML code block (using ```html) containing a button with id "test-button".');
   await page.keyboard.press('Enter');
   
   // Wait for the artifact container to appear

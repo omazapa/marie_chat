@@ -18,7 +18,7 @@ test.describe('Marie - Authentication and Chat', () => {
     await page.waitForLoadState('networkidle');
     await page.screenshot({ path: 'tests/screenshots/1-register-page.png' });
     
-    // Esperar que el formulario esté visible
+    // Wait for form to be visible
     await page.waitForSelector('form, input', { timeout: 10000 });
     
     // Fill form
@@ -44,7 +44,7 @@ test.describe('Marie - Authentication and Chat', () => {
     await page.screenshot({ path: 'tests/screenshots/2-register-filled.png' });
     
     // Submit registration
-    const registerButton = page.locator('button[type="submit"], button:has-text("register"), button:has-text("registrar")').first();
+    const registerButton = page.locator('button[type="submit"], button:has-text("Sign up"), button:has-text("Register")').first();
     await registerButton.click();
     console.log('✓ Registration form submitted');
     
@@ -88,11 +88,14 @@ test.describe('Marie - Authentication and Chat', () => {
       await page.screenshot({ path: 'tests/screenshots/5-login-filled.png' });
       
       // Submit login
-      const loginButton = page.locator('button[type="submit"], button:has-text("login"), button:has-text("entrar"), button:has-text("ingresar")').first();
+      const loginButton = page.locator('button[type="submit"], button:has-text("Sign in"), button:has-text("Login")').first();
       await loginButton.click();
       console.log('✓ Login form submitted');
       
-      await page.waitForTimeout(3000);
+      // Wait for navigation to /chat
+      await page.waitForURL('**/chat', { timeout: 15000 });
+      console.log('✓ Redirected to /chat');
+      
       await page.screenshot({ path: 'tests/screenshots/6-after-login.png' });
     } else {
       console.log('✓ Already logged in (automatic registration)');

@@ -19,6 +19,7 @@ class SettingsService:
                 "llm": {
                     "default_provider": app_settings.DEFAULT_LLM_PROVIDER,
                     "default_model": app_settings.DEFAULT_LLM_MODEL,
+                    "default_system_prompt": "You are Marie, a Machine-Assisted Research Intelligent Environment. You are a helpful, precise, and creative AI assistant designed to help with research, coding, and general tasks."
                 },
                 "image": {
                     "default_model": "stabilityai/stable-diffusion-3.5-large",
@@ -44,7 +45,13 @@ class SettingsService:
                     "primary_color": "#1B4B73",
                     "welcome_title": "Marie",
                     "welcome_subtitle": "Machine-Assisted Research Intelligent Environment",
-                    "registration_enabled": False
+                    "registration_enabled": False,
+                    "suggested_prompts": [
+                        "What is ImpactU?",
+                        "How to analyze research data?",
+                        "Explain RAG technology",
+                        "How to use references in Marie?"
+                    ]
                 },
                 "updated_at": datetime.utcnow().isoformat()
             })
@@ -63,7 +70,13 @@ class SettingsService:
                     "primary_color": "#1B4B73",
                     "welcome_title": "Marie",
                     "welcome_subtitle": "Machine-Assisted Research Intelligent Environment",
-                    "registration_enabled": False
+                    "registration_enabled": False,
+                    "suggested_prompts": [
+                        "What is ImpactU?",
+                        "How to analyze research data?",
+                        "Explain RAG technology",
+                        "How to use references in Marie?"
+                    ]
                 }
             elif "registration_enabled" not in settings["white_label"]:
                 settings["white_label"]["registration_enabled"] = False
@@ -74,6 +87,7 @@ class SettingsService:
                 "llm": {
                     "default_provider": app_settings.DEFAULT_LLM_PROVIDER,
                     "default_model": app_settings.DEFAULT_LLM_MODEL,
+                    "default_system_prompt": "You are Marie, a Machine-Assisted Research Intelligent Environment. You are a helpful, precise, and creative AI assistant designed to help with research, coding, and general tasks."
                 },
                 "image": {
                     "default_model": "stabilityai/stable-diffusion-3.5-large",

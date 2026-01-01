@@ -1,8 +1,16 @@
 'use client';
 
-import React, { memo } from 'react';
-import { Spin, Empty, Typography, Progress, Card, Space } from 'antd';
-import { RobotOutlined, ThunderboltOutlined, MessageOutlined, LinkOutlined, SettingOutlined, PictureOutlined } from '@ant-design/icons';
+import React, { memo, useState, useEffect, useCallback } from 'react';
+import { Spin, Empty, Typography, Progress, Card, Space, Button } from 'antd';
+import { 
+  RobotOutlined, 
+  ThunderboltOutlined, 
+  MessageOutlined, 
+  LinkOutlined, 
+  SettingOutlined, 
+  PictureOutlined,
+  ArrowDownOutlined
+} from '@ant-design/icons';
 import { Welcome, Prompts } from '@ant-design/x';
 import { useSettings } from '@/hooks/useSettings';
 import { MessageList } from './MessageList'; // I'll extract this too
@@ -47,6 +55,27 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
   scrollContainerRef,
 }) => {
   const { whiteLabel } = useSettings();
+  const [showScrollButton, setShowScrollButton] = useState(false);
+
+  const handleScroll = useCallback(() => {
+    if (scrollContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShowScrollButton(!isAtBottom);
+    }
+  }, [scrollContainerRef]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [scrollContainerRef, handleScroll]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   if (!currentConversation) {
     return (
@@ -176,6 +205,26 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
             messagesEndRef={messagesEndRef} 
           />
         )}
+        
+        {showScrollButton && (
+          <Button
+            type="primary"
+            shape="circle"
+            icon={<ArrowDownOutlined />}
+            onClick={scrollToBottom}
+            style={{
+              position: 'fixed',
+              bottom: '120px',
+              right: '40px',
+              zIndex: 100,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              backgroundColor: whiteLabel.primary_color,
+              border: 'none'
+            }}
+          />
+        )}
+        
+        <div ref={messagesEndRef} />
       </div>
     </div>
   );

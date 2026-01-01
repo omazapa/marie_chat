@@ -184,17 +184,27 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text strong>Your Request / Topic</Text>
-            <Tooltip title={isRecording ? "Stop recording" : "Voice input"}>
-              <Button
-                type={isRecording ? "primary" : "text"}
-                danger={isRecording}
-                shape="circle"
-                size="small"
-                icon={isRecording ? <AudioMutedOutlined /> : <AudioOutlined />}
-                onClick={isRecording ? stopRecording : startRecording}
-                disabled={isOptimizing || isTranscribing}
-              />
-            </Tooltip>
+            <Space>
+              <Button 
+                type="text" 
+                size="small" 
+                onClick={() => setUserInput('')}
+                disabled={!userInput || isOptimizing}
+              >
+                Clear
+              </Button>
+              <Tooltip title={isRecording ? "Stop recording" : "Voice input"}>
+                <Button
+                  type={isRecording ? "primary" : "text"}
+                  danger={isRecording}
+                  shape="circle"
+                  size="small"
+                  icon={isRecording ? <AudioMutedOutlined /> : <AudioOutlined />}
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={isOptimizing || isTranscribing}
+                />
+              </Tooltip>
+            </Space>
           </div>
           <TextArea
             rows={4}

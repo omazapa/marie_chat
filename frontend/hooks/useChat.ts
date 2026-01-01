@@ -414,7 +414,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
 
   // Create conversation
   const createConversation = useCallback(
-    async (title: string = 'New Conversation', model: string = 'llama3.2', provider: string = 'ollama') => {
+    async (title: string = 'New Conversation', model: string = 'llama3.2', provider: string = 'ollama', systemPrompt?: string) => {
       if (!token) {
         return null;
       }
@@ -423,7 +423,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         setLoading(true);
         const response = await apiClient.post(
           '/conversations',
-          { title, model, provider }
+          { title, model, provider, system_prompt: systemPrompt }
         );
         const newConversation = response.data;
         setConversations((prev) => [newConversation, ...prev]);

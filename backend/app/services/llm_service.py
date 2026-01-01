@@ -731,7 +731,7 @@ class LLMService:
         # Retrieve relevant memories and add to context
         memories = self.memory_service.retrieve_memories(user_id, user_message)
         if memories:
-            memory_context = "--- INFORMACIÓN RECORDADA DEL USUARIO ---\n"
+            memory_context = "--- REMEMBERED USER INFORMATION ---\n"
             for mem in memories:
                 memory_context += f"- {mem['content']}\n"
             memory_context += "------------------------------------------\n\n"
@@ -741,7 +741,7 @@ class LLMService:
             else:
                 llm_messages.insert(0, {
                     "role": "system",
-                    "content": memory_context + "Eres Marie, una asistente de investigación inteligente."
+                    "content": memory_context + "You are Marie, an intelligent research assistant."
                 })
         
         # Add conversation history
@@ -774,7 +774,7 @@ class LLMService:
         print(f"[DEBUG] Final LLM Messages count: {len(llm_messages)}")
         for i, m in enumerate(llm_messages):
             print(f"[DEBUG] Msg {i} ({m['role']}): {m['content'][:200]}...")
-            if "CONTEXTO DE CONVERSACIONES" in m['content']:
+            if "CONTEXT FROM REFERENCES" in m['content']:
                 print(f"[DEBUG] Context found in message {i}!")
         
         # Get model settings
@@ -1055,7 +1055,7 @@ class LLMService:
         prompt = f"""
         Extract important facts, user preferences, or entities from the following interaction.
         Only extract information that is worth remembering for future conversations.
-        Format each fact as a single concise sentence in Spanish.
+        Format each fact as a single concise sentence in English.
         If no important information is found, return "NONE".
         
         User: {user_msg}
@@ -1110,8 +1110,8 @@ class LLMService:
             
             # Create a prompt for title generation
             title_prompt = (
-                f"Genera un título muy conciso (máximo 5 palabras) en español para una conversación que comienza con este mensaje: \"{user_message}\". "
-                "Responde ÚNICAMENTE con el título, sin comillas, sin punto al final y sin texto adicional."
+                f"Generate a very concise title (maximum 5 words) in English for a conversation that starts with this message: \"{user_message}\". "
+                "Respond ONLY with the title, without quotes, without a period at the end, and without additional text."
             )
             
             title = ""

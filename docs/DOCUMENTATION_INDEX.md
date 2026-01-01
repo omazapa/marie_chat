@@ -192,9 +192,9 @@ marie_chat/
 
 ---
 
-## 🔗 Links Rápidos
+## 🔗 Quick Links
 
-### Servicios Locales
+### Local Services
 
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:5000
@@ -202,7 +202,7 @@ marie_chat/
 - Dashboards: http://localhost:5601
 - Ollama: http://localhost:11434
 
-### Documentación Externa
+### External Documentation
 
 - [Next.js 15](https://nextjs.org/docs)
 - [Ant Design X](https://x.ant.design/)

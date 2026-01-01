@@ -7,8 +7,15 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { PrismAsync as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Button, Tooltip, Table, Typography, Spin, App } from 'antd';
-import { CopyOutlined, CheckOutlined, TableOutlined, DownloadOutlined } from '@ant-design/icons';
+import { Button, Tooltip, Table, Typography, Spin, App, Tag } from 'antd';
+import { 
+  CopyOutlined, 
+  CheckOutlined, 
+  TableOutlined, 
+  DownloadOutlined,
+  CodeOutlined,
+  FileTextOutlined
+} from '@ant-design/icons';
 import 'katex/dist/katex.min.css';
 import { HTMLArtifact } from './HTMLArtifact';
 import { LatexArtifact } from './LatexArtifact';
@@ -32,11 +39,27 @@ const CodeBlock = memo(({ language, value }: { language: string; value: string }
   }, [value]);
 
   const handleDownload = useCallback(() => {
-    const extension = language === 'python' ? 'py' : 
-                     language === 'javascript' ? 'js' :
-                     language === 'typescript' ? 'ts' :
-                     language === 'html' ? 'html' :
-                     language === 'css' ? 'css' : 'txt';
+    const extensionMap: { [key: string]: string } = {
+      'python': 'py',
+      'javascript': 'js',
+      'typescript': 'ts',
+      'html': 'html',
+      'css': 'css',
+      'rust': 'rs',
+      'cpp': 'cpp',
+      'c++': 'cpp',
+      'c': 'c',
+      'java': 'java',
+      'go': 'go',
+      'sql': 'sql',
+      'bash': 'sh',
+      'shell': 'sh',
+      'json': 'json',
+      'yaml': 'yaml',
+      'markdown': 'md',
+      'latex': 'tex'
+    };
+    const extension = extensionMap[language.toLowerCase()] || 'txt';
     const blob = new Blob([value], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

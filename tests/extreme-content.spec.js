@@ -51,7 +51,7 @@ test.describe('Extreme Content & Stress Suite', () => {
   test('Extreme LaTeX: Multi-line and Complex Equations', async ({ page }) => {
     const input = page.getByPlaceholder('Type your message here...');
     const extremeLatex = `
-Aquí tienes una serie de ecuaciones extremadamente largas para probar el scroll y el renderizado:
+Here is a series of extremely long equations to test scrolling and rendering:
 
 $$
 \\begin{aligned}
@@ -86,7 +86,7 @@ $$
   test('Extreme Code: Multiple Languages and Long Blocks', async ({ page }) => {
     const input = page.getByPlaceholder('Type your message here...');
     const extremeCode = `
-Prueba de múltiples lenguajes y bloques largos:
+Test of multiple languages and long blocks:
 
 \`\`\`python
 class LargeSystem:
@@ -94,7 +94,7 @@ class LargeSystem:
         self.data = [i for i in range(1000)]
         
     def process(self):
-        # Un comentario muy largo para probar el wrap y el scroll horizontal en el editor de código de la interfaz de usuario
+        # A very long comment to test wrapping and horizontal scrolling in the UI code editor
         return sum([x**2 for x in self.data if x % 2 == 0])
 
     def extra_long_method_name_to_test_how_it_looks_in_the_ui_when_we_have_very_long_identifiers(self):
@@ -123,8 +123,8 @@ const complexUI = {
   test('Extreme HTML: Plotly.js and Large Content', async ({ page }) => {
     const input = page.getByPlaceholder('Type your message here...');
     const plotlyPrompt = `
-Genera un artefacto HTML que use Plotly.js desde un CDN para mostrar un gráfico 3D complejo.
-Usa esta URL para Plotly: https://cdn.plot.ly/plotly-2.27.0.min.js
+Generate an HTML artifact that uses Plotly.js from a CDN to show a complex 3D graph.
+Use this URL for Plotly: https://cdn.plot.ly/plotly-2.27.0.min.js
     `;
     
     await input.fill(plotlyPrompt);
@@ -144,13 +144,13 @@ Usa esta URL para Plotly: https://cdn.plot.ly/plotly-2.27.0.min.js
   test('Mixed Chaos: The Ultimate Stress Test', async ({ page }) => {
     const input = page.getByPlaceholder('Type your message here...');
     const chaosPrompt = `
-Genera un mensaje que contenga:
-1. Un encabezado H1.
-2. Una tabla de 5x5 con datos al azar.
-3. Un bloque de código Rust.
-4. Una ecuación LaTeX compleja.
-5. Un artefacto HTML con un botón que cambie de color.
-6. Una lista anidada de 3 niveles.
+Generate a message containing:
+1. An H1 header.
+2. A 5x5 table with random data.
+3. A Rust code block.
+4. A complex LaTeX equation.
+5. An HTML artifact with a button that changes color.
+6. A 3-level nested list.
     `;
     
     await input.fill(chaosPrompt);

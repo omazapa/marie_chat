@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo, memo, useCallback } from '
 import { useRouter } from 'next/navigation';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
-import { Spin, Button, Typography, Tag, Tooltip, Layout, App, Input } from 'antd';
+import { Spin, Button, Typography, Tag, Tooltip, Layout, App, Input, Alert, Space } from 'antd';
 import { 
   RobotOutlined, 
   EditOutlined, 
@@ -12,6 +12,7 @@ import {
   SettingOutlined,
   FileOutlined,
   LinkOutlined,
+  PlusOutlined,
 } from '@ant-design/icons';
 import type { ConversationsProps } from '@ant-design/x';
 import type { Message as WebSocketMessage } from '@/hooks/useWebSocket';
@@ -572,13 +573,15 @@ export default function ChatContainer() {
       <Layout style={{ height: '100vh' }}>
         <Content style={{ display: 'flex', flexDirection: 'column', background: '#ffffff', minWidth: 0, height: '100%' }}>
           {error && (
-            <div style={{ 
-              background: '#fff2f0',
-              borderLeft: '4px solid #ff4d4f',
-              padding: '16px',
-              margin: '16px'
-            }}>
-              <Text style={{ color: '#cf1322' }}>{error}</Text>
+            <div style={{ padding: '16px 16px 0 16px' }}>
+              <Alert
+                message="Error"
+                description={error}
+                type="error"
+                showIcon
+                closable
+                onClose={() => setError(null)}
+              />
             </div>
           )}
 
@@ -642,16 +645,28 @@ export default function ChatContainer() {
                       </div>
                     </div>
                   </div>
-                  <Tooltip title="Change model">
-                    <Button
-                      icon={<SettingOutlined />}
-                      onClick={handleChangeModel}
-                      size="small"
-                      type="text"
-                    >
-                      Change Model
-                    </Button>
-                  </Tooltip>
+                  <Space orientation="horizontal" size="small">
+                    <Tooltip title="New Chat">
+                      <Button
+                        icon={<PlusOutlined />}
+                        onClick={handleNewConversation}
+                        size="small"
+                        type="text"
+                      >
+                        New Chat
+                      </Button>
+                    </Tooltip>
+                    <Tooltip title="Change model">
+                      <Button
+                        icon={<SettingOutlined />}
+                        onClick={handleChangeModel}
+                        size="small"
+                        type="text"
+                      >
+                        Change Model
+                      </Button>
+                    </Tooltip>
+                  </Space>
                 </div>
 
                 {/* Messages Area */}
@@ -731,10 +746,23 @@ export default function ChatContainer() {
                           color="cyan"
                           style={{ padding: '4px 8px', borderRadius: '6px' }}
                         >
-                          Mensaje: {msg?.content?.substring(0, 20)}...
+                          Message: {msg?.content?.substring(0, 20)}...
                         </Tag>
                       );
                     })}
+                    <Button 
+                      type="text" 
+                      size="small" 
+                      danger 
+                      onClick={() => {
+                        setAttachments([]);
+                        setReferencedConvIds([]);
+                        setReferencedMsgIds([]);
+                      }}
+                      style={{ fontSize: '12px' }}
+                    >
+                      Clear All
+                    </Button>
                   </div>
                 )}
 

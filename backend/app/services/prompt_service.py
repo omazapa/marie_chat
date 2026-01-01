@@ -11,7 +11,6 @@ class PromptService:
     def __init__(self):
         self.techniques = {
             "cot": "Chain of Thought: Encourages the model to explain its reasoning step-by-step.",
-            "cot": "Chain of Thought: Encourages the model to explain its reasoning step-by-step.",
             "few_shot": "Few-Shot: Provides examples to guide the model's output format and style.",
             "persona": "Persona: Assigns a specific role or character to the model.",
             "delimited": "Delimited: Uses clear delimiters to separate different parts of the prompt.",
@@ -19,7 +18,8 @@ class PromptService:
             "tot": "Tree of Thoughts: Explores multiple reasoning paths simultaneously.",
             "step_back": "Step-Back Prompting: Asks the model to first identify the broader principles or concepts involved.",
             "self_critique": "Self-Critique: Instructs the model to review and refine its own response for accuracy and quality.",
-            "analogical": "Analogical Reasoning: Uses analogies to explain complex or abstract concepts more clearly."
+            "analogical": "Analogical Reasoning: Uses analogies to explain complex or abstract concepts more clearly.",
+            "rit": "Reasoning in Thought: Encourages the model to use a <thought> block for internal reasoning before responding."
         }
         self.templates = {
             "creative": "Write a creative story or poem about {topic}. Use vivid imagery and emotional depth.",
