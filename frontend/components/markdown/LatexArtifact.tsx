@@ -11,6 +11,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
 const { Text } = Typography;
@@ -34,15 +35,27 @@ export const LatexArtifact = memo(function LatexArtifact({ latex, className, isS
   };
 
   // Ensure the latex is wrapped in $$ for the preview if it's not already
-  const formattedLatex = useMemo(() => {
+  const htmlContent = useMemo(() => {
     const trimmed = latex.trim();
+    let cleanLatex = trimmed;
+    
+    // Strip $$ or \[ \] if present for direct KaTeX rendering
     if (trimmed.startsWith('$$') && trimmed.endsWith('$$')) {
-      return trimmed;
+      cleanLatex = trimmed.substring(2, trimmed.length - 2);
+    } else if (trimmed.startsWith('\\[') && trimmed.endsWith('\\]')) {
+      cleanLatex = trimmed.substring(2, trimmed.length - 2);
     }
-    if (trimmed.startsWith('\\begin') || trimmed.startsWith('\\[')) {
-      return `$$\n${trimmed}\n$$`;
+
+    try {
+      return katex.renderToString(cleanLatex, {
+        displayMode: true,
+        throwOnError: false,
+        trust: true
+      });
+    } catch (err) {
+      console.error('KaTeX error:', err);
+      return `<span class="katex-error">${cleanLatex}</span>`;
     }
-    return `$$\n${trimmed}\n$$`;
   }, [latex]);
 
   return (
@@ -103,14 +116,10 @@ export const LatexArtifact = memo(function LatexArtifact({ latex, className, isS
           maxWidth: '100%',
           padding: '10px 0'
         }}>
-          <div style={{ minWidth: 'min-content' }}>
-            <ReactMarkdown 
-              remarkPlugins={[remarkMath]} 
-              rehypePlugins={[rehypeKatex]}
-            >
-              {formattedLatex}
-            </ReactMarkdown>
-          </div>
+          <div 
+            style={{ minWidth: 'min-content' }}
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
+          />
         </div>
       ) : (
         <pre style={{ 

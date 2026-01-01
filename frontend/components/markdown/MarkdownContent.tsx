@@ -5,9 +5,11 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw';
 import { PrismAsync as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Button, Tooltip, Table, Typography, Spin, App, Tag } from 'antd';
+import { Think } from '@ant-design/x';
 import { 
   CopyOutlined, 
   CheckOutlined, 
@@ -382,13 +384,10 @@ MarkdownTable.displayName = 'MarkdownTable';
 export const MarkdownContent = memo(function MarkdownContent({ content, className, isStreaming }: MarkdownContentProps) {
   // Auto-wrap raw HTML blocks in code blocks if they are not already wrapped
   const processedContent = useMemo(() => {
-    if (isStreaming) return content;
-
     // Regex to find substantial HTML blocks
-    const htmlBlockRegex = /(<!doctype html>[\s\S]*?<\/html>|<html[\s\S]*?<\/html>|<body[\s\S]*?<\/body>)/gi;
+    const htmlBlockRegex = /(<!doctype html>[\s\S]*?<\/html>|<html[\s\S]*?<\/html>|<body[\s\S]*?<\/body>|<div[\s\S]*?<\/div>|<svg[\s\S]*?<\/svg>|<iframe[\s\S]*?<\/iframe>|<table[\s\S]*?<\/table>|<button[\s\S]*?<\/button>|<form[\s\S]*?<\/form>|<canvas[\s\S]*?<\/canvas>)/gi;
     // Regex to find LaTeX environments and display math blocks
-
-    const latexBlockRegex = /(\\begin\{([a-z\*]+)\}[\s\S]*?\\end\{\2\}|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$)/gi;
+    const latexBlockRegex = /(\\begin\{([a-z\*]+)\}[\s\S]*?\\end\{\2\}|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$|\\\( [\s\S]*? \\\))/gi;
     
     // Check if the block is already inside a code block
     let lastIndex = 0;
@@ -501,6 +500,21 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
     },
     table({ children }: any) {
       return <MarkdownTable>{children}</MarkdownTable>;
+    },
+    thought({ children }: any) {
+      return (
+        <div style={{ marginBottom: '16px' }}>
+          <Think 
+            title="Reasoning Process" 
+            defaultExpanded={false}
+            style={{ background: '#f8f9fa', border: '1px solid #e9ecef' }}
+          >
+            <div style={{ fontSize: '13px', color: '#495057', lineHeight: '1.6' }}>
+              {children}
+            </div>
+          </Think>
+        </div>
+      );
     }
   }), [isStreaming]);
 
@@ -512,7 +526,7 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
     <div className={`markdown-content ${className || ''}`} style={{ width: '100%', maxWidth: '100%', overflowWrap: 'break-word', minWidth: 0 }}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex]}
+        rehypePlugins={[rehypeRaw, rehypeKatex]}
         components={components}
       >
         {processedContent}
