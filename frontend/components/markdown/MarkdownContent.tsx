@@ -178,7 +178,7 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
   }), [isStreaming]);
 
   return (
-    <div className={`markdown-content ${className || ''}`}>
+    <div className={`markdown-content ${className || ''}`} style={{ maxWidth: '100%', overflowWrap: 'break-word' }}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex, rehypeRaw]}

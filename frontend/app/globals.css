@@ -47,6 +47,28 @@ a {
 .markdown-content {
   word-break: break-word;
   overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+.markdown-content ul, 
+.markdown-content ol {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+  max-width: 100%;
+}
+
+.markdown-content li {
+  margin-bottom: 0.5em;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+.markdown-content li > p {
+  margin-bottom: 0;
+}
+
+.markdown-content * {
+  max-width: 100%;
 }
 
 /* Search Highlighting */

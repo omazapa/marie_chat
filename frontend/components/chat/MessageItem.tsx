@@ -56,7 +56,13 @@ export const MessageItem = memo(({
         </div>
       )}
       {(msg.content || msg.id !== 'streaming') && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start',
+          maxWidth: '85%',
+          alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start'
+        }}>
           {msg.metadata?.attachments && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
               {msg.metadata.attachments.map((att: any) => (
@@ -101,7 +107,12 @@ export const MessageItem = memo(({
               />
             }
             content={
-              <div style={{ minWidth: '40px' }}>
+              <div style={{ 
+                minWidth: 0, 
+                maxWidth: '100%', 
+                overflowWrap: 'break-word',
+                wordBreak: 'break-word'
+              }}>
                 <MarkdownContent content={msg.content} />
                 {msg.metadata?.type === 'image_generation' && msg.metadata?.image?.url && (
                   <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -152,7 +163,9 @@ export const MessageItem = memo(({
                 border: msg.role === 'user' ? 'none' : '1px solid #f0f0f0',
                 borderRadius: '12px',
                 padding: '12px 16px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                maxWidth: '100%',
+                overflow: 'hidden'
               }
             }}
             footer={
