@@ -2,7 +2,17 @@
 
 import React, { memo } from 'react';
 import { Typography, Tag, Tooltip, Button, Space, Image, Avatar } from 'antd';
-import { LinkOutlined, RobotOutlined, UserOutlined, EditOutlined, ReloadOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons';
+import { 
+  LinkOutlined, 
+  RobotOutlined, 
+  UserOutlined, 
+  EditOutlined, 
+  ReloadOutlined, 
+  PlayCircleOutlined, 
+  PauseCircleOutlined,
+  CopyOutlined,
+  CheckOutlined
+} from '@ant-design/icons';
 import { Think, Bubble } from '@ant-design/x';
 import { FileCard } from './FileCard';
 import { API_URL } from '@/lib/api';
@@ -35,6 +45,13 @@ export const MessageItem = memo(({
   isPlaying
 }: MessageItemProps) => {
   const { whiteLabel } = useSettings();
+  const [copied, setCopied] = React.useState(false);
+
+  const handleCopyAll = () => {
+    navigator.clipboard.writeText(msg.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div id={`message-${msg.id}`} style={{ marginBottom: '24px', transition: 'background-color 0.5s' }}>
@@ -181,6 +198,14 @@ export const MessageItem = memo(({
                   {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                 </Text>
                 <Space size={4}>
+                  <Tooltip title={copied ? "Copied!" : "Copy message"}>
+                    <Button 
+                      type="text" 
+                      size="small" 
+                      icon={copied ? <CheckOutlined style={{ color: '#52c41a' }} /> : <CopyOutlined />} 
+                      onClick={handleCopyAll}
+                    />
+                  </Tooltip>
                   {onPlay && msg.content && (
                     <Tooltip title={isPlaying ? "Stop" : "Listen"}>
                       <Button 
