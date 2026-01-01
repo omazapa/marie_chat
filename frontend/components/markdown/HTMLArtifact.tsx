@@ -213,4 +213,6 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
   );
 });
 
+HTMLArtifact.displayName = 'HTMLArtifact';
+
 

@@ -146,6 +146,49 @@ const MarkdownTable = memo(({ children }: { children: any }) => {
 MarkdownTable.displayName = 'MarkdownTable';
 
 export const MarkdownContent = memo(function MarkdownContent({ content, className, isStreaming }: MarkdownContentProps) {
+  // Auto-wrap raw HTML blocks in code blocks if they are not already wrapped
+  const processedContent = useMemo(() => {
+    if (isStreaming) return content;
+
+    // Regex to find substantial HTML blocks
+    const htmlBlockRegex = /(<!doctype html>[\s\S]*?<\/html>|<html[\s\S]*?<\/html>|<body[\s\S]*?<\/body>)/gi;
+    
+    // Check if the block is already inside a code block
+    let lastIndex = 0;
+    let result = '';
+    let match;
+
+    while ((match = htmlBlockRegex.exec(content)) !== null) {
+      const before = content.substring(lastIndex, match.index);
+      const fullBefore = content.substring(0, match.index);
+      
+      // Count triple backticks to see if we are inside a code block
+      const isInsideCode = (fullBefore.match(/```/g) || []).length % 2 !== 0;
+      
+      result += before;
+      if (!isInsideCode) {
+        // Add newlines to ensure it's treated as a block by ReactMarkdown
+        result += `\n\n\`\`\`html\n${match[0].trim()}\n\`\`\`\n\n`;
+      } else {
+        result += match[0];
+      }
+      lastIndex = htmlBlockRegex.lastIndex;
+    }
+    result += content.substring(lastIndex);
+    
+    return result || content;
+  }, [content, isStreaming]);
+
+  // Check if the entire content is a raw HTML document (not in a code block)
+  const isRawHTML = useMemo(() => {
+    const trimmed = content.trim().toLowerCase();
+    // Must start with HTML tags and be substantial or have closing tags
+    return (trimmed.startsWith('<!doctype html>') || 
+            trimmed.startsWith('<html') || 
+            trimmed.startsWith('<body>')) && 
+           (trimmed.includes('</html>') || trimmed.includes('</body>') || trimmed.length > 150);
+  }, [content]);
+
   const components = useMemo(() => ({
     code({ node, inline, className, children, ...props }: any) {
       const match = /language-(\w+)/.exec(className || '');
@@ -155,11 +198,16 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
       // Fallback detection for HTML/SVG if no language tag is provided
       if (!language && !inline) {
         const lowerContent = codeContent.toLowerCase().trim();
-        if (lowerContent.startsWith('<!doctype html>') || 
-            lowerContent.startsWith('<html') || 
-            lowerContent.startsWith('<body>') ||
-            (lowerContent.startsWith('<svg') && lowerContent.includes('</svg>'))) {
-          language = lowerContent.startsWith('<svg') ? 'svg' : 'html';
+        // Aggressive detection for HTML blocks: must start with tag and be substantial or have closing tag
+        const looksLikeHTML = (lowerContent.startsWith('<!doctype html>') || 
+                              lowerContent.startsWith('<html') || 
+                              lowerContent.startsWith('<body>')) && 
+                             (lowerContent.includes('</html>') || lowerContent.includes('</body>') || lowerContent.length > 100);
+        
+        const looksLikeSVG = lowerContent.startsWith('<svg') && lowerContent.includes('</svg>');
+
+        if (looksLikeHTML || looksLikeSVG) {
+          language = looksLikeSVG ? 'svg' : 'html';
         }
       }
 
@@ -177,21 +225,11 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
       );
     },
     pre({ node, children, ...props }: any) {
-      // Check if the child is a code block that we've handled as an artifact
-      const isArtifact = React.Children.toArray(children).some((child: any) => {
-        if (React.isValidElement(child) && child.props) {
-          const childProps = child.props as any;
-          const className = childProps.className || '';
-          const content = String(childProps.children || '').toLowerCase().trim();
-          
-          return className.includes('language-html') || 
-                 className.includes('language-svg') ||
-                 content.startsWith('<!doctype html>') ||
-                 content.startsWith('<html') ||
-                 content.startsWith('<body>') ||
-                 (content.startsWith('<svg') && content.includes('</svg>'));
-        }
-        return false;
+      // If the child is an HTMLArtifact (returned by the code component), don't wrap in <pre>
+      const childrenArray = React.Children.toArray(children);
+      const isArtifact = childrenArray.some((child: any) => {
+        return React.isValidElement(child) && 
+               (child.type as any)?.displayName === 'HTMLArtifact';
       });
 
       if (isArtifact) {
@@ -211,6 +249,10 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
     }
   }), [isStreaming]);
 
+  if (isRawHTML) {
+    return <HTMLArtifact html={content} isStreaming={isStreaming} />;
+  }
+
   return (
     <div className={`markdown-content ${className || ''}`} style={{ width: '100%', maxWidth: '100%', overflowWrap: 'break-word' }}>
       <ReactMarkdown
@@ -218,7 +260,7 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
         rehypePlugins={[rehypeKatex, rehypeRaw]}
         components={components}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   );

@@ -8,7 +8,7 @@
 - **NO Spanish in code or technical documentation** - Only user-facing UI text can be multilingual.
 
 ### Workflow & Automation
-- **CRITICAL: NEVER perform git commits, pushes, or any version control operations** - The user will handle all git commands manually.
+- **Git Operations**: ONLY perform git commits or version control operations if the user EXPLICITLY requests it. Otherwise, the user handles all git commands manually.
 - **CRITICAL: NEVER ask for commit confirmation** - Make changes directly to files.
 - **CRITICAL: DO NOT suggest commits** - The user will commit when ready.
 - **NO commit messages in responses** - Focus on the implementation.
