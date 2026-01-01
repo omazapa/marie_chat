@@ -109,6 +109,21 @@ export const HTMLArtifact = memo(function HTMLArtifact({ html, className, isStre
               white-space: pre;
               word-break: normal;
             }
+            /* Custom scrollbar for better UX */
+            ::-webkit-scrollbar {
+              width: 8px;
+              height: 8px;
+            }
+            ::-webkit-scrollbar-track {
+              background: #f1f1f1;
+            }
+            ::-webkit-scrollbar-thumb {
+              background: #ccc;
+              border-radius: 4px;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+              background: #999;
+            }
             /* Hide scrollbars during streaming to prevent layout shifts */
             ${isStreaming ? 'body { overflow: hidden; }' : ''}
           </style>

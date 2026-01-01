@@ -211,6 +211,18 @@ const MarkdownTable = memo(({ children }: { children: any }) => {
     message.success('Table copied as Markdown');
   };
 
+  const handleCopyJSON = (columns: any[], dataSource: any[]) => {
+    const data = dataSource.map(row => {
+      const obj: any = {};
+      columns.forEach(col => {
+        obj[col.title] = row[col.dataIndex];
+      });
+      return obj;
+    });
+    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+    message.success('Table copied as JSON');
+  };
+
   const handleCopyCSV = (columns: any[], dataSource: any[]) => {
     const headers = columns.map(col => {
       if (React.isValidElement(col.title)) {
@@ -291,6 +303,17 @@ const MarkdownTable = memo(({ children }: { children: any }) => {
               Copy CSV
             </Button>
           </Tooltip>
+          <Tooltip title="Copy as JSON">
+            <Button 
+              size="small" 
+              type="text" 
+              icon={<CopyOutlined />} 
+              onClick={() => handleCopyJSON(columns, dataSource)}
+              style={{ color: '#8c8c8c' }}
+            >
+              Copy JSON
+            </Button>
+          </Tooltip>
           <Tooltip title="Download as CSV">
             <Button 
               size="small" 
@@ -341,7 +364,8 @@ export const MarkdownContent = memo(function MarkdownContent({ content, classNam
     // Regex to find substantial HTML blocks
     const htmlBlockRegex = /(<!doctype html>[\s\S]*?<\/html>|<html[\s\S]*?<\/html>|<body[\s\S]*?<\/body>)/gi;
     // Regex to find LaTeX environments and display math blocks
-    const latexBlockRegex = /(\\begin\{([a-z\*]+)\}[\s\S]*?\\end\{\2\}|\\\[[\s\S]*?\\\])/gi;
+
+    const latexBlockRegex = /(\\begin\{([a-z\*]+)\}[\s\S]*?\\end\{\2\}|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$)/gi;
     
     // Check if the block is already inside a code block
     let lastIndex = 0;
