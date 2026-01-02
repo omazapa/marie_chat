@@ -28,7 +28,12 @@ import {
   ReloadOutlined,
   DeleteOutlined,
   PlusOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ExclamationCircleOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
+import { Badge, Tag, Tooltip } from 'antd';
 import apiClient from '@/lib/api';
 import { useModels } from '@/hooks/useModels';
 import { useAuthStore } from '@/stores/authStore';
@@ -39,6 +44,8 @@ export default function SystemSettings() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testingProvider, setTestingProvider] = useState<string | null>(null);
+  const [providerStatus, setProviderStatus] = useState<Record<string, any>>({});
   const { message } = App.useApp();
 
   const { accessToken } = useAuthStore();
@@ -61,6 +68,38 @@ export default function SystemSettings() {
 
     fetchSettings();
   }, [form, message]);
+
+  const testProvider = async (provider: string) => {
+    setTestingProvider(provider);
+    try {
+      const config = form.getFieldValue(['providers', provider]);
+      const response = await apiClient.post('/admin/settings/test-provider', {
+        provider,
+        config,
+      });
+
+      setProviderStatus((prev) => ({
+        ...prev,
+        [provider]: response.data,
+      }));
+
+      if (response.data.available) {
+        message.success(
+          `${provider} connection successful! Found ${response.data.models_count} models.`
+        );
+      } else {
+        message.error(`${provider} connection failed: ${response.data.error || 'Unknown error'}`);
+      }
+    } catch (err: any) {
+      message.error(`Failed to test ${provider}: ${err.response?.data?.error || err.message}`);
+      setProviderStatus((prev) => ({
+        ...prev,
+        [provider]: { available: false, error: err.message },
+      }));
+    } finally {
+      setTestingProvider(null);
+    }
+  };
 
   const onFinish = async (values: any) => {
     setSaving(true);
@@ -141,6 +180,7 @@ export default function SystemSettings() {
                             options={[
                               { value: 'ollama', label: 'Ollama (Local)' },
                               { value: 'huggingface', label: 'HuggingFace (Cloud)' },
+                              { value: 'openai', label: 'OpenAI / Compatible' },
                             ]}
                           />
                         </Form.Item>
@@ -433,6 +473,135 @@ export default function SystemSettings() {
                       )}
                     </Form.List>
                   </Card>
+                ),
+              },
+              {
+                key: 'providers',
+                label: (
+                  <span>
+                    <GlobalOutlined /> Providers
+                  </span>
+                ),
+                children: (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <Card
+                      title={
+                        <Space>
+                          <ApiOutlined /> OpenAI / Compatible
+                          {providerStatus['openai']?.available ? (
+                            <Tag color="success" icon={<CheckCircleOutlined />}>
+                              Connected
+                            </Tag>
+                          ) : providerStatus['openai']?.error ? (
+                            <Tag color="error" icon={<CloseCircleOutlined />}>
+                              Error
+                            </Tag>
+                          ) : null}
+                        </Space>
+                      }
+                      extra={
+                        <Button
+                          type="primary"
+                          ghost
+                          size="small"
+                          loading={testingProvider === 'openai'}
+                          onClick={() => testProvider('openai')}
+                        >
+                          Test Connection
+                        </Button>
+                      }
+                    >
+                      <Paragraph type="secondary">
+                        Configure OpenAI or any OpenAI-compatible API (like Azure OpenAI, LocalAI,
+                        etc.)
+                      </Paragraph>
+                      <Row gutter={24}>
+                        <Col span={12}>
+                          <Form.Item name={['providers', 'openai', 'api_key']} label="API Key">
+                            <Input.Password placeholder="sk-..." />
+                          </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                          <Form.Item
+                            name={['providers', 'openai', 'base_url']}
+                            label="Base URL (Optional)"
+                          >
+                            <Input placeholder="https://api.openai.com/v1" />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                    </Card>
+
+                    <Card
+                      title={
+                        <Space>
+                          <ApiOutlined /> HuggingFace
+                          {providerStatus['huggingface']?.available ? (
+                            <Tag color="success" icon={<CheckCircleOutlined />}>
+                              Connected
+                            </Tag>
+                          ) : providerStatus['huggingface']?.error ? (
+                            <Tag color="error" icon={<CloseCircleOutlined />}>
+                              Error
+                            </Tag>
+                          ) : null}
+                        </Space>
+                      }
+                      extra={
+                        <Button
+                          type="primary"
+                          ghost
+                          size="small"
+                          loading={testingProvider === 'huggingface'}
+                          onClick={() => testProvider('huggingface')}
+                        >
+                          Test Connection
+                        </Button>
+                      }
+                    >
+                      <Paragraph type="secondary">
+                        Access thousands of open-source models via HuggingFace Inference API.
+                      </Paragraph>
+                      <Form.Item name={['providers', 'huggingface', 'api_key']} label="API Token">
+                        <Input.Password placeholder="hf_..." />
+                      </Form.Item>
+                    </Card>
+
+                    <Card
+                      title={
+                        <Space>
+                          <ApiOutlined /> Ollama (Local)
+                          {providerStatus['ollama']?.available ? (
+                            <Tag color="success" icon={<CheckCircleOutlined />}>
+                              Connected
+                            </Tag>
+                          ) : providerStatus['ollama']?.error ? (
+                            <Tag color="error" icon={<CloseCircleOutlined />}>
+                              Error
+                            </Tag>
+                          ) : null}
+                        </Space>
+                      }
+                      extra={
+                        <Button
+                          type="primary"
+                          ghost
+                          size="small"
+                          loading={testingProvider === 'ollama'}
+                          onClick={() => testProvider('ollama')}
+                        >
+                          Test Connection
+                        </Button>
+                      }
+                    >
+                      <Paragraph type="secondary">
+                        Run models locally on your own hardware using Ollama.
+                      </Paragraph>
+                      <Form.Item name={['providers', 'ollama', 'base_url']} label="Base URL">
+                        <Input placeholder="http://localhost:11434" />
+                      </Form.Item>
+                    </Card>
+                  </div>
                 ),
               },
             ]}
