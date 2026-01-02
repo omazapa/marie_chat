@@ -3,9 +3,6 @@
 import { useState, memo, useMemo } from 'react';
 import { Card, Button, Tooltip, Space, Typography, App, Tag } from 'antd';
 import { CopyOutlined, CodeOutlined, EyeOutlined, CheckOutlined } from '@ant-design/icons';
-import ReactMarkdown from 'react-markdown';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 

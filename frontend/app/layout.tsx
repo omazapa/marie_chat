@@ -1,8 +1,5 @@
 import type { Metadata } from 'next';
 import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
-import { AntdRegistry } from '@ant-design/nextjs-registry';
-import { ConfigProvider, App } from 'antd';
-import { marieTheme } from '@/lib/theme';
 import { ClientProviders } from '@/components/ClientProviders';
 import './globals.css';
 

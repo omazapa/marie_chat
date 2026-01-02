@@ -3,10 +3,11 @@
 import React from 'react';
 import { Typography, Tooltip } from 'antd';
 import { FileOutlined } from '@ant-design/icons';
+import { Attachment } from '@/types';
 
 const { Text } = Typography;
 
-export const FileCard = ({ file }: { file: any }) => {
+export const FileCard = ({ file }: { file: Attachment }) => {
   return (
     <div
       style={{
@@ -44,7 +45,7 @@ export const FileCard = ({ file }: { file: any }) => {
           </Text>
         </Tooltip>
         <Text type="secondary" style={{ fontSize: '10px' }}>
-          {file.file_type?.toUpperCase() || 'FILE'} •{' '}
+          {file.content_type?.split('/')[1]?.toUpperCase() || 'FILE'} •{' '}
           {file.size ? `${(file.size / 1024).toFixed(1)} KB` : 'Ready'}
         </Text>
       </div>

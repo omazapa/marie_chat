@@ -4,6 +4,23 @@ import { useAuthStore } from '@/stores/authStore';
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 console.log('🌐 API_URL configured as:', API_URL);
 
+/**
+ * Extracts a user-friendly error message from an unknown error object,
+ * specifically handling Axios errors.
+ */
+export const getErrorMessage = (
+  error: unknown,
+  fallback = 'An unexpected error occurred'
+): string => {
+  if (axios.isAxiosError(error)) {
+    return error.response?.data?.error || error.message || fallback;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return fallback;
+};
+
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: `${API_URL}/api`,

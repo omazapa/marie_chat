@@ -30,26 +30,26 @@ import {
   PlusOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  ExclamationCircleOutlined,
   ApiOutlined,
 } from '@ant-design/icons';
-import { Badge, Tag, Tooltip } from 'antd';
-import apiClient from '@/lib/api';
+import { Tag } from 'antd';
+import apiClient, { getErrorMessage } from '@/lib/api';
 import { useModels } from '@/hooks/useModels';
 import { useAuthStore } from '@/stores/authStore';
+import { SystemSettings as SystemSettingsType, ProviderStatus } from '@/types';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Paragraph } = Typography;
 
 export default function SystemSettings() {
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<SystemSettingsType>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
-  const [providerStatus, setProviderStatus] = useState<Record<string, any>>({});
+  const [providerStatus, setProviderStatus] = useState<Record<string, ProviderStatus>>({});
   const { message } = App.useApp();
 
   const { accessToken } = useAuthStore();
-  const { models, loading: loadingModels, fetchModels } = useModels(accessToken);
+  const { models, loading: loadingModels, fetchModels } = useModels(accessToken || '');
 
   // Watch provider to update model list
   const selectedProvider = Form.useWatch(['llm', 'default_provider'], form);
@@ -57,9 +57,9 @@ export default function SystemSettings() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await apiClient.get('/admin/settings');
+        const response = await apiClient.get<SystemSettingsType>('/admin/settings');
         form.setFieldsValue(response.data);
-      } catch (err) {
+      } catch {
         message.error('Failed to fetch system settings');
       } finally {
         setLoading(false);
@@ -73,7 +73,7 @@ export default function SystemSettings() {
     setTestingProvider(provider);
     try {
       const config = form.getFieldValue(['providers', provider]);
-      const response = await apiClient.post('/admin/settings/test-provider', {
+      const response = await apiClient.post<ProviderStatus>('/admin/settings/test-provider', {
         provider,
         config,
       });
@@ -90,23 +90,24 @@ export default function SystemSettings() {
       } else {
         message.error(`${provider} connection failed: ${response.data.error || 'Unknown error'}`);
       }
-    } catch (err: any) {
-      message.error(`Failed to test ${provider}: ${err.response?.data?.error || err.message}`);
+    } catch (err: unknown) {
+      const errorMsg = getErrorMessage(err);
+      message.error(`Failed to test ${provider}: ${errorMsg}`);
       setProviderStatus((prev) => ({
         ...prev,
-        [provider]: { available: false, error: err.message },
+        [provider]: { available: false, error: errorMsg },
       }));
     } finally {
       setTestingProvider(null);
     }
   };
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: SystemSettingsType) => {
     setSaving(true);
     try {
       await apiClient.put('/admin/settings', values);
       message.success('Settings updated successfully');
-    } catch (err) {
+    } catch {
       message.error('Failed to update settings');
     } finally {
       setSaving(false);

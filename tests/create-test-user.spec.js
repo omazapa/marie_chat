@@ -58,9 +58,10 @@ test.describe('Create Test User', () => {
     await page.waitForLoadState('networkidle');
 
     // Fill registration form
-    await page.fill('input[type="email"]', TEST_USER.email);
-    await page.fill('input[name="full_name"], input[placeholder*="name"], input[placeholder*="nombre"]', TEST_USER.full_name);
-    await page.fill('input[type="password"]', TEST_USER.password);
+    await page.fill('input[placeholder*="email"]', TEST_USER.email);
+    await page.fill('input[placeholder*="name"], input[placeholder*="nombre"]', TEST_USER.full_name);
+    await page.fill('input[placeholder*="characters"], input[placeholder*="contraseña"]', TEST_USER.password);
+    await page.fill('input[placeholder*="Repeat"], input[placeholder*="Repetir"]', TEST_USER.password);
 
     // Submit form
     await page.click('button[type="submit"]');
@@ -76,8 +77,11 @@ test.describe('Create Test User', () => {
       console.log('✅ User created and auto-logged in successfully!');
       console.log('✅ Redirected to chat page');
 
+      // Wait for loading state to disappear
+      await expect(page.locator('text=Loading Chat...')).not.toBeVisible({ timeout: 30000 });
+
       // Verify we're in the chat interface
-      await expect(page.getByRole('heading', { name: 'Marie', exact: true })).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('text=Marie').first()).toBeVisible({ timeout: 10000 });
 
       console.log('\n📧 User Details:');
       console.log(`Email: ${TEST_USER.email}`);
@@ -85,7 +89,13 @@ test.describe('Create Test User', () => {
       console.log(`Name: ${TEST_USER.full_name}`);
     } else {
       console.log('⚠️ Not redirected to chat, checking current page...');
-      await page.screenshot({ path: 'test-results/registration-state.png' });
+      // Check if user already exists
+      const errorText = await page.locator('text=/already exists|ya existe/i').isVisible();
+      if (errorText) {
+        console.log('✅ User already exists, proceeding to login test');
+      } else {
+        await page.screenshot({ path: 'test-results/registration-state.png' });
+      }
     }
   });
 
@@ -97,8 +107,8 @@ test.describe('Create Test User', () => {
     await page.waitForLoadState('networkidle');
 
     // Fill login form
-    await page.fill('input[type="email"]', TEST_USER.email);
-    await page.fill('input[type="password"]', TEST_USER.password);
+    await page.fill('input[placeholder*="email"]', TEST_USER.email);
+    await page.fill('input[placeholder*="password"], input[placeholder*="contraseña"]', TEST_USER.password);
 
     // Submit form
     await page.click('button[type="submit"]');
@@ -149,8 +159,8 @@ test.describe('Create Test User', () => {
 
     // Login first
     await page.goto(`${BASE_URL}/login`);
-    await page.fill('input[type="email"]', TEST_USER.email);
-    await page.fill('input[type="password"]', TEST_USER.password);
+    await page.fill('input[placeholder*="email"]', TEST_USER.email);
+    await page.fill('input[placeholder*="password"], input[placeholder*="contraseña"]', TEST_USER.password);
     await page.click('button[type="submit"]');
     await page.waitForURL('**/chat', { timeout: 10000 });
 

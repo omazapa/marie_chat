@@ -1,32 +1,15 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-
-export interface Message {
-  id: string;
-  conversation_id: string;
-  user_id: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  tokens_used?: number;
-  metadata?: Record<string, any>;
-  created_at: string;
-}
-
-export interface StreamChunk {
-  conversation_id: string;
-  content: string;
-  done: boolean;
-  follow_ups?: string[];
-}
+import { Message, StreamChunk, Attachment } from '@/types';
 
 interface UseWebSocketProps {
   token: string | null;
   onConnected?: () => void;
   onDisconnected?: () => void;
-  onError?: (error: any) => void;
+  onError?: (error: unknown) => void;
   onStreamStart?: (data: { conversation_id: string }) => void;
   onStreamChunk?: (chunk: StreamChunk) => void;
-  onStreamEnd?: (data: { conversation_id: string }) => void;
+  onStreamEnd?: (data: { conversation_id: string; message?: Message }) => void;
   onMessageResponse?: (data: { conversation_id: string; message: Message }) => void;
   onTranscriptionResult?: (data: { text: string }) => void;
   onTTSResult?: (data: { audio: string; message_id?: string }) => void;
@@ -233,14 +216,14 @@ export function useWebSocket({
 
     // Expose socket for debugging
     if (typeof window !== 'undefined') {
-      (window as any).socket = socket;
+      (window as unknown as { socket: Socket }).socket = socket;
     }
 
     // Cleanup
     return () => {
       socket.disconnect();
       if (typeof window !== 'undefined') {
-        delete (window as any).socket;
+        delete (window as unknown as { socket?: Socket }).socket;
       }
     };
   }, [token]);
@@ -280,7 +263,7 @@ export function useWebSocket({
       conversationId: string,
       message: string,
       stream: boolean = true,
-      attachments: any[] = [],
+      attachments: Attachment[] = [],
       referenced_conv_ids: string[] = [],
       referenced_msg_ids: string[] = [],
       regenerate: boolean = false

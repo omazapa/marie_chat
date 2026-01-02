@@ -24,6 +24,18 @@ class SettingsService:
                         "default_model": app_settings.DEFAULT_LLM_MODEL,
                         "default_system_prompt": "You are Marie, a Machine-Assisted Research Intelligent Environment. You are a helpful, precise, and creative AI assistant designed to help with research, coding, and general tasks.",
                     },
+                    "providers": {
+                        "openai": {
+                            "api_key": app_settings.OPENAI_API_KEY,
+                            "base_url": app_settings.OPENAI_BASE_URL,
+                        },
+                        "huggingface": {
+                            "api_key": app_settings.HUGGINGFACE_API_KEY,
+                        },
+                        "ollama": {
+                            "base_url": app_settings.OLLAMA_BASE_URL,
+                        },
+                    },
                     "image": {
                         "default_model": "stabilityai/stable-diffusion-3.5-large",
                         "use_local": False,
@@ -84,6 +96,21 @@ class SettingsService:
                 }
             elif "registration_enabled" not in settings["white_label"]:
                 settings["white_label"]["registration_enabled"] = False
+
+            # Ensure providers exists for older configs
+            if "providers" not in settings:
+                settings["providers"] = {
+                    "openai": {
+                        "api_key": app_settings.OPENAI_API_KEY,
+                        "base_url": app_settings.OPENAI_BASE_URL,
+                    },
+                    "huggingface": {
+                        "api_key": app_settings.HUGGINGFACE_API_KEY,
+                    },
+                    "ollama": {
+                        "base_url": app_settings.OLLAMA_BASE_URL,
+                    },
+                }
             return settings
         except Exception:
             # Return defaults if not found

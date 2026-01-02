@@ -1,15 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Welcome, Prompts } from '@ant-design/x';
-import { Space, Button, Image, Typography } from 'antd';
+import { Prompts } from '@ant-design/x';
+import { Image, Typography } from 'antd';
 import {
   RobotOutlined,
   ThunderboltOutlined,
   MessageOutlined,
   LinkOutlined,
-  SettingOutlined,
-  PlusOutlined,
 } from '@ant-design/icons';
 import { useSettings } from '@/hooks/useSettings';
 
@@ -20,7 +18,10 @@ interface WelcomeScreenProps {
   onNewConversation: () => void;
 }
 
-export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSend, onNewConversation }) => {
+export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
+  onSend,
+  onNewConversation: _onNewConversation,
+}) => {
   const { whiteLabel } = useSettings();
 
   return (
@@ -113,7 +114,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSend, onNewConve
                   },
                   {
                     key: '4',
-                    label: `How to use references in ${whiteLabel.app_name.replace(/\s*Chat/i, '')}?`,
+                    label: `How to use references in ${(whiteLabel.app_name || 'Marie').replace(/\s*Chat/i, '')}?`,
                     icon: <LinkOutlined style={{ color: '#722ed1' }} />,
                   },
                 ]

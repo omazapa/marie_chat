@@ -3,6 +3,7 @@
 import React from 'react';
 import { Modal, Typography, Space, Select } from 'antd';
 import ModelSelector from '../ModelSelector';
+import { Conversation } from '@/types';
 
 const { Title, Text } = Typography;
 
@@ -10,7 +11,7 @@ interface ModelSettingsModalProps {
   open: boolean;
   onOk: () => void;
   onCancel: () => void;
-  currentConversation: any;
+  currentConversation: Conversation | null;
   accessToken: string | null;
   selectedProvider: string;
   selectedModel: string;

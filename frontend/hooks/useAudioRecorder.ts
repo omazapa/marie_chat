@@ -44,8 +44,11 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps 
       timerRef.current = setInterval(() => {
         setRecordingTime((prev) => prev + 1);
       }, 1000);
-    } catch (err) {
-      console.error('Error starting recording:', err);
+    } catch (err: unknown) {
+      console.error(
+        'Error starting recording:',
+        err instanceof Error ? err.message : 'Unknown error'
+      );
     }
   }, [onRecordingComplete]);
 
@@ -59,11 +62,11 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps 
     }
   }, [isRecording]);
 
-  const formatTime = (seconds: number) => {
+  const formatTime = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  }, []);
 
   return {
     isRecording,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   Table,
@@ -18,16 +18,8 @@ import {
   Alert,
   Divider,
 } from 'antd';
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  CopyOutlined,
-  KeyOutlined,
-  InfoCircleOutlined,
-  EyeOutlined,
-  EyeInvisibleOutlined,
-} from '@ant-design/icons';
-import apiClient from '@/lib/api';
+import { PlusOutlined, DeleteOutlined, CopyOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import apiClient, { getErrorMessage } from '@/lib/api';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
@@ -54,31 +46,31 @@ export default function APIKeysPage() {
   const [form] = Form.useForm();
   const { message, modal } = App.useApp();
 
-  const fetchKeys = async () => {
+  const fetchKeys = useCallback(async () => {
     setLoading(true);
     try {
       const response = await apiClient.get('/api-keys');
       setKeys(response.data.keys);
-    } catch (err) {
-      message.error('Failed to fetch API keys');
+    } catch (err: unknown) {
+      message.error(getErrorMessage(err, 'Failed to fetch API keys'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [message]);
 
   useEffect(() => {
     fetchKeys();
-  }, []);
+  }, [fetchKeys]);
 
-  const handleCreateKey = async (values: any) => {
+  const handleCreateKey = async (values: { name: string; expires_in_days?: number }) => {
     try {
       const response = await apiClient.post('/api-keys', values);
       setNewKeyData(response.data);
       setIsModalVisible(false);
       form.resetFields();
       fetchKeys();
-    } catch (err) {
-      message.error('Failed to create API key');
+    } catch (err: unknown) {
+      message.error(getErrorMessage(err, 'Failed to create API key'));
     }
   };
 
@@ -94,8 +86,8 @@ export default function APIKeysPage() {
           await apiClient.delete(`/api-keys/${id}`);
           message.success('API key revoked');
           fetchKeys();
-        } catch (err) {
-          message.error('Failed to revoke API key');
+        } catch (err: unknown) {
+          message.error(getErrorMessage(err, 'Failed to revoke API key'));
         }
       },
     });
@@ -149,7 +141,7 @@ export default function APIKeysPage() {
     {
       title: 'Actions',
       key: 'actions',
-      render: (_: any, record: APIKey) => (
+      render: (_: unknown, record: APIKey) => (
         <Tooltip title="Revoke Key">
           <Button
             type="text"

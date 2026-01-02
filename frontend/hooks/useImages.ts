@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import apiClient from '../lib/api';
+import apiClient, { getErrorMessage } from '../lib/api';
 
 export interface ImageModel {
   id: string;
@@ -52,10 +52,10 @@ export function useImages(token: string | null) {
           timeout: 300000, // 5 minutes for local generation
         });
         return response.data as GeneratedImage;
-      } catch (err: any) {
-        const msg = err.response?.data?.error || 'Failed to generate image';
+      } catch (err: unknown) {
+        const msg = getErrorMessage(err, 'Failed to generate image');
         setError(msg);
-        console.error('Image generation error:', err);
+        console.error('Image generation error:', msg);
         return null;
       } finally {
         setIsGenerating(false);

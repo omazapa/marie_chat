@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     # HuggingFace
     HUGGINGFACE_API_KEY: str = os.getenv("HUGGINGFACE_API_KEY", "")
 
+    # OpenAI (or OpenAI-compatible)
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    OPENAI_BASE_URL: str = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+    OPENAI_DEFAULT_MODEL: str = os.getenv("OPENAI_DEFAULT_MODEL", "gpt-4o")
+
     # Embeddings
     EMBEDDING_MODEL: str = os.getenv(
         "EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"

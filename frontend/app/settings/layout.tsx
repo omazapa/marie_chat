@@ -3,8 +3,8 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
-import { Layout, Menu, Typography, Space, Spin, Button } from 'antd';
-import { KeyOutlined, UserOutlined, ArrowLeftOutlined, SettingOutlined } from '@ant-design/icons';
+import { Layout, Menu, Typography, Space, Spin } from 'antd';
+import { KeyOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSettings } from '@/hooks/useSettings';

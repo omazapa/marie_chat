@@ -12,17 +12,35 @@ import {
   SettingOutlined,
   SafetyOutlined,
 } from '@ant-design/icons';
-import apiClient from '@/lib/api';
+import apiClient, { getErrorMessage } from '@/lib/api';
 import { useSettings } from '@/hooks/useSettings';
 import { useAuthStore } from '@/stores/authStore';
 import Link from 'next/link';
 
 const { Title, Text, Paragraph } = Typography;
 
+interface AdminStats {
+  users_count: number;
+  conversations_count: number;
+  messages_count: number;
+  files_count: number;
+  system_info: {
+    os: string;
+    python_version: string;
+    cpu_usage: number;
+    memory_usage: number;
+  };
+  cluster_health?: string;
+  indices?: Record<
+    string,
+    { docs_count: number; size_in_bytes: number; store_size_bytes?: number }
+  >;
+}
+
 export default function AdminDashboard() {
   const { whiteLabel } = useSettings();
   const { user } = useAuthStore();
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,8 +49,8 @@ export default function AdminDashboard() {
       try {
         const response = await apiClient.get('/admin/stats');
         setStats(response.data);
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to fetch system statistics');
+      } catch (err: unknown) {
+        setError(getErrorMessage(err, 'Failed to fetch system statistics'));
       } finally {
         setLoading(false);
       }
@@ -158,7 +176,7 @@ export default function AdminDashboard() {
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {Object.entries(indices).map(([name, data]: [string, any], index, arr) => (
+              {Object.entries(indices).map(([name, data], index, arr) => (
                 <React.Fragment key={name}>
                   <div
                     style={{
@@ -176,7 +194,10 @@ export default function AdminDashboard() {
                       </Text>
                     </div>
                     <Tag color="blue" style={{ borderRadius: '4px' }}>
-                      {(data.store_size_bytes / (1024 * 1024)).toFixed(2)} MB
+                      {data.store_size_bytes
+                        ? (data.store_size_bytes / (1024 * 1024)).toFixed(2)
+                        : (data.size_in_bytes / (1024 * 1024)).toFixed(2)}{' '}
+                      MB
                     </Tag>
                   </div>
                   {index < arr.length - 1 && (

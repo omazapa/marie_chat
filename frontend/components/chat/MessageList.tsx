@@ -1,27 +1,35 @@
 'use client';
 
 import React, { memo } from 'react';
-import { Progress, Card, Space, Typography, Image } from 'antd';
+import { Progress, Card, Typography } from 'antd';
 import { PictureOutlined } from '@ant-design/icons';
 import { MessageItem } from './MessageItem';
 import { FollowUpSuggestions } from './FollowUpSuggestions';
 import { API_URL } from '@/lib/api';
 import { useSettings } from '@/hooks/useSettings';
+import { Message } from '@/types';
 
 const { Text } = Typography;
 
 interface MessageListProps {
-  messages: any[];
+  messages: Message[];
   isStreaming: boolean;
-  onEdit: (msg: any) => void;
+  streamingMessage?: string;
+  onEdit: (msg: Message) => void;
   onReference: (id: string) => void;
   referencedMsgIds: string[];
-  onNavigate: (ref: any) => void;
+  onNavigate: (ref: { type?: string; id: string; conversation_id?: string }) => void;
   onFollowUp: (text: string) => void;
   onRegenerate: () => void;
   onPlay: (text: string, id: string) => void;
   playingMessageId: string | null;
-  imageProgress?: { progress: number; step: number; total_steps: number; preview?: string } | null;
+  imageProgress?: {
+    progress: number;
+    step: number;
+    total_steps: number;
+    preview?: string;
+    image_url?: string;
+  } | null;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -29,6 +37,7 @@ export const MessageList = memo(
   ({
     messages,
     isStreaming,
+    streamingMessage,
     onEdit,
     onReference,
     referencedMsgIds,
@@ -70,13 +79,36 @@ export const MessageList = memo(
             />
             {/* Show follow-ups only for the last assistant message and when not streaming */}
             {msg.role === 'assistant' &&
-              msg.metadata?.follow_ups &&
+              Array.isArray(msg.metadata?.follow_ups) &&
               index === messages.length - 1 &&
               !isStreaming && (
-                <FollowUpSuggestions suggestions={msg.metadata.follow_ups} onSelect={onFollowUp} />
+                <FollowUpSuggestions
+                  suggestions={msg.metadata.follow_ups as string[]}
+                  onSelect={onFollowUp}
+                />
               )}
           </div>
         ))}
+
+        {isStreaming && streamingMessage && (
+          <MessageItem
+            msg={{
+              id: 'streaming',
+              conversation_id: 'streaming',
+              user_id: 'assistant',
+              role: 'assistant',
+              content: streamingMessage,
+              created_at: new Date().toISOString(),
+            }}
+            isStreaming={true}
+            onEdit={() => {}}
+            onReference={() => {}}
+            isReferenced={false}
+            onNavigate={() => {}}
+            onPlay={() => {}}
+            isPlaying={false}
+          />
+        )}
 
         {imageProgress && (
           <div
@@ -117,18 +149,18 @@ export const MessageList = memo(
                   />
                 )}
 
-                {imageProgress.progress === 100 && (imageProgress as any).image_url && (
+                {imageProgress.progress === 100 && imageProgress.image_url && (
                   <img
-                    src={`${API_URL}${(imageProgress as any).image_url}`}
+                    src={`${API_URL}${imageProgress.image_url}`}
                     alt="Generated"
                     style={{
                       width: '100%',
                       borderRadius: '8px',
                     }}
-                    onError={(e) => {
+                    onError={() => {
                       console.error(
                         '❌ Progress image load error:',
-                        `${API_URL}${(imageProgress as any).image_url}`
+                        `${API_URL}${imageProgress.image_url}`
                       );
                     }}
                   />

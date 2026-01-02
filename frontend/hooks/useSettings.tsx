@@ -43,7 +43,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       try {
         const response = await apiClient.get('/admin/settings/public');
         if (response.data.white_label) {
-          setWhiteLabel(response.data.white_label);
+          setWhiteLabel((prev) => ({
+            ...prev,
+            ...response.data.white_label,
+          }));
 
           // Apply primary color to CSS variable if needed
           if (response.data.white_label.primary_color) {
@@ -53,8 +56,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             );
           }
         }
-      } catch (err) {
-        console.error('Failed to fetch public settings:', err);
+      } catch (err: unknown) {
+        console.error(
+          'Failed to fetch public settings:',
+          err instanceof Error ? err.message : 'Unknown error'
+        );
       } finally {
         setLoading(false);
       }

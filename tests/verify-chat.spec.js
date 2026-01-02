@@ -3,12 +3,15 @@ import { test, expect } from '@playwright/test';
 test('Chat functionality and artifacts rendering', async ({ page }) => {
   // 1. Login
   await page.goto('http://localhost:3000/login');
-  await page.fill('input[placeholder="your@email.com"]', 'test@example.com');
-  await page.fill('input[placeholder="Your password"]', 'poioiulkj');
-  await page.click('button:has-text("Sign in")');
+  await page.fill('input[placeholder*="email"]', 'test@example.com');
+  await page.fill('input[placeholder*="password"], input[placeholder*="contraseña"]', 'poioiulkj');
+  await page.click('button[type="submit"]');
 
   // Wait for navigation to chat
   await page.waitForURL('**/chat', { timeout: 30000 });
+
+  // Wait for loading state to disappear
+  await expect(page.locator('text=Loading Chat...')).not.toBeVisible({ timeout: 30000 });
 
   // Give it a moment to load conversations
   await page.waitForTimeout(5000);

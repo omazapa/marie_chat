@@ -8,6 +8,7 @@ import rehypeKatex from 'rehype-katex';
 import { PrismAsync as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Button, Tooltip, Table, Typography, App } from 'antd';
+import type { Components } from 'react-markdown';
 import { Think } from '@ant-design/x';
 import { CopyOutlined, CheckOutlined, DownloadOutlined } from '@ant-design/icons';
 import 'katex/dist/katex.min.css';
@@ -15,6 +16,19 @@ import { HTMLArtifact } from './HTMLArtifact';
 import { LatexArtifact } from './LatexArtifact';
 
 const { Text } = Typography;
+
+interface TableColumn {
+  title: React.ReactNode;
+  dataIndex: string;
+  key: string;
+  sorter?: (a: TableRow, b: TableRow) => number;
+  ellipsis?: boolean;
+}
+
+interface TableRow {
+  key: string | number;
+  [key: string]: string | number | undefined;
+}
 
 interface MarkdownContentProps {
   content: string;
@@ -178,25 +192,32 @@ const CodeBlock = memo(({ language, value }: { language: string; value: string }
 
 CodeBlock.displayName = 'CodeBlock';
 
-const extractText = (children: any): string => {
+const extractText = (children: React.ReactNode): string => {
   if (typeof children === 'string') return children;
   if (typeof children === 'number') return String(children);
   if (Array.isArray(children)) return children.map(extractText).join('');
-  if (children?.props?.children) return extractText(children.props.children);
+  if (
+    React.isValidElement(children) &&
+    children.props &&
+    typeof children.props === 'object' &&
+    'children' in children.props
+  ) {
+    return extractText((children.props as any).children as React.ReactNode);
+  }
   return '';
 };
 
-const MarkdownTable = memo(({ children }: { children: any }) => {
+const MarkdownTable = memo(({ children }: { children: React.ReactNode }) => {
   const { message } = App.useApp();
 
-  const handleDownloadCSV = (columns: any[], dataSource: any[]) => {
+  const handleDownloadCSV = (columns: TableColumn[], dataSource: TableRow[]) => {
     const headers = columns
       .map((col) => {
         // Extract text from the title which might be a React element
         if (React.isValidElement(col.title)) {
           return extractText(col.title);
         }
-        return col.title;
+        return String(col.title);
       })
       .join(',');
 
@@ -226,13 +247,13 @@ const MarkdownTable = memo(({ children }: { children: any }) => {
     message.success('CSV downloaded successfully');
   };
 
-  const handleCopyMarkdown = (columns: any[], dataSource: any[]) => {
+  const handleCopyMarkdown = (columns: TableColumn[], dataSource: TableRow[]) => {
     const headers = columns
       .map((col) => {
         if (React.isValidElement(col.title)) {
           return extractText(col.title);
         }
-        return col.title;
+        return String(col.title);
       })
       .join(' | ');
 
@@ -253,11 +274,12 @@ const MarkdownTable = memo(({ children }: { children: any }) => {
     message.success('Table copied as Markdown');
   };
 
-  const handleCopyJSON = (columns: any[], dataSource: any[]) => {
+  const handleCopyJSON = (columns: TableColumn[], dataSource: TableRow[]) => {
     const data = dataSource.map((row) => {
-      const obj: any = {};
+      const obj: Record<string, string | number | undefined> = {};
       columns.forEach((col) => {
-        obj[col.title] = row[col.dataIndex];
+        const title = React.isValidElement(col.title) ? extractText(col.title) : String(col.title);
+        obj[title] = row[col.dataIndex];
       });
       return obj;
     });
@@ -265,13 +287,13 @@ const MarkdownTable = memo(({ children }: { children: any }) => {
     message.success('Table copied as JSON');
   };
 
-  const handleCopyCSV = (columns: any[], dataSource: any[]) => {
+  const handleCopyCSV = (columns: TableColumn[], dataSource: TableRow[]) => {
     const headers = columns
       .map((col) => {
         if (React.isValidElement(col.title)) {
           return extractText(col.title);
         }
-        return col.title;
+        return String(col.title);
       })
       .join(',');
 
@@ -291,43 +313,46 @@ const MarkdownTable = memo(({ children }: { children: any }) => {
     message.success('Table copied as CSV');
   };
 
-  let tableData: { columns: any[]; dataSource: any[] } | null = null;
+  let tableData: { columns: TableColumn[]; dataSource: TableRow[] } | null = null;
   let errorOccurred = false;
 
   try {
-    const childrenArray = Array.isArray(children) ? children : [children];
-    const thead = childrenArray.find((c: any) => c?.type === 'thead');
-    const tbody = childrenArray.find((c: any) => c?.type === 'tbody');
+    const childrenArray = React.Children.toArray(children);
+    const thead = childrenArray.find(
+      (c) => React.isValidElement(c) && typeof c.type === 'string' && c.type === 'thead'
+    ) as React.ReactElement | undefined;
+    const tbody = childrenArray.find(
+      (c) => React.isValidElement(c) && typeof c.type === 'string' && c.type === 'tbody'
+    ) as React.ReactElement | undefined;
 
     if (thead && tbody) {
-      const headerRow = thead.props.children;
-      const headers = Array.isArray(headerRow.props.children)
-        ? headerRow.props.children
-        : [headerRow.props.children];
+      const headerRow = (thead.props as any).children as React.ReactElement;
+      const headers = React.Children.toArray((headerRow.props as any).children);
 
-      const columns = headers.map((th: any, i: number) => {
-        const title = extractText(th.props.children);
+      const columns: TableColumn[] = headers.map((th, i: number) => {
+        const title = React.isValidElement(th) ? extractText((th.props as any).children) : '';
         return {
           title: <Text strong>{title}</Text>,
           dataIndex: `col${i}`,
           key: `col${i}`,
-          sorter: (a: any, b: any) => {
-            const valA = a[`col${i}`] || '';
-            const valB = b[`col${i}`] || '';
+          sorter: (a: TableRow, b: TableRow) => {
+            const valA = String(a[`col${i}`] || '');
+            const valB = String(b[`col${i}`] || '');
             return valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
           },
           ellipsis: true,
         };
       });
 
-      const bodyRows = Array.isArray(tbody.props.children)
-        ? tbody.props.children
-        : [tbody.props.children];
-      const dataSource = bodyRows.map((tr: any, i: number) => {
-        const tds = Array.isArray(tr.props.children) ? tr.props.children : [tr.props.children];
-        const rowData: any = { key: i };
-        tds.forEach((td: any, j: number) => {
-          rowData[`col${j}`] = extractText(td.props.children);
+      const bodyRows = React.Children.toArray((tbody.props as any).children);
+      const dataSource: TableRow[] = bodyRows.map((tr, i: number) => {
+        if (!React.isValidElement(tr)) return { key: i };
+        const tds = React.Children.toArray((tr.props as any).children);
+        const rowData: TableRow = { key: i };
+        tds.forEach((td, j: number) => {
+          if (React.isValidElement(td)) {
+            rowData[`col${j}`] = extractText((td.props as any).children);
+          }
         });
         return rowData;
       });
@@ -506,7 +531,7 @@ export const MarkdownContent = memo(function MarkdownContent({
     result += content.substring(lastIndex);
 
     return result || content;
-  }, [content, isStreaming]);
+  }, [content]);
 
   // Check if the entire content is a raw HTML document (not in a code block)
   const isRawHTML = useMemo(() => {
@@ -520,9 +545,10 @@ export const MarkdownContent = memo(function MarkdownContent({
     );
   }, [content]);
 
-  const components = useMemo(
+  const components: Components = useMemo(
     () => ({
-      code({ node, inline, className, children, ...props }: any) {
+      code({ className, children, ...props }) {
+        const inline = !(props as any).node?.position?.start?.line || (props as any).inline;
         const match = /language-(\w+)/.exec(className || '');
         let language = match ? match[1] : '';
         const codeContent = String(children).replace(/\n$/, '');
@@ -581,15 +607,16 @@ export const MarkdownContent = memo(function MarkdownContent({
           </code>
         );
       },
-      pre({ node, children, ...props }: any) {
+      pre({ children, ...props }) {
         // If the child is an HTMLArtifact or LatexArtifact (returned by the code component), don't wrap in <pre>
         const childrenArray = React.Children.toArray(children);
-        const isArtifact = childrenArray.some((child: any) => {
+        const isArtifact = childrenArray.some((child) => {
+          if (!React.isValidElement(child)) return false;
+          const type = child.type as React.ComponentType & { displayName?: string };
           return (
-            React.isValidElement(child) &&
-            ((child.type as any)?.displayName === 'HTMLArtifact' ||
-              (child.type as any)?.displayName === 'LatexArtifact' ||
-              (child.type as any)?.displayName === 'Think')
+            type?.displayName === 'HTMLArtifact' ||
+            type?.displayName === 'LatexArtifact' ||
+            type?.displayName === 'Think'
           );
         });
 
@@ -598,7 +625,7 @@ export const MarkdownContent = memo(function MarkdownContent({
         }
         return <pre {...props}>{children}</pre>;
       },
-      table({ children }: any) {
+      table({ children }) {
         return <MarkdownTable>{children}</MarkdownTable>;
       },
     }),

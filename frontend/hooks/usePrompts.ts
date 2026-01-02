@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import apiClient from '../lib/api';
+import apiClient, { getErrorMessage } from '../lib/api';
 
 export interface PromptTechnique {
   id: string;
@@ -38,10 +38,10 @@ export function usePrompts(token: string | null) {
           timeout: 120000, // 2 minutes for LLM optimization
         });
         return response.data.optimized as string;
-      } catch (err: any) {
-        const msg = err.response?.data?.error || 'Failed to optimize prompt';
+      } catch (err: unknown) {
+        const msg = getErrorMessage(err, 'Failed to optimize prompt');
         setError(msg);
-        console.error('Prompt optimization error:', err);
+        console.error('Prompt optimization error:', msg);
         return null;
       } finally {
         setIsOptimizing(false);

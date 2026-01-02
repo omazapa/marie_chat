@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo } from 'react';
-import { Typography, Tag, Tooltip, Button, Space, Image, Avatar } from 'antd';
+import { Typography, Tag, Tooltip, Button, Space, Avatar } from 'antd';
 import {
   LinkOutlined,
   RobotOutlined,
@@ -18,16 +18,17 @@ import { FileCard } from './FileCard';
 import { API_URL } from '@/lib/api';
 import { MarkdownContent } from '../markdown/MarkdownContent';
 import { useSettings } from '@/hooks/useSettings';
+import { Message, Attachment } from '@/types';
 
 const { Text } = Typography;
 
 interface MessageItemProps {
-  msg: any;
+  msg: Message;
   isStreaming: boolean;
-  onEdit: (msg: any) => void;
+  onEdit: (msg: Message) => void;
   onReference: (id: string) => void;
   isReferenced: boolean;
-  onNavigate: (ref: any) => void;
+  onNavigate: (ref: { type?: string; id: string; conversation_id?: string }) => void;
   onRegenerate?: () => void;
   onPlay?: (text: string, id: string) => void;
   isPlaying?: boolean;
@@ -92,7 +93,7 @@ export const MessageItem = memo(
                 minWidth: 0,
               }}
             >
-              {msg.metadata?.attachments && (
+              {Array.isArray(msg.metadata?.attachments) && (
                 <div
                   style={{
                     display: 'flex',
@@ -102,28 +103,30 @@ export const MessageItem = memo(
                     justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
                   }}
                 >
-                  {msg.metadata.attachments.map((att: any) => (
+                  {(msg.metadata!.attachments as Attachment[]).map((att: Attachment) => (
                     <FileCard key={att.file_id} file={att} />
                   ))}
                 </div>
               )}
-              {msg.metadata?.references && (
+              {Array.isArray(msg.metadata?.references) && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
-                  {msg.metadata.references.map((ref: any) => (
-                    <Tag
-                      key={ref.id}
-                      icon={<LinkOutlined />}
-                      style={{
-                        fontSize: '11px',
-                        background: '#e6f7ff',
-                        borderColor: '#91d5ff',
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => onNavigate(ref)}
-                    >
-                      {ref.type === 'message' ? 'Message: ' + ref.content : ref.title}
-                    </Tag>
-                  ))}
+                  {(msg.metadata!.references as any[]).map(
+                    (ref: { id: string; type?: string; content?: string; title?: string }) => (
+                      <Tag
+                        key={ref.id}
+                        icon={<LinkOutlined />}
+                        style={{
+                          fontSize: '11px',
+                          background: '#e6f7ff',
+                          borderColor: '#91d5ff',
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => onNavigate(ref)}
+                      >
+                        {ref.type === 'message' ? 'Message: ' + ref.content : ref.title}
+                      </Tag>
+                    )
+                  )}
                 </div>
               )}
               <Bubble
@@ -167,92 +170,97 @@ export const MessageItem = memo(
                       content={msg.content}
                       isStreaming={isStreaming && msg.id === 'streaming'}
                     />
-                    {msg.metadata?.type === 'image_generation' && msg.metadata?.image?.url && (
-                      <div
-                        style={{
-                          marginTop: '12px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '8px',
-                        }}
-                      >
+                    {msg.metadata?.type === 'image_generation' &&
+                      (msg.metadata?.image as any)?.url && (
                         <div
                           style={{
-                            borderRadius: '12px',
-                            overflow: 'hidden',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                            border: '1px solid #f0f0f0',
-                            maxWidth: '400px',
-                            background: '#fff',
+                            marginTop: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
                           }}
                         >
-                          <img
-                            src={`${API_URL}${msg.metadata.image.url}`}
-                            alt={msg.metadata.image.prompt || 'Generated image'}
+                          <div
                             style={{
-                              width: '100%',
-                              display: 'block',
-                              objectFit: 'cover',
+                              borderRadius: '12px',
+                              overflow: 'hidden',
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                              border: '1px solid #f0f0f0',
+                              maxWidth: '400px',
+                              background: '#fff',
                             }}
-                            onError={(e) => {
-                              console.error(
-                                '❌ Image load error for URL:',
-                                `${API_URL}${msg.metadata.image.url}`,
-                                e
-                              );
-                            }}
-                          />
-                          <div style={{ padding: '12px', borderTop: '1px solid #f0f0f0' }}>
-                            <div
+                          >
+                            <img
+                              src={`${API_URL}${(msg.metadata.image as any).url}`}
+                              alt={(msg.metadata.image as any).prompt || 'Generated image'}
                               style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '8px',
                                 width: '100%',
+                                display: 'block',
+                                objectFit: 'cover',
                               }}
-                            >
-                              <div>
-                                <Text
-                                  type="secondary"
-                                  style={{
-                                    fontSize: '11px',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px',
-                                  }}
-                                >
-                                  Prompt
-                                </Text>
-                                <div
-                                  style={{ fontSize: '13px', color: '#262626', lineHeight: '1.4' }}
-                                >
-                                  {msg.metadata.image.prompt}
-                                </div>
-                              </div>
-                              <div style={{ marginTop: '4px' }}>
-                                <Text
-                                  type="secondary"
-                                  style={{
-                                    fontSize: '11px',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px',
-                                  }}
-                                >
-                                  Model
-                                </Text>
+                              onError={(e) => {
+                                console.error(
+                                  '❌ Image load error for URL:',
+                                  `${API_URL}${(msg.metadata?.image as any)?.url}`,
+                                  e
+                                );
+                              }}
+                            />
+                            <div style={{ padding: '12px', borderTop: '1px solid #f0f0f0' }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '8px',
+                                  width: '100%',
+                                }}
+                              >
                                 <div>
-                                  <Tag
-                                    color="blue"
-                                    style={{ fontSize: '11px', borderRadius: '4px', margin: 0 }}
+                                  <Text
+                                    type="secondary"
+                                    style={{
+                                      fontSize: '11px',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px',
+                                    }}
                                   >
-                                    {msg.metadata.image.model}
-                                  </Tag>
+                                    Prompt
+                                  </Text>
+                                  <div
+                                    style={{
+                                      fontSize: '13px',
+                                      color: '#262626',
+                                      lineHeight: '1.4',
+                                    }}
+                                  >
+                                    {((msg.metadata as any)?.image as any)?.prompt}
+                                  </div>
+                                </div>
+                                <div style={{ marginTop: '4px' }}>
+                                  <Text
+                                    type="secondary"
+                                    style={{
+                                      fontSize: '11px',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px',
+                                    }}
+                                  >
+                                    Model
+                                  </Text>
+                                  <div>
+                                    <Tag
+                                      color="blue"
+                                      style={{ fontSize: '11px', borderRadius: '4px', margin: 0 }}
+                                    >
+                                      {((msg.metadata as any)?.image as any)?.model}
+                                    </Tag>
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 }
                 styles={{

@@ -19,6 +19,7 @@ import { Conversations } from '@ant-design/x';
 import Link from 'next/link';
 import { UserAvatar } from './UserAvatar';
 import { useSettings } from '@/hooks/useSettings';
+import { Conversation, User } from '@/types';
 
 const { Sider } = Layout;
 const { Text } = Typography;
@@ -27,8 +28,8 @@ interface ChatSidebarProps {
   loading: boolean;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  filteredConversations: any[];
-  currentConversation: any;
+  filteredConversations: Conversation[];
+  currentConversation: Conversation | null;
   handleNewConversation: () => void;
   handleOpenModelSelector: () => void;
   handleSelectConversation: (id: string) => void;
@@ -36,7 +37,7 @@ interface ChatSidebarProps {
   handleDeleteConversation: (id: string) => void;
   handleBulkDeleteConversations: (ids: string[]) => Promise<boolean>;
   handleLogout: () => void;
-  user: any;
+  user: User | null;
   isConnected: boolean;
 }
 
@@ -113,7 +114,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               style={{ width: '32px', height: '32px', objectFit: 'contain' }}
             />
             <Text strong style={{ fontSize: '18px', color: whiteLabel.primary_color }}>
-              {whiteLabel.app_name.replace(/\s*Chat/i, '')}
+              {(whiteLabel.app_name || 'Marie').replace(/\s*Chat/i, '')}
             </Text>
           </div>
 
@@ -223,7 +224,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
           {filteredConversations.length > 0 ? (
             <Conversations
-              items={filteredConversations.map((conv: any) => ({
+              items={filteredConversations.map((conv: Conversation) => ({
                 key: conv.id,
                 label: (
                   <div
@@ -287,14 +288,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               menu={
                 isSelectionMode
                   ? undefined
-                  : (info: any) => ({
+                  : (info: { key: string }) => ({
                       items: [
                         {
                           key: 'rename',
                           label: 'Rename',
                           icon: <EditOutlined />,
                           onClick: () => {
-                            const conv = filteredConversations.find((c: any) => c.id === info.key);
+                            const conv = filteredConversations.find(
+                              (c: Conversation) => c.id === info.key
+                            );
                             let newTitle = conv?.title || '';
                             modal.confirm({
                               title: 'Rename Conversation',

@@ -1,20 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import apiClient from '../lib/api';
-import { useWebSocket, Message, StreamChunk } from './useWebSocket';
-
-export interface Conversation {
-  id: string;
-  user_id: string;
-  title: string;
-  model: string;
-  provider: string;
-  system_prompt?: string;
-  settings?: Record<string, any>;
-  message_count: number;
-  last_message_at?: string;
-  created_at: string;
-  updated_at: string;
-}
+import apiClient, { getErrorMessage } from '../lib/api';
+import { useWebSocket } from './useWebSocket';
+import { Conversation, Message, StreamChunk, Attachment } from '@/types';
 
 export function useChat(
   token: string | null,
@@ -43,7 +30,6 @@ export function useChat(
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [updateTrigger, setUpdateTrigger] = useState(0);
 
   // Use ref to keep track of current conversation for callbacks
   const currentConversationRef = useRef<Conversation | null>(null);
@@ -195,7 +181,7 @@ export function useChat(
     onTTSResult: handleTTSResult,
     onImageProgress: handleImageProgress,
     onImageError: handleImageError,
-    onError: (err) => setError(err.message),
+    onError: (err: any) => setError(err?.message || 'WebSocket error'),
   });
 
   // Stop generation
@@ -211,7 +197,7 @@ export function useChat(
   const sendMessage = useCallback(
     async (
       content: string,
-      attachments: any[] = [],
+      attachments: Attachment[] = [],
       referenced_convs: { id: string; title: string }[] = [],
       referenced_msg_ids: string[] = [],
       conversationId?: string
@@ -287,9 +273,9 @@ export function useChat(
     });
 
     // Send via WebSocket with regenerate flag
-    const attachments = lastUserMsg.metadata?.attachments || [];
-    const referenced_conv_ids = lastUserMsg.metadata?.referenced_conv_ids || [];
-    const referenced_msg_ids = lastUserMsg.metadata?.referenced_msg_ids || [];
+    const attachments = (lastUserMsg.metadata?.attachments as Attachment[]) || [];
+    const referenced_conv_ids = (lastUserMsg.metadata?.referenced_conv_ids as string[]) || [];
+    const referenced_msg_ids = (lastUserMsg.metadata?.referenced_msg_ids as string[]) || [];
 
     wsSendMessage(
       conv.id,
@@ -320,10 +306,10 @@ export function useChat(
         });
 
         return response.data;
-      } catch (err: any) {
-        const errorMsg = err.response?.data?.error || 'Failed to upload file';
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, 'Failed to upload file');
         setError(errorMsg);
-        console.error('Error uploading file:', err);
+        console.error('Error uploading file:', errorMsg);
         return null;
       } finally {
         setLoading(false);
@@ -337,7 +323,7 @@ export function useChat(
     async (
       messageId: string,
       newContent: string,
-      attachments: any[] = [],
+      attachments: Attachment[] = [],
       referenced_convs: { id: string; title: string }[] = [],
       referenced_msg_ids: string[] = []
     ) => {
@@ -368,13 +354,14 @@ export function useChat(
 
         // Send the new content
         await sendMessage(newContent, attachments, referenced_convs, referenced_msg_ids);
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to edit message');
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, 'Failed to edit message');
+        setError(errorMsg);
       } finally {
         setLoading(false);
       }
     },
-    [isConnected, messages, token, sendMessage]
+    [isConnected, messages, sendMessage]
   );
 
   // Fetch conversations
@@ -386,9 +373,10 @@ export function useChat(
       const response = await apiClient.get('/conversations');
       setConversations(response.data.conversations || []);
       setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch conversations');
-      console.error('Error fetching conversations:', err);
+    } catch (err: unknown) {
+      const errorMsg = getErrorMessage(err, 'Failed to fetch conversations');
+      setError(errorMsg);
+      console.error('Error fetching conversations:', errorMsg);
     } finally {
       setLoading(false);
     }
@@ -456,10 +444,10 @@ export function useChat(
         setConversations((prev) => [newConversation, ...prev]);
         setError(null);
         return newConversation;
-      } catch (err: any) {
-        const errorMsg = err.response?.data?.error || 'Failed to create conversation';
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, 'Failed to create conversation');
         setError(errorMsg);
-        console.error('Error creating conversation:', err);
+        console.error('Error creating conversation:', errorMsg);
         return null;
       } finally {
         setLoading(false);
@@ -482,9 +470,10 @@ export function useChat(
         }
         setError(null);
         return true;
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to delete conversation');
-        console.error('Error deleting conversation:', err);
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, 'Failed to delete conversation');
+        setError(errorMsg);
+        console.error('Error deleting conversation:', errorMsg);
         return false;
       }
     },
@@ -509,9 +498,10 @@ export function useChat(
 
         setError(null);
         return true;
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to delete conversations');
-        console.error('Error bulk deleting conversations:', err);
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, 'Failed to delete conversations');
+        setError(errorMsg);
+        console.error('Error bulk deleting conversations:', errorMsg);
         return false;
       } finally {
         setLoading(false);
@@ -535,9 +525,10 @@ export function useChat(
         }
         setError(null);
         return true;
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to update conversation');
-        console.error('Error updating conversation:', err);
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, 'Failed to update conversation');
+        setError(errorMsg);
+        console.error('Error updating conversation:', errorMsg);
         return false;
       }
     },
@@ -554,9 +545,10 @@ export function useChat(
         const response = await apiClient.get(`/conversations/${conversationId}/messages`);
         setMessages(response.data.messages || []);
         setError(null);
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to fetch messages');
-        console.error('Error fetching messages:', err);
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, 'Failed to fetch messages');
+        setError(errorMsg);
+        console.error('Error fetching messages:', errorMsg);
       } finally {
         setLoading(false);
       }
@@ -580,7 +572,7 @@ export function useChat(
               headers: { Authorization: `Bearer ${token}` },
             });
             conversation = response.data;
-          } catch (err) {
+          } catch (err: unknown) {
             console.error('Error fetching conversation by ID:', err);
             // Fallback: create a partial conversation object if we can't fetch it
             conversation = {

@@ -1,28 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import {
-  Table,
-  Tag,
-  Space,
-  Button,
-  Typography,
-  Card,
-  App,
-  Switch,
-  Select,
-  Tooltip,
-  Modal,
-} from 'antd';
-import {
-  UserOutlined,
-  SafetyCertificateOutlined,
-  StopOutlined,
-  CheckCircleOutlined,
-  DeleteOutlined,
-  ExclamationCircleOutlined,
-} from '@ant-design/icons';
-import apiClient from '@/lib/api';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Table, Tag, Space, Button, Typography, Card, App, Switch, Select, Tooltip } from 'antd';
+import { UserOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import apiClient, { getErrorMessage } from '@/lib/api';
 import type { User } from '@/types';
 
 const { Title, Text } = Typography;
@@ -32,29 +13,29 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true);
   const { message, modal } = App.useApp();
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const response = await apiClient.get('/admin/users');
       setUsers(response.data.users);
-    } catch (err: any) {
-      message.error('Failed to fetch users');
+    } catch (err: unknown) {
+      message.error(getErrorMessage(err, 'Failed to fetch users'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [message]);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   const handleStatusChange = async (userId: string, isActive: boolean) => {
     try {
       await apiClient.put(`/admin/users/${userId}/status`, { is_active: isActive });
       message.success(`User ${isActive ? 'enabled' : 'disabled'} successfully`);
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, is_active: isActive } : u)));
-    } catch (err) {
-      message.error('Failed to update user status');
+    } catch (err: unknown) {
+      message.error(getErrorMessage(err, 'Failed to update user status'));
     }
   };
 
@@ -63,8 +44,8 @@ export default function UserManagement() {
       await apiClient.put(`/admin/users/${userId}/role`, { role });
       message.success(`User role updated to ${role}`);
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role } : u)));
-    } catch (err) {
-      message.error('Failed to update user role');
+    } catch (err: unknown) {
+      message.error(getErrorMessage(err, 'Failed to update user role'));
     }
   };
 
@@ -81,8 +62,8 @@ export default function UserManagement() {
           await apiClient.delete(`/admin/users/${userId}`);
           message.success('User deleted successfully');
           setUsers((prev) => prev.filter((u) => u.id !== userId));
-        } catch (err) {
-          message.error('Failed to delete user');
+        } catch (err: unknown) {
+          message.error(getErrorMessage(err, 'Failed to delete user'));
         }
       },
     });

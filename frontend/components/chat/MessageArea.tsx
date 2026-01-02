@@ -1,24 +1,22 @@
 'use client';
 
-import React, { memo, useState, useEffect, useCallback } from 'react';
-import { Spin, Empty, Typography, Progress, Card, Space, Button } from 'antd';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Spin, Empty, Space, Button } from 'antd';
 import {
   RobotOutlined,
   ThunderboltOutlined,
   MessageOutlined,
   LinkOutlined,
   SettingOutlined,
-  PictureOutlined,
   ArrowDownOutlined,
 } from '@ant-design/icons';
 import { Welcome, Prompts } from '@ant-design/x';
 import { useSettings } from '@/hooks/useSettings';
-import { MessageList } from './MessageList'; // I'll extract this too
-
-const { Text } = Typography;
+import { MessageList } from './MessageList';
+import { Conversation } from '@/types';
 
 interface MessageAreaProps {
-  currentConversation: any;
+  currentConversation: Conversation | null;
   loading: boolean;
   chatMessages: any[];
   isStreaming: boolean;
@@ -27,11 +25,17 @@ interface MessageAreaProps {
   handleEdit: (msg: any) => void;
   toggleMessageReference: (id: string) => void;
   referencedMsgIds: string[];
-  handleNavigate: (ref: any) => void;
+  handleNavigate: (ref: { type?: string; id: string; conversation_id?: string }) => void;
   regenerateResponse: () => void;
   handlePlayMessage: (text: string, id: string) => void;
   playingMessageId: string | null;
-  imageProgress?: { progress: number; step: number; total_steps: number; preview?: string } | null;
+  imageProgress?: {
+    progress: number;
+    step: number;
+    total_steps: number;
+    preview?: string;
+    image_url?: string;
+  } | null;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -124,7 +128,7 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
                   { key: '3', label: 'Explain RAG technology', icon: <RobotOutlined /> },
                   {
                     key: '4',
-                    label: `How to use references in ${whiteLabel.app_name.replace(/\s*Chat/i, '')}?`,
+                    label: `How to use references in ${(whiteLabel.app_name || 'Marie').replace(/\s*Chat/i, '')}?`,
                     icon: <LinkOutlined />,
                   },
                   {
@@ -209,7 +213,7 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
                 { key: '3', label: 'Explain RAG technology', icon: <RobotOutlined /> },
                 {
                   key: '4',
-                  label: `How to use references in ${whiteLabel.app_name.replace(/\s*Chat/i, '')}?`,
+                  label: `How to use references in ${(whiteLabel.app_name || 'Marie').replace(/\s*Chat/i, '')}?`,
                   icon: <LinkOutlined />,
                 },
                 {
@@ -225,6 +229,7 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
           <MessageList
             messages={chatMessages}
             isStreaming={isStreaming}
+            streamingMessage={streamingMessage}
             onEdit={handleEdit}
             onReference={toggleMessageReference}
             referencedMsgIds={referencedMsgIds}

@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { Modal, Input, Typography, Tag, Empty } from 'antd';
-import { SearchOutlined, MessageOutlined, LinkOutlined } from '@ant-design/icons';
+import { SearchOutlined, MessageOutlined } from '@ant-design/icons';
+import { Conversation, Message } from '@/types';
 
 const { Text, Title } = Typography;
 
@@ -14,9 +15,9 @@ interface ReferenceModalProps {
   onSearch: (value: string) => void;
   isSearching: boolean;
   searchResults: {
-    messages: any[];
+    messages: Message[];
   };
-  conversations: any[];
+  conversations: Conversation[];
   currentConversationId?: string;
   referencedConvIds: string[];
   referencedMsgIds: string[];
@@ -68,7 +69,7 @@ export const ReferenceModal: React.FC<ReferenceModalProps> = ({
                 Messages Found (Semantic Search)
               </Title>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {searchResults.messages.map((msg: any) => (
+                {searchResults.messages.map((msg: Message) => (
                   <div
                     key={msg.id}
                     onClick={() => toggleMessageReference(msg.id)}

@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Form, Input, Button, Card, Typography, Space, Checkbox, App, Image } from 'antd';
 import { MailOutlined, LockOutlined } from '@ant-design/icons';
-import apiClient from '@/lib/api';
+import axios from 'axios';
+import apiClient, { getErrorMessage } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useSettings } from '@/hooks/useSettings';
 import type { LoginResponse } from '@/types';
@@ -24,7 +25,7 @@ export function LoginForm() {
     router.prefetch('/chat');
   });
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: Record<string, string>) => {
     setLoading(true);
     try {
       const response = await apiClient.post<LoginResponse>('/auth/login', {
@@ -33,13 +34,15 @@ export function LoginForm() {
       });
 
       setAuth(response.data);
-      message.success(`Welcome back to ${whiteLabel.app_name.replace(/\s*Chat/i, '')}!`);
+      message.success(
+        `Welcome back to ${(whiteLabel.app_name || 'Marie').replace(/\s*Chat/i, '')}!`
+      );
       router.push('/chat');
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error || 'Invalid email or password';
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error, 'Invalid email or password');
 
       // Only log if it's not a 401 (expected auth failure)
-      if (error.response?.status !== 401) {
+      if (!axios.isAxiosError(error) || error.response?.status !== 401) {
         console.error('Login error:', error);
       }
 
@@ -77,7 +80,7 @@ export function LoginForm() {
               style={{ marginBottom: '16px', objectFit: 'contain' }}
             />
             <Title level={3} style={{ margin: 0, color: whiteLabel.primary_color }}>
-              {whiteLabel.app_name.replace(/\s*Chat/i, '')}
+              {(whiteLabel.app_name || 'Marie').replace(/\s*Chat/i, '')}
             </Title>
             <Text type="secondary">{whiteLabel.welcome_subtitle}</Text>
           </div>

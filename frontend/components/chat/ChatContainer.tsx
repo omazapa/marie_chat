@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
-import { Message, Conversation } from '@/types';
+import { Message, Conversation, Attachment } from '@/types';
 import { Button, Typography, Tag, Tooltip, Layout, App, Input, Alert, Space } from 'antd';
 import {
   RobotOutlined,
@@ -15,7 +15,7 @@ import {
   LinkOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
-import type { Message as WebSocketMessage } from '@/hooks/useWebSocket';
+import type { Message as WebSocketMessage } from '@/types';
 import { useSpeech } from '@/hooks/useSpeech';
 import { useImages } from '@/hooks/useImages';
 import { ChatSidebar } from './ChatSidebar';
@@ -39,7 +39,7 @@ export default function ChatContainer() {
   const [selectedProvider, setSelectedProvider] = useState('ollama');
   const [selectedModel, setSelectedModel] = useState('llama3.2');
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [attachments, setAttachments] = useState<any[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [referencedConvIds, setReferencedConvIds] = useState<string[]>([]);
   const [referencedMsgIds, setReferencedMsgIds] = useState<string[]>([]);
   const [showReferenceModal, setShowReferenceModal] = useState(false);
@@ -333,7 +333,7 @@ export default function ChatContainer() {
     setInputValue('');
     const currentAttachments = [...attachments];
     const currentReferences = referencedConvIds.map((id) => {
-      const conv = conversations.find((c: any) => c.id === id);
+      const conv = conversations.find((c: Conversation) => c.id === id);
       return { id, title: conv?.title || 'Chat' };
     });
     const currentMsgRefs = [...referencedMsgIds];
@@ -496,35 +496,35 @@ export default function ChatContainer() {
     setAttachments((prev) => prev.filter((a) => a.file_id !== id));
   };
 
-  const handleEdit = useCallback((msg: any) => {
+  const handleEdit = useCallback((msg: Message) => {
     setEditingMessageId(msg.id);
     setInputValue(msg.content);
 
     // Restore attachments and references
     if (msg.metadata?.attachments) {
-      setAttachments(msg.metadata.attachments);
+      setAttachments(msg.metadata.attachments as Attachment[]);
     } else {
       setAttachments([]);
     }
 
     if (msg.metadata?.referenced_conv_ids) {
-      setReferencedConvIds(msg.metadata.referenced_conv_ids);
+      setReferencedConvIds(msg.metadata.referenced_conv_ids as string[]);
     } else if (msg.metadata?.references) {
       // Fallback to references if referenced_conv_ids is missing
-      setReferencedConvIds(msg.metadata.references.map((r: any) => r.id));
+      setReferencedConvIds((msg.metadata.references as any[]).map((r: { id: string }) => r.id));
     } else {
       setReferencedConvIds([]);
     }
 
     if (msg.metadata?.referenced_msg_ids) {
-      setReferencedMsgIds(msg.metadata.referenced_msg_ids);
+      setReferencedMsgIds(msg.metadata.referenced_msg_ids as string[]);
     } else {
       setReferencedMsgIds([]);
     }
   }, []);
 
   const handleNavigate = useCallback(
-    async (ref: any) => {
+    async (ref: { type?: string; id: string; conversation_id?: string }) => {
       const targetConvId = ref.type === 'message' ? ref.conversation_id : ref.id;
       if (!targetConvId) return;
 
@@ -789,7 +789,7 @@ export default function ChatContainer() {
                       </Tag>
                     ))}
                     {referencedConvIds.map((id) => {
-                      const conv = conversations.find((c: any) => c.id === id);
+                      const conv = conversations.find((c: Conversation) => c.id === id);
                       return (
                         <Tag
                           key={id}

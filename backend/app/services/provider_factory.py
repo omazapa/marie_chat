@@ -11,6 +11,7 @@ from app.config import settings
 from .huggingface_provider import HuggingFaceProvider
 from .llm_provider import LLMProvider, ModelInfo
 from .ollama_provider import OllamaProvider
+from .openai_provider import OpenAIProvider
 
 
 class ProviderFactory:
@@ -219,18 +220,55 @@ model_registry = ModelRegistry(provider_factory)
 
 
 def initialize_providers():
-    """Initialize default providers"""
-    # Register Ollama provider
-    provider_factory.register_provider(
-        "ollama", OllamaProvider, {"base_url": settings.OLLAMA_BASE_URL}
-    )
+    """Initialize default providers with settings from database or config"""
+    from app.services.settings_service import settings_service
 
-    # Register HuggingFace provider (requires API key)
-    provider_factory.register_provider(
-        "huggingface", HuggingFaceProvider, {"api_key": settings.HUGGINGFACE_API_KEY}
-    )
+    try:
+        db_settings = settings_service.get_settings()
+        provider_configs = db_settings.get("providers", {})
 
-    print("✅ LLM Providers initialized: ollama, huggingface")
+        # Register Ollama provider
+        ollama_config = provider_configs.get("ollama", {})
+        provider_factory.register_provider(
+            "ollama",
+            OllamaProvider,
+            {"base_url": ollama_config.get("base_url") or settings.OLLAMA_BASE_URL},
+        )
+
+        # Register HuggingFace provider
+        hf_config = provider_configs.get("huggingface", {})
+        provider_factory.register_provider(
+            "huggingface",
+            HuggingFaceProvider,
+            {"api_key": hf_config.get("api_key") or settings.HUGGINGFACE_API_KEY},
+        )
+
+        # Register OpenAI provider
+        openai_config = provider_configs.get("openai", {})
+        provider_factory.register_provider(
+            "openai",
+            OpenAIProvider,
+            {
+                "api_key": openai_config.get("api_key") or settings.OPENAI_API_KEY,
+                "base_url": openai_config.get("base_url") or settings.OPENAI_BASE_URL,
+            },
+        )
+
+        print("✅ LLM Providers initialized from database/config")
+    except Exception as e:
+        print(f"⚠️ Error initializing providers from database: {e}. Using defaults.")
+        # Fallback to defaults
+        provider_factory.register_provider(
+            "ollama", OllamaProvider, {"base_url": settings.OLLAMA_BASE_URL}
+        )
+        provider_factory.register_provider(
+            "huggingface", HuggingFaceProvider, {"api_key": settings.HUGGINGFACE_API_KEY}
+        )
+        provider_factory.register_provider(
+            "openai",
+            OpenAIProvider,
+            {"api_key": settings.OPENAI_API_KEY, "base_url": settings.OPENAI_BASE_URL},
+        )
 
 
 # Initialize on import
