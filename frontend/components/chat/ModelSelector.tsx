@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Select, Card, Space, Typography, Tag, Spin, Alert, Tooltip } from 'antd';
+import { useMemo, useEffect } from 'react';
+import { Select, Card, Space, Typography, Tag, Spin, Alert, Tooltip, Button } from 'antd';
 import {
   RobotOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   InfoCircleOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import { useModels } from '@/hooks/useModels';
 
@@ -33,6 +34,13 @@ export default function ModelSelector({
   disabled = false,
 }: ModelSelectorProps) {
   const { models, providers, providersHealth, loading, error, fetchModels } = useModels(token);
+
+  // Auto-refresh models when provider changes to Ollama
+  useEffect(() => {
+    if (selectedProvider === 'ollama') {
+      fetchModels(true);
+    }
+  }, [selectedProvider, fetchModels]);
 
   const modelInfo = useMemo(() => {
     if (models[selectedProvider]) {
@@ -123,9 +131,16 @@ export default function ModelSelector({
 
       {/* Model Selector */}
       <div>
-        <Text strong style={{ display: 'block', marginBottom: '8px' }}>
-          Model
-        </Text>
+        <Space style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <Text strong>Model</Text>
+          <Button
+            type="link"
+            size="small"
+            icon={<ReloadOutlined spin={loading} />}
+            onClick={() => fetchModels(true)}
+            title="Refresh models"
+          />
+        </Space>
         <Select
           value={selectedModel}
           onChange={handleModelChange}
@@ -133,7 +148,8 @@ export default function ModelSelector({
           size={size}
           disabled={disabled || loading || !providerHealthInfo?.available}
           showSearch
-          optionFilterProp="children"
+          optionFilterProp="label"
+          optionLabelProp="label"
           placeholder="Select a model"
           notFoundContent={
             providerHealthInfo?.available ? (
@@ -152,19 +168,47 @@ export default function ModelSelector({
           }
         >
           {availableModels.map((model) => (
-            <Option key={model.id} value={model.id}>
-              <Space orientation="vertical" size={0}>
-                <Text strong>{model.name}</Text>
+            <Option key={model.id} value={model.id} label={model.name}>
+              <Space orientation="vertical" size={0} style={{ width: '100%' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text strong>{model.name}</Text>
+                  {model.size && (
+                    <Text type="secondary" style={{ fontSize: '11px' }}>
+                      {model.size}
+                    </Text>
+                  )}
+                </div>
                 {model.description && (
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
+                  <Text
+                    type="secondary"
+                    style={{ fontSize: '11px', display: 'block', marginBottom: '4px' }}
+                  >
                     {model.description.substring(0, 60)}
                     {model.description.length > 60 ? '...' : ''}
                   </Text>
                 )}
-                <Space orientation="horizontal" size="small">
-                  {model.parameters && <Tag color="blue">{model.parameters}</Tag>}
-                  {model.quantization && <Tag color="purple">{model.quantization}</Tag>}
-                  {model.size && <Tag color="green">{model.size}</Tag>}
+                <Space size={[0, 4]} wrap>
+                  {model.parameters && (
+                    <Tag color="blue" style={{ fontSize: '10px', margin: 0 }}>
+                      {model.parameters}
+                    </Tag>
+                  )}
+                  {model.quantization && (
+                    <Tag color="purple" style={{ fontSize: '10px', margin: 0 }}>
+                      {model.quantization}
+                    </Tag>
+                  )}
+                  {!!model.metadata?.family && (
+                    <Tag style={{ fontSize: '10px', margin: 0 }}>
+                      {model.metadata.family as string}
+                    </Tag>
+                  )}
                 </Space>
               </Space>
             </Option>
@@ -217,6 +261,16 @@ export default function ModelSelector({
               {modelInfo.context_length && (
                 <Tooltip title="Context length">
                   <Tag color="orange">{modelInfo.context_length} tokens</Tag>
+                </Tooltip>
+              )}
+              {!!modelInfo.metadata?.family && (
+                <Tooltip title="Family">
+                  <Tag color="cyan">{modelInfo.metadata.family as string}</Tag>
+                </Tooltip>
+              )}
+              {!!modelInfo.metadata?.format && (
+                <Tooltip title="Format">
+                  <Tag color="gold">{modelInfo.metadata.format as string}</Tag>
                 </Tooltip>
               )}
             </Space>

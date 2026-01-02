@@ -38,7 +38,7 @@ import { useModels } from '@/hooks/useModels';
 import { useAuthStore } from '@/stores/authStore';
 import { SystemSettings as SystemSettingsType, ProviderStatus } from '@/types';
 
-const { Title, Paragraph } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 export default function SystemSettings() {
   const [form] = Form.useForm<SystemSettingsType>();
@@ -53,6 +53,13 @@ export default function SystemSettings() {
 
   // Watch provider to update model list
   const selectedProvider = Form.useWatch(['llm', 'default_provider'], form);
+
+  // Auto-refresh models when provider changes to Ollama
+  useEffect(() => {
+    if (selectedProvider === 'ollama') {
+      fetchModels(true);
+    }
+  }, [selectedProvider, fetchModels]);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -197,22 +204,40 @@ export default function SystemSettings() {
                             allowClear
                             placeholder="Select a model"
                             loading={loadingModels}
-                            options={
-                              selectedProvider && models[selectedProvider]
-                                ? models[selectedProvider].map((m) => ({
-                                    value: m.id,
-                                    label: m.name || m.id,
-                                  }))
-                                : []
-                            }
-                            notFoundContent={
-                              loadingModels ? (
-                                <Spin size="small" />
-                              ) : (
-                                'No models found for this provider'
-                              )
-                            }
-                          />
+                            optionLabelProp="label"
+                          >
+                            {selectedProvider && models[selectedProvider]
+                              ? models[selectedProvider].map((m) => (
+                                  <Select.Option key={m.id} value={m.id} label={m.name || m.id}>
+                                    <Space orientation="vertical" size={0}>
+                                      <Text strong>{m.name || m.id}</Text>
+                                      <Space size="small" wrap>
+                                        {m.parameters && (
+                                          <Tag color="blue" style={{ fontSize: '10px' }}>
+                                            {m.parameters}
+                                          </Tag>
+                                        )}
+                                        {m.quantization && (
+                                          <Tag color="purple" style={{ fontSize: '10px' }}>
+                                            {m.quantization}
+                                          </Tag>
+                                        )}
+                                        {m.size && (
+                                          <Tag color="green" style={{ fontSize: '10px' }}>
+                                            {m.size}
+                                          </Tag>
+                                        )}
+                                        {!!m.metadata?.family && (
+                                          <Tag style={{ fontSize: '10px' }}>
+                                            {m.metadata.family as string}
+                                          </Tag>
+                                        )}
+                                      </Space>
+                                    </Space>
+                                  </Select.Option>
+                                ))
+                              : []}
+                          </Select>
                         </Form.Item>
                       </Col>
                     </Row>
