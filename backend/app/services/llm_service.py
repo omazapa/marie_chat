@@ -12,7 +12,7 @@ from opensearchpy import OpenSearch
 from sentence_transformers import SentenceTransformer
 
 from app.db import opensearch_client
-from app.services.llm_provider import ChatMessage
+from app.domain.entities.chat import ChatMessage
 from app.services.memory_service import memory_service
 from app.services.opensearch_service import OpenSearchService
 from app.services.provider_factory import provider_factory
@@ -268,6 +268,7 @@ class LLMService:
             # Build hybrid query
             # We use a bool query with should for text and knn for vector
             query: dict[str, Any] = {
+                "_source": {"excludes": ["content_vector"]},
                 "size": limit,
                 "from": offset,
                 "query": {
@@ -455,6 +456,7 @@ class LLMService:
                 return []
 
             query = {
+                "_source": {"excludes": ["content_vector"]},
                 "query": {"term": {"conversation_id": conversation_id}},
                 "sort": [{"created_at": {"order": "desc"}}],
                 "from": offset,
@@ -783,25 +785,40 @@ class LLMService:
         # Convert messages to ChatMessage objects
         chat_messages = [ChatMessage(role=m["role"], content=m["content"]) for m in messages]
 
-        # Get completion (non-streaming yields single chunk)
+        # Get completion directly from provider
         result = None
-        async for chunk in provider.chat_completion(
+
+        response = provider.chat_completion(
             model=model,
             messages=chat_messages,
             stream=False,
             temperature=temperature,
             max_tokens=max_tokens,
-        ):
-            result = chunk
+            user_id=user_id,
+        )
+
+        # Handle both generator and direct response
+        if hasattr(response, "__aiter__"):
+            async for chunk in response:
+                # In non-streaming, we expect one chunk or the last one to be the result
+                result = chunk
+        else:
+            result = response
 
         if not result:
             raise ValueError("No response from provider")
 
         # Generate follow-ups
+        # (result might be a dict or ChatCompletionChunk depending on provider)
+        content = result.content if hasattr(result, "content") else result.get("content", "")
+        tokens_used = (
+            result.tokens_used if hasattr(result, "tokens_used") else result.get("tokens_used", 0)
+        )
+
         follow_ups = await self.generate_follow_ups(
             model=model,
             provider_name=provider_name,
-            history=chat_messages + [ChatMessage(role="assistant", content=result.content)],
+            history=chat_messages + [ChatMessage(role="assistant", content=content)],
         )
 
         # Save assistant message
@@ -815,8 +832,8 @@ class LLMService:
             conversation_id=conversation_id,
             user_id=user_id,
             role="assistant",
-            content=result.content,
-            tokens_used=result.tokens_used or 0,
+            content=content,
+            tokens_used=tokens_used or 0,
             metadata=metadata,
         )
 
@@ -859,27 +876,39 @@ class LLMService:
         total_tokens = 0
         saved = False
 
-        print("[SERVICE] Starting provider.chat_completion iteration")
-        async for chunk in provider.chat_completion(
+        # Execute provider directly
+        response = provider.chat_completion(
             model=model,
             messages=chat_messages,
             stream=True,
             temperature=temperature,
             max_tokens=max_tokens,
-        ):
-            full_content += chunk.content
-            total_tokens = chunk.tokens_used or total_tokens
+            user_id=user_id,
+        )
+
+        print("[SERVICE] Starting provider response iteration")
+        async for chunk in response:
+            # Handle both dict and ChatCompletionChunk
+            content = chunk.content if hasattr(chunk, "content") else chunk.get("content", "")
+            done = chunk.done if hasattr(chunk, "done") else chunk.get("done", False)
+            chunk_model = chunk.model if hasattr(chunk, "model") else chunk.get("model")
+            tokens_used = (
+                chunk.tokens_used if hasattr(chunk, "tokens_used") else chunk.get("tokens_used")
+            )
+
+            full_content += content
+            total_tokens = tokens_used or total_tokens
 
             # Yield chunk to client (convert to legacy format)
             yield {
-                "content": chunk.content,
-                "done": chunk.done,
-                "model": chunk.model,
-                "tokens_used": chunk.tokens_used,
+                "content": content,
+                "done": done,
+                "model": chunk_model,
+                "tokens_used": tokens_used,
             }
 
             # Save complete message when done
-            if chunk.done:
+            if done:
                 # Generate follow-ups
                 follow_ups = await self.generate_follow_ups(
                     model=model,
@@ -898,9 +927,10 @@ class LLMService:
                     user_id=user_id,
                     role="assistant",
                     content=full_content,
-                    tokens_used=total_tokens,
+                    tokens_used=total_tokens or 0,
                     metadata=metadata,
                 )
+                saved = True
 
                 # Extract and save memories in background
                 import asyncio
@@ -913,8 +943,7 @@ class LLMService:
                 # Yield follow-ups in a final special chunk if they exist
                 if follow_ups:
                     yield {"content": "", "done": True, "follow_ups": follow_ups}
-
-                saved = True
+                break
 
         # Final check: if loop finished but message wasn't saved (e.g. done flag missing)
         if not saved and full_content:
@@ -940,12 +969,11 @@ class LLMService:
                 user_id=user_id,
                 role="assistant",
                 content=full_content,
-                tokens_used=total_tokens,
+                tokens_used=total_tokens or 0,
                 metadata=metadata,
             )
 
-            if follow_ups:
-                yield {"content": "", "done": True, "follow_ups": follow_ups}
+            yield {"content": "", "done": True, "follow_ups": follow_ups if follow_ups else None}
 
     async def generate_follow_ups(
         self, model: str, provider_name: str, history: list[ChatMessage]

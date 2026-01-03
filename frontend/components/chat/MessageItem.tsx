@@ -13,7 +13,7 @@ import {
   CopyOutlined,
   CheckOutlined,
 } from '@ant-design/icons';
-import { Think, Bubble } from '@ant-design/x';
+import { Bubble } from '@ant-design/x';
 import { FileCard } from './FileCard';
 import { API_URL } from '@/lib/api';
 import { MarkdownContent } from '../markdown/MarkdownContent';
@@ -23,7 +23,7 @@ import { Message, Attachment } from '@/types';
 const { Text } = Typography;
 
 interface MessageItemProps {
-  msg: Message;
+  msg: Message & { status?: 'loading' | 'success' | 'error' };
   isStreaming: boolean;
   onEdit: (msg: Message) => void;
   onReference: (id: string) => void;
@@ -60,22 +60,7 @@ export const MessageItem = memo(
         id={`message-${msg.id}`}
         style={{ marginBottom: '24px', transition: 'background-color 0.5s' }}
       >
-        {/* Show thinking component BEFORE message for assistant streaming */}
-        {msg.role === 'assistant' &&
-          msg.id === 'streaming' &&
-          isStreaming &&
-          msg.content.length < 50 && (
-            <div style={{ marginBottom: '12px', marginLeft: '52px' }}>
-              <Think title="Thinking..." loading={true} defaultExpanded={true} blink={true}>
-                <div style={{ fontSize: '13px', color: '#8c8c8c', lineHeight: '1.8' }}>
-                  <div>• Processing your query</div>
-                  <div>• Searching knowledge base</div>
-                  <div>• Generating contextual response</div>
-                </div>
-              </Think>
-            </div>
-          )}
-        {(msg.content || msg.id !== 'streaming') && (
+        {(msg.content || msg.role === 'assistant') && (
           <div
             style={{
               width: '100%',
@@ -131,6 +116,7 @@ export const MessageItem = memo(
               )}
               <Bubble
                 placement={msg.role === 'user' ? 'end' : 'start'}
+                loading={msg.status === 'loading'}
                 avatar={
                   <Avatar
                     icon={

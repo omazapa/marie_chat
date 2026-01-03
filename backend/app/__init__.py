@@ -56,7 +56,7 @@ def create_app():
     app.register_blueprint(api_keys_bp, url_prefix="/api/api-keys")
     app.register_blueprint(prompts_bp, url_prefix="/api/prompts")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
-    app.register_blueprint(settings_bp, url_prefix="/api/admin/settings")
+    app.register_blueprint(settings_bp, url_prefix="/api/settings")
     app.register_blueprint(v1_chat_bp, url_prefix="/api/v1/chat")
     app.register_blueprint(v1_conversations_bp, url_prefix="/api/v1/conversations")
     app.register_blueprint(v1_search_bp, url_prefix="/api/v1/search")

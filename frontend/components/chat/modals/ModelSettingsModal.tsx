@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Modal, Typography, Space, Select } from 'antd';
+import { Modal, Typography, Space, Select, Divider } from 'antd';
+import { AudioOutlined, RobotOutlined } from '@ant-design/icons';
 import ModelSelector from '../ModelSelector';
 import { Conversation } from '@/types';
 
@@ -34,44 +35,53 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
 }) => {
   return (
     <Modal
-      title={currentConversation ? 'Change Model' : 'Select Model for New Conversation'}
+      title={currentConversation ? 'Conversation Settings' : 'New Conversation Settings'}
       open={open}
       onOk={onOk}
       onCancel={onCancel}
-      width={600}
-      okText={currentConversation ? 'Update Model' : 'Create Conversation'}
+      width={650}
+      okText={currentConversation ? 'Update Settings' : 'Create Conversation'}
     >
-      <ModelSelector
-        token={accessToken}
-        selectedProvider={selectedProvider}
-        selectedModel={selectedModel}
-        onSelect={onSelectModel}
-        showDetails={true}
-      />
-
-      <div style={{ marginTop: '24px', borderTop: '1px solid #f0f0f0', paddingTop: '16px' }}>
-        <Title level={5} style={{ marginBottom: '16px' }}>
-          Voice Settings
-        </Title>
-        <Space orientation="vertical" style={{ width: '100%' }}>
-          <Text type="secondary">Select the voice for Text-to-Speech:</Text>
-          <Select
-            style={{ width: '100%' }}
-            value={selectedVoice}
-            onChange={setSelectedVoice}
-            options={[
-              { label: 'Gonzalo (Colombia) - Male', value: 'es-CO-GonzaloNeural' },
-              { label: 'Salome (Colombia) - Female', value: 'es-CO-SalomeNeural' },
-              { label: 'Alvaro (Spain) - Male', value: 'es-ES-AlvaroNeural' },
-              { label: 'Elvira (Spain) - Female', value: 'es-ES-ElviraNeural' },
-              { label: 'Jorge (Mexico) - Male', value: 'es-MX-JorgeNeural' },
-              { label: 'Dalia (Mexico) - Female', value: 'es-MX-DaliaNeural' },
-              { label: 'Andrew (USA) - Male', value: 'en-US-AndrewNeural' },
-              { label: 'Emma (USA) - Female', value: 'en-US-EmmaNeural' },
-            ]}
+      <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+        <div>
+          <Title level={5} style={{ marginBottom: '16px' }}>
+            <RobotOutlined /> Model Selection
+          </Title>
+          <ModelSelector
+            token={accessToken}
+            selectedProvider={selectedProvider}
+            selectedModel={selectedModel}
+            onSelect={onSelectModel}
+            showDetails={true}
           />
-        </Space>
-      </div>
+        </div>
+
+        <Divider style={{ margin: '12px 0' }} />
+
+        <div>
+          <Title level={5} style={{ marginBottom: '16px' }}>
+            <AudioOutlined /> Voice Settings
+          </Title>
+          <Space orientation="vertical" style={{ width: '100%' }}>
+            <Text type="secondary">Select the voice for Text-to-Speech:</Text>
+            <Select
+              style={{ width: '100%' }}
+              value={selectedVoice}
+              onChange={setSelectedVoice}
+              options={[
+                { label: 'Gonzalo (Colombia) - Male', value: 'es-CO-GonzaloNeural' },
+                { label: 'Salome (Colombia) - Female', value: 'es-CO-SalomeNeural' },
+                { label: 'Alvaro (Spain) - Male', value: 'es-ES-AlvaroNeural' },
+                { label: 'Elvira (Spain) - Female', value: 'es-ES-ElviraNeural' },
+                { label: 'Jorge (Mexico) - Male', value: 'es-MX-JorgeNeural' },
+                { label: 'Dalia (Mexico) - Female', value: 'es-MX-DaliaNeural' },
+                { label: 'Andrew (USA) - Male', value: 'en-US-AndrewNeural' },
+                { label: 'Emma (USA) - Female', value: 'en-US-EmmaNeural' },
+              ]}
+            />
+          </Space>
+        </div>
+      </Space>
     </Modal>
   );
 };

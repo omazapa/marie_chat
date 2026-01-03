@@ -300,6 +300,9 @@ export default function ChatContainer() {
     await updateConversation(currentConversation.id, {
       model: selectedModel,
       provider: selectedProvider,
+      settings: {
+        ...currentConversation.settings,
+      },
     });
   };
 
@@ -320,6 +323,8 @@ export default function ChatContainer() {
     const conv = conversations.find((c: Conversation) => c.id === id);
     if (conv) {
       await selectConversation(conv);
+      setSelectedProvider(conv.provider);
+      setSelectedModel(conv.model);
     }
   };
 

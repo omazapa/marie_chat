@@ -90,26 +90,6 @@ export const MessageList = memo(
           </div>
         ))}
 
-        {isStreaming && streamingMessage && (
-          <MessageItem
-            msg={{
-              id: 'streaming',
-              conversation_id: 'streaming',
-              user_id: 'assistant',
-              role: 'assistant',
-              content: streamingMessage,
-              created_at: new Date().toISOString(),
-            }}
-            isStreaming={true}
-            onEdit={() => {}}
-            onReference={() => {}}
-            isReferenced={false}
-            onNavigate={() => {}}
-            onPlay={() => {}}
-            isPlaying={false}
-          />
-        )}
-
         {imageProgress && (
           <div
             style={{

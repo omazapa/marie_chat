@@ -35,6 +35,10 @@ class SettingsService:
                         "ollama": {
                             "base_url": app_settings.OLLAMA_BASE_URL,
                         },
+                        "agent": {
+                            "base_url": app_settings.REMOTE_AGENT_URL,
+                            "api_key": app_settings.REMOTE_AGENT_KEY,
+                        },
                     },
                     "image": {
                         "default_model": "stabilityai/stable-diffusion-3.5-large",
@@ -99,18 +103,28 @@ class SettingsService:
 
             # Ensure providers exists for older configs
             if "providers" not in settings:
-                settings["providers"] = {
-                    "openai": {
-                        "api_key": app_settings.OPENAI_API_KEY,
-                        "base_url": app_settings.OPENAI_BASE_URL,
-                    },
-                    "huggingface": {
-                        "api_key": app_settings.HUGGINGFACE_API_KEY,
-                    },
-                    "ollama": {
-                        "base_url": app_settings.OLLAMA_BASE_URL,
-                    },
+                settings["providers"] = {}
+
+            # Ensure all providers exist in providers dict
+            if "openai" not in settings["providers"]:
+                settings["providers"]["openai"] = {
+                    "api_key": app_settings.OPENAI_API_KEY,
+                    "base_url": app_settings.OPENAI_BASE_URL,
                 }
+            if "huggingface" not in settings["providers"]:
+                settings["providers"]["huggingface"] = {
+                    "api_key": app_settings.HUGGINGFACE_API_KEY,
+                }
+            if "ollama" not in settings["providers"]:
+                settings["providers"]["ollama"] = {
+                    "base_url": app_settings.OLLAMA_BASE_URL,
+                }
+            if "agent" not in settings["providers"]:
+                settings["providers"]["agent"] = {
+                    "base_url": app_settings.REMOTE_AGENT_URL,
+                    "api_key": app_settings.REMOTE_AGENT_KEY,
+                }
+
             return settings
         except Exception:
             # Return defaults if not found

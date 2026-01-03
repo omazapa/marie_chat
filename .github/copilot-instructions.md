@@ -15,6 +15,7 @@
 - **Use `docker compose`** (with space) - NOT `docker-compose` (hyphenated).
 - **ALWAYS pin package versions** in `requirements.txt` (e.g., `package==1.2.3`).
 - **CLEAN UP temporary diagnostic files** immediately after use.
+- **CRITICAL: ALWAYS verify the current working directory** before executing any terminal command. Use `pwd` or check the tool output to avoid running commands in the wrong folder (e.g., running `npm` in the root instead of `frontend/`).
 - **Complete tasks fully** - Implement, test, verify, and report results.
 
 ### Visual Verification (MCP Browser)

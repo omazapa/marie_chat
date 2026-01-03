@@ -19,8 +19,8 @@ def create_conversation():
     data = request.get_json()
 
     title = data.get("title", "New Conversation")
-    model = data.get("model", "llama3.2")
-    provider = data.get("provider", "ollama")
+    model = data.get("model")
+    provider = data.get("provider")
     system_prompt = data.get("system_prompt")
     settings = data.get("settings", {})
 

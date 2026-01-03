@@ -41,7 +41,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const fetchPublicSettings = async () => {
       try {
-        const response = await apiClient.get('/admin/settings/public');
+        const response = await apiClient.get('/settings/public');
         if (response.data.white_label) {
           setWhiteLabel((prev) => ({
             ...prev,

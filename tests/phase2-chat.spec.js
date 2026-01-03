@@ -31,7 +31,7 @@ test.describe('Phase 2: Chat Core Functionality', () => {
       const adminToken = adminData.access_token;
 
       // 2. Enable registration
-      await request.put(`${API_URL}/api/admin/settings`, {
+      await request.put(`${API_URL}/api/settings`, {
         headers: {
           'Authorization': `Bearer ${adminToken}`
         },
@@ -90,7 +90,7 @@ test.describe('Phase 2: Chat Core Functionality', () => {
       const adminData = await adminLoginResponse.json();
       const adminToken = adminData.access_token;
 
-      await request.put(`${API_URL}/api/admin/settings`, {
+      await request.put(`${API_URL}/api/settings`, {
         headers: {
           'Authorization': `Bearer ${adminToken}`
         },

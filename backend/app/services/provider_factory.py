@@ -8,6 +8,7 @@ from typing import Any
 
 from app.config import settings
 
+from .agent_provider import AgentProvider
 from .huggingface_provider import HuggingFaceProvider
 from .llm_provider import LLMProvider, ModelInfo
 from .ollama_provider import OllamaProvider
@@ -254,6 +255,20 @@ def initialize_providers():
             },
         )
 
+        # Register Agent provider
+        agent_config = provider_configs.get("agent", {})
+        provider_factory.register_provider(
+            "agent",
+            AgentProvider,
+            {
+                "api_key": agent_config.get("api_key") or settings.REMOTE_AGENT_KEY,
+                "base_url": agent_config.get("base_url") or settings.REMOTE_AGENT_URL,
+            },
+        )
+
+        # Clear model cache to force refresh with new configs
+        model_registry.clear_cache()
+
         print("✅ LLM Providers initialized from database/config")
     except Exception as e:
         print(f"⚠️ Error initializing providers from database: {e}. Using defaults.")
@@ -268,6 +283,11 @@ def initialize_providers():
             "openai",
             OpenAIProvider,
             {"api_key": settings.OPENAI_API_KEY, "base_url": settings.OPENAI_BASE_URL},
+        )
+        provider_factory.register_provider(
+            "agent",
+            AgentProvider,
+            {"api_key": settings.REMOTE_AGENT_KEY, "base_url": settings.REMOTE_AGENT_URL},
         )
 
 

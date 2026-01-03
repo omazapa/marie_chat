@@ -10,8 +10,8 @@ export function useChat(
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [streamingMessage, setStreamingMessage] = useState<string>('');
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingMessages, setStreamingMessages] = useState<Record<string, string>>({});
+  const [streamingStates, setStreamingStates] = useState<Record<string, boolean>>({});
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [ttsAudio, setTtsAudio] = useState<{ audio: string; message_id?: string } | null>(null);
   const [searchResults, setSearchResults] = useState<{
@@ -41,29 +41,32 @@ export function useChat(
 
   // WebSocket handlers
   const handleStreamStart = useCallback((data: { conversation_id: string }) => {
-    if (currentConversationRef.current?.id === data.conversation_id) {
-      setIsStreaming(true);
-      setStreamingMessage('');
-    }
+    setStreamingStates((prev) => ({ ...prev, [data.conversation_id]: true }));
+    setStreamingMessages((prev) => ({ ...prev, [data.conversation_id]: '' }));
   }, []);
 
   const handleStreamChunk = useCallback((chunk: StreamChunk) => {
-    if (currentConversationRef.current?.id === chunk.conversation_id) {
-      if (chunk.content) {
-        setStreamingMessage((prev) => prev + chunk.content);
-      }
+    if (chunk.content) {
+      setStreamingMessages((prev) => ({
+        ...prev,
+        [chunk.conversation_id]: (prev[chunk.conversation_id] || '') + chunk.content,
+      }));
+    }
 
-      // If we get follow-ups in a chunk, we can store them
-      if (chunk.follow_ups && chunk.follow_ups.length > 0) {
-        // We'll handle this in handleStreamEnd or by updating the last message
-        console.log('Follow-ups received in chunk:', chunk.follow_ups);
-      }
+    // If we get follow-ups in a chunk, we can store them
+    if (chunk.follow_ups && chunk.follow_ups.length > 0) {
+      console.log('Follow-ups received in chunk:', chunk.follow_ups);
     }
   }, []);
 
   const handleStreamEnd = useCallback(
     async (data: { conversation_id: string; message?: Message }) => {
-      setIsStreaming(false);
+      setStreamingStates((prev) => ({ ...prev, [data.conversation_id]: false }));
+      setStreamingMessages((prev) => {
+        const next = { ...prev };
+        delete next[data.conversation_id];
+        return next;
+      });
 
       // Add the complete assistant message if provided
       if (data.message && currentConversationRef.current?.id === data.conversation_id) {
@@ -77,15 +80,6 @@ export function useChat(
           }
           return [...prev, newMessage];
         });
-        setStreamingMessage('');
-      } else if (currentConversationRef.current?.id === data.conversation_id) {
-        // Fallback: if no message object but we have streaming content,
-        // we should probably keep it or convert it to a message
-        console.warn('Stream ended without message object, keeping streaming content as fallback');
-        // We don't clear streamingMessage here so it stays visible in the UI
-        // until a real message replaces it or the user refreshes
-      } else {
-        setStreamingMessage('');
       }
     },
     []
@@ -189,7 +183,13 @@ export function useChat(
     const conv = currentConversationRef.current;
     if (conv) {
       wsStopGeneration(conv.id);
-      setIsStreaming(false);
+      // Clear streaming state for the current conversation
+      setStreamingStates((prev) => ({ ...prev, [conv.id]: false }));
+      setStreamingMessages((prev) => {
+        const next = { ...prev };
+        delete next[conv.id];
+        return next;
+      });
     }
   }, [wsStopGeneration]);
 
@@ -242,7 +242,9 @@ export function useChat(
         true,
         attachments,
         referenced_conv_ids,
-        referenced_msg_ids
+        referenced_msg_ids,
+        false,
+        conv?.settings?.workflow as string
       );
     },
     [isConnected, wsSendMessage]
@@ -284,7 +286,8 @@ export function useChat(
       attachments,
       referenced_conv_ids,
       referenced_msg_ids,
-      true // regenerate flag
+      true, // regenerate flag
+      conv.settings?.workflow as string
     );
   }, [isConnected, messages, wsSendMessage]);
 
@@ -426,7 +429,8 @@ export function useChat(
       title: string = 'New Conversation',
       model: string = 'llama3.2',
       provider: string = 'ollama',
-      systemPrompt?: string
+      systemPrompt?: string,
+      settings?: Record<string, unknown>
     ) => {
       if (!token) {
         return null;
@@ -439,6 +443,7 @@ export function useChat(
           model,
           provider,
           system_prompt: systemPrompt,
+          settings,
         });
         const newConversation = response.data;
         setConversations((prev) => [newConversation, ...prev]);
@@ -598,10 +603,6 @@ export function useChat(
         wsLeaveConversation(currentConversation.id);
       }
 
-      // Reset streaming state when switching conversations
-      setIsStreaming(false);
-      setStreamingMessage('');
-
       // Set new conversation
       setCurrentConversation(conversation);
 
@@ -646,8 +647,8 @@ export function useChat(
     conversations,
     currentConversation,
     messages,
-    streamingMessage,
-    isStreaming,
+    streamingMessage: currentConversation ? streamingMessages[currentConversation.id] || '' : '',
+    isStreaming: currentConversation ? streamingStates[currentConversation.id] || false : false,
     isTranscribing,
     ttsAudio,
     searchResults,

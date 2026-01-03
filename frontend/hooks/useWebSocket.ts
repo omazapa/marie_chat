@@ -266,7 +266,8 @@ export function useWebSocket({
       attachments: Attachment[] = [],
       referenced_conv_ids: string[] = [],
       referenced_msg_ids: string[] = [],
-      regenerate: boolean = false
+      regenerate: boolean = false,
+      workflow?: string
     ) => {
       if (socketRef.current && socketRef.current.connected) {
         socketRef.current.emit('send_message', {
@@ -277,6 +278,7 @@ export function useWebSocket({
           referenced_conv_ids,
           referenced_msg_ids,
           regenerate,
+          workflow,
         });
         console.log(`💬 Sent message to ${conversationId}:`, message.substring(0, 50));
         if (attachments.length > 0) {

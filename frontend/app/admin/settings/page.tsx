@@ -31,6 +31,7 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   ApiOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import { Tag } from 'antd';
 import apiClient, { getErrorMessage } from '@/lib/api';
@@ -64,7 +65,7 @@ export default function SystemSettings() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await apiClient.get<SystemSettingsType>('/admin/settings');
+        const response = await apiClient.get<SystemSettingsType>('/settings');
         form.setFieldsValue(response.data);
       } catch {
         message.error('Failed to fetch system settings');
@@ -80,7 +81,7 @@ export default function SystemSettings() {
     setTestingProvider(provider);
     try {
       const config = form.getFieldValue(['providers', provider]);
-      const response = await apiClient.post<ProviderStatus>('/admin/settings/test-provider', {
+      const response = await apiClient.post<ProviderStatus>('/settings/test-provider', {
         provider,
         config,
       });
@@ -112,8 +113,10 @@ export default function SystemSettings() {
   const onFinish = async (values: SystemSettingsType) => {
     setSaving(true);
     try {
-      await apiClient.put('/admin/settings', values);
+      await apiClient.put('/settings', values);
       message.success('Settings updated successfully');
+      // Refresh models to show newly discovered agents
+      fetchModels(true);
     } catch {
       message.error('Failed to update settings');
     } finally {
@@ -189,6 +192,7 @@ export default function SystemSettings() {
                               { value: 'ollama', label: 'Ollama (Local)' },
                               { value: 'huggingface', label: 'HuggingFace (Cloud)' },
                               { value: 'openai', label: 'OpenAI / Compatible' },
+                              { value: 'agent', label: 'External Agent (Remote)' },
                             ]}
                           />
                         </Form.Item>
@@ -626,6 +630,57 @@ export default function SystemSettings() {
                       <Form.Item name={['providers', 'ollama', 'base_url']} label="Base URL">
                         <Input placeholder="http://localhost:11434" />
                       </Form.Item>
+                    </Card>
+
+                    <Card
+                      title={
+                        <Space>
+                          <RobotOutlined /> External Agent (Remote)
+                          {providerStatus['agent']?.available ? (
+                            <Tag color="success" icon={<CheckCircleOutlined />}>
+                              Connected
+                            </Tag>
+                          ) : providerStatus['agent']?.error ? (
+                            <Tag color="error" icon={<CloseCircleOutlined />}>
+                              Error
+                            </Tag>
+                          ) : null}
+                        </Space>
+                      }
+                      extra={
+                        <Button
+                          type="primary"
+                          ghost
+                          size="small"
+                          loading={testingProvider === 'agent'}
+                          onClick={() => testProvider('agent')}
+                        >
+                          Test Connection
+                        </Button>
+                      }
+                    >
+                      <Paragraph type="secondary">
+                        Connect to external agentic systems (LangGraph, LangServe, or custom APIs).
+                      </Paragraph>
+                      <Row gutter={16}>
+                        <Col span={12}>
+                          <Form.Item
+                            name={['providers', 'agent', 'base_url']}
+                            label="Service URL"
+                            rules={[{ required: true }]}
+                          >
+                            <Input placeholder="https://my-agent-service.com" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                          <Form.Item
+                            name={['providers', 'agent', 'api_key']}
+                            label="API Key (Optional)"
+                          >
+                            <Input.Password placeholder="Secret key" />
+                          </Form.Item>
+                        </Col>
+                      </Row>
                     </Card>
                   </div>
                 ),

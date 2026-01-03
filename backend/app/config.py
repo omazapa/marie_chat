@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     OPENAI_BASE_URL: str = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
     OPENAI_DEFAULT_MODEL: str = os.getenv("OPENAI_DEFAULT_MODEL", "gpt-4o")
 
+    # Remote Agents
+    REMOTE_AGENT_URL: str = os.getenv("REMOTE_AGENT_URL", "")
+    REMOTE_AGENT_KEY: str = os.getenv("REMOTE_AGENT_KEY", "")
+
     # Embeddings
     EMBEDDING_MODEL: str = os.getenv(
         "EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"

@@ -54,6 +54,7 @@ def test_provider():
         return jsonify({"error": "Provider name is required"}), 400
 
     try:
+        from app.services.agent_provider import AgentProvider
         from app.services.huggingface_provider import HuggingFaceProvider
         from app.services.ollama_provider import OllamaProvider
         from app.services.openai_provider import OpenAIProvider
@@ -62,6 +63,7 @@ def test_provider():
             "ollama": OllamaProvider,
             "huggingface": HuggingFaceProvider,
             "openai": OpenAIProvider,
+            "agent": AgentProvider,
         }
 
         if provider_name not in provider_classes:
