@@ -225,8 +225,15 @@ class AgentProvider(LLMProvider):
         import asyncio
 
         try:
-            # Run the async call in a new event loop or existing one
-            return asyncio.run(
+            # Get the current event loop or create a new one
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            # Run the async call in the event loop
+            return loop.run_until_complete(
                 self._call_remote_sync_wrapper(model, messages, temperature, max_tokens, **kwargs)
             )
         except Exception as e:
@@ -276,13 +283,17 @@ class AgentProvider(LLMProvider):
         self, model: str, payload: dict, headers: dict
     ) -> AsyncGenerator[ChatCompletionChunk, None]:
         """Streaming call to external agent"""
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        import eventlet
+
+        async with httpx.AsyncClient(timeout=300.0) as client:
             try:
                 # Construct URL based on model ID
                 base = self.base_url.rstrip("/")
                 url = f"{base}/stream" if model == "external-agent" else f"{base}/{model}/stream"
 
+                print(f"[AGENT] Streaming from {url}")
                 async with client.stream("POST", url, json=payload, headers=headers) as response:
+                    print(f"[AGENT] Got response status: {response.status_code}")
                     response.raise_for_status()
 
                     async for line in response.aiter_lines():
@@ -291,18 +302,32 @@ class AgentProvider(LLMProvider):
 
                         if line.startswith("data: "):
                             data_str = line[6:]
-                            if data_str == "[DONE]":
+                            if data_str.strip() == "[DONE]":
+                                print("[AGENT] Stream completed")
+                                yield ChatCompletionChunk(content="", done=True)
                                 break
 
                             try:
                                 data = json.loads(data_str)
                                 content = self._extract_content_from_chunk(data)
                                 if content:
-                                    yield ChatCompletionChunk(content=content)
-                            except json.JSONDecodeError:
+                                    print(f"[AGENT] Chunk: {content[:50]}...")
+                                    yield ChatCompletionChunk(content=content, done=False)
+                                    # Yield control to eventlet
+                                    eventlet.sleep(0)
+                            except json.JSONDecodeError as e:
+                                print(f"[AGENT] JSON decode error: {e}")
                                 continue
+
+                    # Ensure final done signal
+                    yield ChatCompletionChunk(content="", done=True)
+
             except Exception as e:
-                yield ChatCompletionChunk(content=f"\nError streaming from remote agent: {str(e)}")
+                print(f"[AGENT] Error streaming: {e}")
+                import traceback
+
+                traceback.print_exc()
+                yield ChatCompletionChunk(content=f"\n\nError: {str(e)}", done=True)
 
     def _extract_content_from_chunk(self, chunk: Any) -> str:
         """Extracts text content from various LangGraph/LangServe chunk formats"""

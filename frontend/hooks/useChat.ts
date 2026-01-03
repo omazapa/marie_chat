@@ -34,6 +34,9 @@ export function useChat(
   // Use ref to keep track of current conversation for callbacks
   const currentConversationRef = useRef<Conversation | null>(null);
 
+  // Use ref for streaming content to avoid stale closures
+  const streamingContentRef = useRef<Record<string, string>>({});
+
   // Update ref when state changes
   useEffect(() => {
     currentConversationRef.current = currentConversation;
@@ -41,15 +44,24 @@ export function useChat(
 
   // WebSocket handlers
   const handleStreamStart = useCallback((data: { conversation_id: string }) => {
+    streamingContentRef.current[data.conversation_id] = '';
     setStreamingStates((prev) => ({ ...prev, [data.conversation_id]: true }));
     setStreamingMessages((prev) => ({ ...prev, [data.conversation_id]: '' }));
   }, []);
 
   const handleStreamChunk = useCallback((chunk: StreamChunk) => {
     if (chunk.content) {
+      // Update ref immediately (synchronous)
+      streamingContentRef.current[chunk.conversation_id] =
+        (streamingContentRef.current[chunk.conversation_id] || '') + chunk.content;
+
+      const currentContent = streamingContentRef.current[chunk.conversation_id];
+      console.log(`[Stream] Chunk ${currentContent.length} chars: "${chunk.content}"`);
+
+      // Update state for smooth rendering with Ant Design X typing animation
       setStreamingMessages((prev) => ({
         ...prev,
-        [chunk.conversation_id]: (prev[chunk.conversation_id] || '') + chunk.content,
+        [chunk.conversation_id]: currentContent,
       }));
     }
 
@@ -61,6 +73,9 @@ export function useChat(
 
   const handleStreamEnd = useCallback(
     async (data: { conversation_id: string; message?: Message }) => {
+      // Clean up ref
+      delete streamingContentRef.current[data.conversation_id];
+
       setStreamingStates((prev) => ({ ...prev, [data.conversation_id]: false }));
       setStreamingMessages((prev) => {
         const next = { ...prev };
@@ -184,6 +199,7 @@ export function useChat(
     if (conv) {
       wsStopGeneration(conv.id);
       // Clear streaming state for the current conversation
+      delete streamingContentRef.current[conv.id];
       setStreamingStates((prev) => ({ ...prev, [conv.id]: false }));
       setStreamingMessages((prev) => {
         const next = { ...prev };

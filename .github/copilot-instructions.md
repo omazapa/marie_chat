@@ -12,9 +12,16 @@
 - **CRITICAL: NEVER ask for commit confirmation** - Make changes directly to files.
 - **CRITICAL: DO NOT suggest commits** - The user will commit when ready.
 - **NO commit messages in responses** - Focus on the implementation.
+- **Git Commit Workflow** - BEFORE making ANY commit:
+  1. **MANDATORY**: Run `pre-commit run --all-files` to check all files
+  2. If there are errors, fix them (formatting, linting, etc.)
+  3. Add all files including fixes: `git add -A`
+  4. Run pre-commit again to verify all checks pass
+  5. Only then proceed with `git commit`
 - **Use `docker compose`** (with space) - NOT `docker-compose` (hyphenated).
 - **ALWAYS pin package versions** in `requirements.txt` (e.g., `package==1.2.3`).
 - **CLEAN UP temporary diagnostic files** immediately after use.
+- **CRITICAL: Test files policy** - You CAN create temporary test files (e.g., `test_*.py`, `*.test.ts`) for debugging/validation, but MUST delete them immediately after use. Never commit test files to the repository.
 - **CRITICAL: ALWAYS verify the current working directory** before executing any terminal command. Use `pwd` or check the tool output to avoid running commands in the wrong folder (e.g., running `npm` in the root instead of `frontend/`).
 - **Complete tasks fully** - Implement, test, verify, and report results.
 

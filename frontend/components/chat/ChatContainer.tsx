@@ -241,8 +241,8 @@ export default function ChatContainer() {
   );
 
   // Format messages for Ant Design X
-  const chatMessages = useMemo(
-    () => [
+  const chatMessages = useMemo(() => {
+    return [
       ...messages
         .filter((msg: WebSocketMessage) => msg.role !== 'system')
         .map((msg: WebSocketMessage) => ({
@@ -262,9 +262,8 @@ export default function ChatContainer() {
             },
           ]
         : []),
-    ],
-    [messages, isStreaming, streamingMessage]
-  );
+    ];
+  }, [messages, isStreaming, streamingMessage]);
 
   const handleNewConversation = async () => {
     const conv = await createConversation('New Conversation', selectedModel, selectedProvider);

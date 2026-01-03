@@ -302,48 +302,64 @@ class OllamaProvider(LLMProvider):
         """Streaming chat completion"""
         print(f"[OLLAMA] Starting stream chat with model: {payload.get('model')}")
         try:
+            import eventlet
+
             print("[OLLAMA] Creating HTTP stream request")
             async with self.client.stream(
-                "POST", f"{self.base_url}/api/chat", json=payload
+                "POST", f"{self.base_url}/api/chat", json=payload, timeout=300.0
             ) as response:
                 print(f"[OLLAMA] Got response status: {response.status_code}")
                 response.raise_for_status()
 
                 print("[OLLAMA] Starting to iterate lines")
                 async for line in response.aiter_lines():
-                    if line:
-                        try:
-                            chunk = json.loads(line)
+                    if not line.strip():
+                        continue
 
-                            # Extract content from the message
-                            content = ""
-                            role = "assistant"
-                            if "message" in chunk:
-                                content = chunk["message"].get("content", "")
-                                role = chunk["message"].get("role", "assistant")
+                    try:
+                        chunk = json.loads(line)
 
-                            is_done = chunk.get("done", False)
+                        # Extract content from the message
+                        content = ""
+                        role = "assistant"
+                        if "message" in chunk:
+                            content = chunk["message"].get("content", "")
+                            role = chunk["message"].get("role", "assistant")
 
-                            if content or is_done:
-                                yield {
-                                    "content": content,
-                                    "role": role,
-                                    "model": chunk.get("model", ""),
-                                    "done": is_done,
-                                    "tokens_used": chunk.get("eval_count", 0),
-                                }
+                        is_done = chunk.get("done", False)
 
-                            # Stop if done
-                            if is_done:
-                                print("[OLLAMA] Stream completed")
-                                break
-                        except json.JSONDecodeError:
-                            continue
+                        # Always yield, even with empty content for done signal
+                        yield {
+                            "content": content,
+                            "role": role,
+                            "model": chunk.get("model", ""),
+                            "done": is_done,
+                            "tokens_used": chunk.get("eval_count", 0) if is_done else 0,
+                        }
+
+                        # Yield control to eventlet for smooth streaming
+                        eventlet.sleep(0)
+
+                        # Stop if done
+                        if is_done:
+                            print("[OLLAMA] Stream completed")
+                            break
+                    except json.JSONDecodeError as e:
+                        print(f"[OLLAMA] JSON decode error: {e}, line: {line}")
+                        continue
         except Exception as e:
-            print(f"Error in streaming chat: {e}")
+            print(f"[OLLAMA] Error in streaming chat: {e}")
             import traceback
 
             traceback.print_exc()
+            # Yield error message
+            yield {
+                "content": f"\n\nError: {str(e)}",
+                "role": "assistant",
+                "model": payload.get("model", ""),
+                "done": True,
+                "tokens_used": 0,
+            }
             raise
 
     async def generate(

@@ -17,6 +17,10 @@ from flask_socketio import emit, join_room, leave_room
 from app import socketio
 from app.services.llm_service import llm_service
 from app.services.speech_service import speech_service
+from app.utils.logger import get_logger
+
+# Setup logger
+logger = get_logger(__name__)
 
 # Store active connections
 active_connections = {}
@@ -65,7 +69,9 @@ def handle_connect(auth=None):
             token = auth_header[7:]
 
     if not token:
-        print(f"❌ Connection rejected: No token provided. SID: {cast(Any, request).sid}")
+        logger.warning(
+            "WebSocket connection rejected: No token", extra={"sid": cast(Any, request).sid}
+        )
         return False
 
     try:
@@ -76,11 +82,16 @@ def handle_connect(auth=None):
         # Store connection
         active_connections[cast(Any, request).sid] = {"user_id": user_id, "token": token}
 
-        print(f"✅ Client connected: {cast(Any, request).sid} (user: {user_id})")
+        logger.info(
+            "WebSocket client connected", extra={"sid": cast(Any, request).sid, "user_id": user_id}
+        )
         emit("connected", {"message": "Connected successfully", "user_id": user_id})
         return True
     except Exception as e:
-        print(f"❌ Connection rejected for SID {cast(Any, request).sid}: {e}")
+        logger.error(
+            "WebSocket connection rejected: Invalid token",
+            extra={"sid": cast(Any, request).sid, "error": str(e)},
+        )
         return False
 
 
@@ -90,7 +101,10 @@ def handle_disconnect(*args, **kwargs):
     if cast(Any, request).sid in active_connections:
         user_id = active_connections[cast(Any, request).sid]["user_id"]
         del active_connections[cast(Any, request).sid]
-        print(f"👋 Client disconnected: {cast(Any, request).sid} (user: {user_id})")
+        logger.info(
+            "WebSocket client disconnected",
+            extra={"sid": cast(Any, request).sid, "user_id": user_id},
+        )
 
 
 @socketio.on("join_conversation")
@@ -274,6 +288,7 @@ async def process_chat_message_async(
             print(f"[LLM] Calling LLM service for conversation {conversation_id}")
             # Stream messages
             full_content = ""
+            chunk_count = 0
             print("[ITER] Starting iteration over LLM chunks")
             # Get the generator first (chat_completion is async and returns a generator)
             generator = await llm_service.chat_completion(
@@ -287,28 +302,46 @@ async def process_chat_message_async(
                 regenerate=regenerate,
             )
             print("[ITER] Got generator, starting iteration")
+
+            import eventlet
+
             # Now iterate over the generator
             async for chunk in cast(AsyncGenerator[dict[str, Any], None], generator):
                 # Check if generation was stopped
                 if conversation_id in stopped_generations:
                     print(f"[STOP] Generation stopped for conversation {conversation_id}")
+                    socketio.emit(
+                        "stream_end",
+                        {"conversation_id": conversation_id, "message": None, "stopped": True},
+                        room=conversation_id,
+                    )
                     break
 
-                print(f"[CHUNK] Got chunk: {chunk.get('content', '')[:50]}...")
-                full_content += chunk["content"]
+                chunk_count += 1
+                chunk_content = chunk.get("content", "")
+                print(f"[CHUNK {chunk_count}] Got chunk: {chunk_content[:50]}...")
+                full_content += chunk_content
+
                 # Emit each chunk to the client
                 print(f"[EMIT] Emitting stream_chunk to conversation room {conversation_id}")
                 socketio.emit(
                     "stream_chunk",
                     {
                         "conversation_id": conversation_id,
-                        "content": chunk.get("content", ""),
+                        "content": chunk_content,
                         "done": chunk.get("done", False),
                         "follow_ups": chunk.get("follow_ups"),
                     },
                     room=conversation_id,
                 )
-                print("[EMIT] stream_chunk emitted")
+                print(f"[EMIT] stream_chunk emitted (chunk #{chunk_count})")
+
+                # Yield control to eventlet for smooth operation
+                eventlet.sleep(0)
+
+            print(
+                f"[STREAM] Stream complete. Total chunks: {chunk_count}, Total content length: {len(full_content)}"
+            )
 
             # Fetch the saved message from DB to get complete message object
             # We search for the last assistant message in this conversation

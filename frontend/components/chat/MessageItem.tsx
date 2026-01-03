@@ -15,6 +15,7 @@ import {
 } from '@ant-design/icons';
 import { Bubble } from '@ant-design/x';
 import { FileCard } from './FileCard';
+import { ThinkingIndicator } from './ThinkingIndicator';
 import { API_URL } from '@/lib/api';
 import { MarkdownContent } from '../markdown/MarkdownContent';
 import { useSettings } from '@/hooks/useSettings';
@@ -116,7 +117,10 @@ export const MessageItem = memo(
               )}
               <Bubble
                 placement={msg.role === 'user' ? 'end' : 'start'}
-                loading={msg.status === 'loading'}
+                streaming={msg.status === 'loading'}
+                typing={
+                  msg.status === 'loading' ? { effect: 'typing', step: 1, interval: 0 } : false
+                }
                 avatar={
                   <Avatar
                     icon={
@@ -152,10 +156,17 @@ export const MessageItem = memo(
                       wordBreak: 'break-word',
                     }}
                   >
-                    <MarkdownContent
-                      content={msg.content}
-                      isStreaming={isStreaming && msg.id === 'streaming'}
-                    />
+                    {msg.status === 'loading' && (
+                      <ThinkingIndicator title="Generating response..." />
+                    )}
+                    {msg.content && (
+                      <div style={{ marginTop: msg.status === 'loading' ? '12px' : 0 }}>
+                        <MarkdownContent
+                          content={msg.content}
+                          isStreaming={isStreaming && msg.id === 'streaming'}
+                        />
+                      </div>
+                    )}
                     {msg.metadata?.type === 'image_generation' &&
                       (msg.metadata?.image as any)?.url && (
                         <div
