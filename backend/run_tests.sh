@@ -26,6 +26,7 @@ COVERAGE=false
 MARKERS=""
 VERBOSE=""
 FAILED_FIRST=false
+PARALLEL="-n auto"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -43,6 +44,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --ff|--failed-first)
             FAILED_FIRST=true
+            shift
+            ;;
+        -n|--workers)
+            PARALLEL="-n $2"
+            shift 2
+            ;;
+        --no-parallel)
+            PARALLEL=""
             shift
             ;;
         --unit)
@@ -65,14 +74,18 @@ while [[ $# -gt 0 ]]; do
             echo "  -m, --markers MARK    Run tests with specific marker"
             echo "  -v, --verbose         Verbose output"
             echo "  --ff, --failed-first  Run previously failed tests first"
+            echo "  -n, --workers NUM     Number of parallel workers (default: auto)"
+            echo "  --no-parallel         Disable parallel execution"
             echo "  --unit                Run only unit tests"
             echo "  --integration         Run only integration tests"
             echo "  --auth                Run only auth tests"
             echo "  -h, --help            Show this help message"
             echo ""
             echo "Examples:"
-            echo "  $0                    # Run all tests"
-            echo "  $0 --cov              # Run with coverage"
+            echo "  $0                    # Run all tests (parallel auto)"
+            echo "  $0 --cov              # Run with coverage (parallel)"
+            echo "  $0 -n 4               # Run with 4 workers"
+            echo "  $0 --no-parallel      # Run sequentially"
             echo "  $0 --unit             # Run unit tests only"
             echo "  $0 -m auth --cov      # Run auth tests with coverage"
             exit 0
@@ -87,6 +100,10 @@ done
 
 # Build pytest command
 PYTEST_CMD="pytest tests/"
+
+if [ "$PARALLEL" != "" ]; then
+    PYTEST_CMD="$PYTEST_CMD $PARALLEL"
+fi
 
 if [ "$VERBOSE" != "" ]; then
     PYTEST_CMD="$PYTEST_CMD $VERBOSE"

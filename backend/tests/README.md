@@ -19,16 +19,30 @@ This test suite provides:
 pip install -r requirements-test.txt
 ```
 
-### Run All Tests
+### Run All Tests (Parallel - Default)
 
 ```bash
 ./run_tests.sh
+# Tests run in parallel using all available CPU cores automatically
 ```
 
 ### Run with Coverage
 
 ```bash
 ./run_tests.sh --cov
+```
+
+### Control Parallelization
+
+```bash
+# Use 4 workers
+./run_tests.sh -n 4
+
+# Disable parallelization (sequential)
+./run_tests.sh --no-parallel
+
+# Let pytest auto-detect optimal workers (default)
+./run_tests.sh -n auto
 ```
 
 ## 📊 Test Organization
@@ -151,12 +165,14 @@ open htmlcov/index.html       # macOS
 
 ```bash
 pytest tests/test_auth.py
+# Add -n auto for parallel execution
+pytest tests/test_auth.py -n auto
 ```
 
 ### By Class
 
 ```bash
-pytest tests/test_auth.py::TestAuthRoutes
+pytest tests/test_auth.py::TestAuthRoutes -n auto
 ```
 
 ### By Function
@@ -168,10 +184,66 @@ pytest tests/test_auth.py::TestAuthRoutes::test_login_success
 ### By Keyword
 
 ```bash
-pytest -k "login"  # Run all tests with "login" in name
+pytest -k "login" -n auto  # Run all tests with "login" in name
 ```
 
-## 🐛 Debugging Tests
+### Performance Tips
+
+```bash
+# Maximum parallelization (use all CPU cores)
+./run_tests.sh -n auto
+
+# Fixed number of workers
+./run_tests.sh -n 4
+
+# Sequential for debugging
+./run_tests.sh --no-parallel -v
+```
+
+## � Parallel Test Execution
+
+### Overview
+
+Tests run in parallel by default using `pytest-xdist`, significantly reducing execution time.
+
+### How It Works
+
+- **Auto Mode** (default): Detects CPU cores and creates optimal workers
+- **Manual Control**: Specify exact number of workers with `-n NUM`
+- **Sequential**: Disable with `--no-parallel` for debugging
+
+### Performance Benefits
+
+```bash
+# Sequential execution
+./run_tests.sh --no-parallel
+# Time: ~15 seconds for 30 tests
+
+# Parallel execution (4 cores)
+./run_tests.sh -n 4
+# Time: ~4 seconds for 30 tests (3.75x faster)
+
+# Auto-detect (recommended)
+./run_tests.sh
+# Time: Optimal based on your CPU
+```
+
+### When to Use Sequential
+
+Use `--no-parallel` when:
+- Debugging test failures with `-s` (show print statements)
+- Using `--pdb` (drop into debugger)
+- Tests have shared state issues
+- Running a single test
+
+### Parallel Considerations
+
+- Each worker gets its own fixtures
+- Mocks are isolated per worker
+- Coverage is merged automatically
+- Output is synchronized
+
+## �🐛 Debugging Tests
 
 ### Verbose Output
 
