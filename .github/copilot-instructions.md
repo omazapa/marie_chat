@@ -6,15 +6,31 @@
 - **ALL code MUST be written in English** (variables, functions, classes, comments).
 - **ALL documentation MUST be in English** (README, comments, commit messages).
 - **NO Spanish in code or technical documentation** - Only user-facing UI text can be multilingual.
+- **Be CONCISE in responses** - Provide essential information only, avoid verbose explanations.
+- **❌ CRITICAL: DO NOT CREATE DOCUMENTATION FILES** - This is a STRICT rule:
+  - **NO README files** for each feature/change
+  - **NO CHANGELOG files** after implementations
+  - **NO SUMMARY documents** for completed tasks
+  - **NO TECHNICAL SPECS** unless explicitly requested
+  - Only create documentation when the user EXPLICITLY asks for it or for major architectural changes
+  - Focus on implementing code, not documenting every change
 
 ### Workflow & Automation
 - **Git Operations**: ONLY perform git commits or version control operations if the user EXPLICITLY requests it. Otherwise, the user handles all git commands manually.
 - **CRITICAL: NEVER ask for commit confirmation** - Make changes directly to files.
 - **CRITICAL: DO NOT suggest commits** - The user will commit when ready.
 - **NO commit messages in responses** - Focus on the implementation.
+- **Git Commit Workflow** - BEFORE making ANY commit:
+  1. **MANDATORY**: Run `pre-commit run --all-files` to check all files
+  2. If there are errors, fix them (formatting, linting, etc.)
+  3. Add all files including fixes: `git add -A`
+  4. Run pre-commit again to verify all checks pass
+  5. Only then proceed with `git commit`
 - **Use `docker compose`** (with space) - NOT `docker-compose` (hyphenated).
 - **ALWAYS pin package versions** in `requirements.txt` (e.g., `package==1.2.3`).
 - **CLEAN UP temporary diagnostic files** immediately after use.
+- **CRITICAL: Test files policy** - You CAN create temporary test files (e.g., `test_*.py`, `*.test.ts`) for debugging/validation, but MUST delete them immediately after use. Never commit test files to the repository.
+- **CRITICAL: ALWAYS verify the current working directory** before executing any terminal command. Use `pwd` or check the tool output to avoid running commands in the wrong folder (e.g., running `npm` in the root instead of `frontend/`).
 - **Complete tasks fully** - Implement, test, verify, and report results.
 
 ### Visual Verification (MCP Browser)
@@ -44,8 +60,7 @@
 ## 🤖 Tech Stack & Expertise
 
 ### Backend (Flask 3 + Python 3.12)
-- **Real-time**: `Flask-SocketIO` with `eventlet`.
-- **Critical**: `eventlet.monkey_patch()` MUST be the first line in `run.py`.
+- **Real-time**: `Flask-SocketIO` with threading.
 - **Concurrency**: Keep REST routes synchronous. Use async ONLY for LLM streaming chunks.
 - **Search**: OpenSearch 2.11 (k-NN vector search).
 - **Auth**: Flask-JWT-Extended (RBAC).
@@ -98,7 +113,7 @@ const handleEvent = useCallback(() => {
 ---
 
 ## 📂 Key Files & Directories
-- `backend/run.py`: Entry point, contains `eventlet.monkey_patch()`.
+- `backend/run.py`: Entry point for the backend server.
 - `backend/app/routes/v1/`: Developer API implementation.
 - `frontend/hooks/useChat.ts`: Core chat logic and WebSocket integration.
 - `frontend/components/chat/ChatContainer.tsx`: Main chat UI component.

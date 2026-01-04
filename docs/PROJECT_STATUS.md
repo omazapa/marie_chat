@@ -188,7 +188,7 @@ Current Phase:           11/11
 1. **Ollama** (local, free)
    - Automatic model discovery from Ollama API
    - Supports all Ollama models (llama3.2, mistral, codellama, etc.)
-   
+
 2. **HuggingFace** (cloud, requires API key)
    - Curated list of popular models (Llama 2, Mistral, Falcon, Zephyr)
    - Streaming support (simulated if not available)
@@ -304,8 +304,8 @@ Python 3.12:      Optional (for local dev)
 
 ---
 
-**Last Update:** December 23, 2025  
-**Status:** Phase 13 Completed ✅  
+**Last Update:** December 23, 2025
+**Status:** Phase 13 Completed ✅
 **Developer:** Omar Zapata
 
 ---

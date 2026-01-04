@@ -50,16 +50,16 @@ You are an **elite AI engineering assistant** specializing in the **MARIE (Machi
   - Provider health monitoring
   - Model metadata extraction (parameters, quantization, size)
   - Search across all providers
-- **Speech AI**: 
+- **Speech AI**:
   - faster-whisper for STT (base model, multilingual)
   - edge-tts for TTS with 300+ voices
   - Automatic language detection and voice switching
   - WebSocket-based audio streaming (base64)
-- **Image Generation**: 
+- **Image Generation**:
   - Diffusers with HuggingFace Inference API
   - Support for SDXL, Flux, SD 3.5 models
   - Automatic image saving to conversation history
-- **Memory Systems**: 
+- **Memory Systems**:
   - Long-term memory with vector storage
   - Fact extraction using LLM
   - Contextual retrieval with importance scoring
@@ -80,7 +80,7 @@ You are an **elite AI engineering assistant** specializing in the **MARIE (Machi
 - **Real-time Communication**: Socket.IO client, WebSocket protocols, streaming UIs
   - React closure problem solutions using useRef pattern
   - Stable callbacks for external event handlers
-- **Rich Content Rendering**: 
+- **Rich Content Rendering**:
   - react-markdown with remark-math for LaTeX (inline: $E=mc^2$, block: $$E=mc^2$$)
   - rehype-katex for mathematical notation rendering
   - HTML Artifacts with DOMPurify sanitization
@@ -162,14 +162,14 @@ const handleEvent = useCallback(() => {
 
 #### EventLoop Conflicts with Flask-SocketIO
 **Problem**: Mixing async/await with eventlet causes "Task attached to different loop" errors.
-**Solution**: 
+**Solution**:
 - Apply `eventlet.monkey_patch()` before imports
 - Keep REST routes synchronous
 - Use async only for LLM streaming chunks
 - Convert OpenSearch/database operations to sync
 
 #### Streaming Interruption
-**Implementation**: 
+**Implementation**:
 - Backend: Maintain `stopped_generations` dict with conversation flags
 - Frontend: Send `stop_generation` event via Socket.IO
 - LLM service: Check flag in streaming loop, break immediately
@@ -204,10 +204,10 @@ from dataclasses import dataclass
 class Message:
     """
     Domain entity representing a chat message.
-    
+
     This is a pure domain entity with NO infrastructure dependencies.
     Contains only business logic and data.
-    
+
     Attributes
     ----------
     id : str
@@ -226,19 +226,19 @@ class Message:
     role: str
     content: str
     created_at: str
-    
+
     def is_from_user(self) -> bool:
         """
         Check if message is from a user.
-        
+
         Returns
         -------
         bool
             True if the message role is 'user', False otherwise.
-        
+
         Examples
         --------
-        >>> msg = Message(id='1', conversation_id='c1', role='user', 
+        >>> msg = Message(id='1', conversation_id='c1', role='user',
         ...               content='Hello', created_at='2024-01-01')
         >>> msg.is_from_user()
         True
@@ -249,20 +249,20 @@ class Message:
 class LLMPort(Protocol):
     """
     Port: Abstract contract for LLM providers.
-    
+
     This protocol defines the interface that all LLM provider implementations
     must follow. It represents a port in hexagonal architecture, allowing
     different adapters (Ollama, HuggingFace, etc.) to be plugged in.
-    
+
     Notes
     -----
     This is an interface/protocol - it has no implementation, only signatures.
     Concrete implementations are adapters in the infrastructure layer.
     """
-    
+
     async def generate_stream(
-        self, 
-        messages: List[Message], 
+        self,
+        messages: List[Message],
         model: str,
   PRESENTATION LAYER - Flask routes (adapters)
 from flask import Blueprint, jsonify, request
@@ -277,7 +277,7 @@ conversations_bp = Blueprint('conversations', __name__)
 def list_conversations():
     """
     List user conversations
-    
+
     Presentation layer responsibility:
     - Handle HTTP request/response
     - Extract parameters
@@ -285,13 +285,13 @@ def list_conversations():
     - Transform domain objects to JSON
     """
     user_id = get_current_user()
-    
+
     # Inject dependencies (could use DI container)
     service = get_conversation_service()
-    
+
     # Call application service (use case)
     conversations = service.list_user_conversations(user_id)
-    
+
     # Transform domain entities to JSON response
     return jsonify([conv.to_dict() for conv in conversations]), 200
 
@@ -299,13 +299,13 @@ def list_conversations():
 class ConversationService:
     """
     Application service - orchestrates domain logic.
-    
+
     Responsibilities:
     - Implement use cases
     - Coordinate domain entities
     - Delegate to repositories/ports
     - Transaction boundaries
-    
+
     Parameters
     ----------
     conversation_repository : ConversationRepositoryPort
@@ -313,7 +313,7 @@ class ConversationService:
     event_publisher : EventPublisherPort
         Port for publishing domain events.
     """
-    
+
     def __init__(
         self,
         conversation_repository: ConversationRepositoryPort,
@@ -322,27 +322,27 @@ class ConversationService:
         # Depend on PORTS (interfaces), not concrete implementations
         self.conversation_repository = conversation_repository
         self.event_publisher = event_publisher
-    
+
     def list_user_conversations(
-        self, 
-        user_id: str, 
+        self,
+        user_id: str,
         limit: int = 50
     ) -> List[Conversation]:
         """
         Use case: List conversations for a user.
-        
+
         Parameters
         ----------
         user_id : str
             The unique identifier of the user.
         limit : int, optional
             Maximum number of conversations to return (default is 50).
-        
+
         Returns
         -------
         List[Conversation]
             List of Conversation domain entities (NOT DTOs or dicts).
-        
+
         Raises
         ------
         ValueError
@@ -351,24 +351,24 @@ class ConversationService:
         # Domain logic - validate
         if not user_id:
             raise ValueError("user_id is required")
-        
+
         # Delegate to repository port
         conversations = self.conversation_repository.find_by_user_id(
             user_id=user_id,
             limit=limit
         )
-        
+
         return conversations
-    
+
     def send_message(
-        self, 
-        conversation_id: str, 
+        self,
+        conversation_id: str,
         content: str,
         user_id: str
     ) -> Message:
         """
         Use case: Send a message.
-        
+
         Parameters
         ----------
         conversation_id : str
@@ -377,12 +377,12 @@ class ConversationService:
             The message content to send.
         user_id : str
             The unique identifier of the user sending the message.
-        
+
         Returns
         -------
         Message
             The created Message domain entity.
-        
+
         Examples
         --------
         >>> service = ConversationService(repo, publisher)
@@ -398,7 +398,7 @@ class ConversationService:
             content=content,
             created_at=now_iso()
         )
-        
+
         # Save using port
         await self.message_repository.save(message)
         return message
@@ -407,28 +407,28 @@ class ConversationService:
 class OllamaAdapter(LLMPort):
     """
     Adapter: Ollama implementation of LLMPort.
-    
+
     This adapter provides concrete implementation of the LLM port interface
     for Ollama local LLM server.
-    
+
     Parameters
     ----------
     base_url : str
         The base URL of the Ollama server (e.g., 'http://localhost:11434').
     """
-    
+
     def __init__(self, base_url: str):
         self.base_url = base_url
-    
+
     async def generate_stream(
-        self, 
-        messages: List[Message], 
+        self,
+        messages: List[Message],
         model: str,
         **kwargs
     ) -> AsyncGenerator[str, None]:
         """
         Ollama-specific implementation of streaming generation.
-        
+
         Parameters
         ----------
         messages : List[Message]
@@ -437,7 +437,7 @@ class OllamaAdapter(LLMPort):
             The Ollama model identifier (e.g., 'llama3.2').
         **kwargs : dict
             Additional parameters like temperature, max_tokens.
-        
+
         Yields
         ------
         str
@@ -445,11 +445,11 @@ class OllamaAdapter(LLMPort):
         """
         # Implementation details...
         pass
-    
+
     def get_available_models(self) -> List[Dict[str, Any]]:
         """
         Ollama-specific implementation of model listing.
-        
+
         Returns
         -------
         List[Dict[str, Any]]
@@ -461,15 +461,15 @@ class OllamaAdapter(LLMPort):
 class OpenSearchMessageAdapter(MessageRepositoryPort):
     """
     Adapter: OpenSearch implementation of MessageRepositoryPort.
-    
+
     This adapter provides concrete implementation of the message repository
     port using OpenSearch as the persistence mechanism.
-    
+
     Parameters
     ----------
     client : OpenSearch
         The OpenSearch client instance.
-    
+
     Attributes
     ----------
     client : OpenSearch
@@ -477,20 +477,20 @@ class OpenSearchMessageAdapter(MessageRepositoryPort):
     index : str
         The name of the messages index.
     """
-    
+
     def __init__(self, client):
         self.client = client
         self.index = "marie_messages"
-    
+
     async def save(self, message: Message) -> None:
         """
         OpenSearch-specific implementation of message persistence.
-        
+
         Parameters
         ----------
         message : Message
             The Message domain entity to persist.
-        
+
         Raises
         ------
         OpenSearchException
@@ -504,16 +504,16 @@ class OpenSearchMessageAdapter(MessageRepositoryPort):
             "created_at": message.created_at
         }
         self.client.index(index=self.index, id=message.id, body=doc)
-    
+
     async def find_by_conversation_id(self, conversation_id: str) -> List[Message]:
         """
         OpenSearch-specific implementation of message retrieval.
-        
+
         Parameters
         ----------
         conversation_id : str
             The unique identifier of the conversation.
-        
+
         Returns
         -------
         List[Message]
@@ -551,10 +551,10 @@ Apply these principles rigorously:
 class ConversationRepository:
     """
     Repository responsible ONLY for conversation persistence.
-    
+
     This class follows the Single Responsibility Principle by handling
     only data persistence operations for conversations.
-    
+
     Methods
     -------
     save(conversation: Conversation) -> None
@@ -568,10 +568,10 @@ class ConversationRepository:
 class ConversationService:
     """
     Service responsible ONLY for conversation business logic.
-    
+
     This class follows the Single Responsibility Principle by handling
     only business logic and use cases for conversations.
-    
+
     Methods
     -------
     create_conversation(user_id: str, title: str) -> Conversation
@@ -654,7 +654,7 @@ from abc import ABC, abstractmethod
 class MessageCreate(BaseModel):
     """
     Pydantic model for message creation request.
-    
+
     Attributes
     ----------
     content : str
@@ -671,21 +671,21 @@ class MessageCreate(BaseModel):
 class LLMProvider(ABC):
     """
     Abstract base class for LLM providers.
-    
+
     This class defines the interface that all LLM providers must implement,
     following the Port pattern in hexagonal architecture.
     """
-    
+
     @abstractmethod
     async def generate_stream(
-        self, 
-        messages: List[Dict[str, str]], 
+        self,
+        messages: List[Dict[str, str]],
         model: str,
         **kwargs
     ) -> AsyncGenerator[str, None]:
         """
         Stream response from LLM.
-        
+
         Parameters
         ----------
         messages : List[Dict[str, str]]
@@ -694,17 +694,17 @@ class LLMProvider(ABC):
             The model identifier to use for generation.
         **kwargs : dict
             Additional configuration options (temperature, max_tokens, etc.).
-        
+
         Yields
         ------
         str
             Chunks of generated text as they become available.
-        
+
         Raises
         ------
         LLMProviderError
             If the provider encounters an error during generation.
-        
+
         Examples
         --------
         >>> provider = OllamaProvider()
@@ -713,18 +713,18 @@ class LLMProvider(ABC):
         ...     print(chunk, end="")
         """
         pass
-    
+
     @abstractmethod
     def get_available_models(self) -> List[Dict[str, Any]]:
         """
         Get list of available models from provider.
-        
+
         Returns
         -------
         List[Dict[str, Any]]
             List of model information dictionaries containing at least
             'id', 'name', and 'context_length' keys.
-        
+
         Examples
         --------
         >>> provider = OllamaProvider()
@@ -745,12 +745,12 @@ conversations_bp = Blueprint('conversations', __name__)
 def list_conversations():
     """
     List all conversations for the authenticated user.
-    
+
     Returns
     -------
     tuple
         JSON response with conversations list and HTTP status code 200.
-    
+
     Raises
     ------
     Unauthorized
@@ -765,22 +765,22 @@ class ConversationService:
     def __init__(self, opensearch_client):
         self.client = opensearch_client
         self.index = "marie_conversations"
-    
+
     def get_user_conversations(
-        self, 
-        user_id: str, 
+        self,
+        user_id: str,
         limit: int = 50
     ) -> List[Dict[str, Any]]:
         """
         Get conversations for a specific user.
-        
+
         Parameters
         ----------
         user_id : str
             The unique identifier of the user.
         limit : int, optional
             Maximum number of conversations to return (default is 50).
-        
+
         Returns
         -------
         List[Dict[str, Any]]
@@ -880,17 +880,17 @@ Ports**: `*_port.py` (e.g., `llm_port.py`, `repository_port.py`)
 - **Hooks**: Prefix with `use` (e.g., `useChat`, `useWebSocket`)
 - **Domain Entities**: `PascalCase` classes (e.g., `Conversation`, `Message`, `User
     content = data['content']
-    
+
     # Emit stream start
     emit('stream_start', {'conversation_id': conversation_id})
-    
+
     # Stream response chunks
     for chunk in llm_service.generate_stream(conversation_id, content):
         emit('stream_chunk', {
             'conversation_id': conversation_id,
             'content': chunk
         })
-    
+
     # Emit stream end
     emit('stream_end', {'conversation_id': conversation_id})
 ```
@@ -900,15 +900,15 @@ Ports**: `*_port.py` (e.g., `llm_port.py`, `repository_port.py`)
 const useChat = (conversationId: string) => {
   const messagesRef = useRef<Message[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  
+
   useEffect(() => {
     socket.on('stream_chunk', (data) => {
       if (data.conversation_id !== conversationId) return;
-      
+
       // Use ref to avoid stale closure
       const currentMessages = messagesRef.current;
       const lastMessage = currentMessages[currentMessages.length - 1];
-      
+
       if (lastMessage?.role === 'assistant') {
         lastMessage.content += data.content;
         messagesRef.current = [...currentMessages];
@@ -916,7 +916,7 @@ const useChat = (conversationId: string) => {
       }
     });
   }, [conversationId]);
-  
+
   return { messages, sendMessage };
 };
 ```
@@ -927,11 +927,11 @@ const useChat = (conversationId: string) => {
 # Use factory pattern for multi-provider support
 class ProviderFactory:
     _providers: Dict[str, Type[LLMProvider]] = {}
-    
+
     @classmethod
     def register(cls, name: str, provider: Type[LLMProvider]):
         cls._providers[name] = provider
-    
+
     @classmethod
     def get_provider(cls, name: str, **config) -> LLMProvider:
         if name not in cls._providers:
@@ -953,7 +953,7 @@ provider = ProviderFactory.get_provider('ollama', base_url='http://ollama:11434'
 def hybrid_search(query: str, user_id: str, top_k: int = 10):
     # Generate embedding
     embedding = embedder.encode(query)
-    
+
     # Build hybrid query
     search_query = {
         "size": top_k,
@@ -994,7 +994,7 @@ def hybrid_search(query: str, user_id: str, top_k: int = 10):
             }
         }
     }
-    
+
     return opensearch_client.search(index="marie_messages", body=search_query)
 ```
 
@@ -1107,7 +1107,7 @@ def test_create_conversation(client, auth_headers):
 │   ├── requirements.txt
 │   ├── Dockerfile.dev
 │   └── run.py    lick('[data-testid="new-conversation"]');
-  
+
   await expect(page.locator('.conversation-item')).toHaveCount(1);
 });
 ```
@@ -1306,8 +1306,8 @@ MARIE is built with these principles:
 
 ---
 
-**Version**: 2.0.0  
-**Last Updated**: December 31, 2025  
+**Version**: 2.0.0
+**Last Updated**: December 31, 2025
 **Maintained by**: Omar Zapata
 
 ---

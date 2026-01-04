@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { Modal, Input, Typography, Tag, Empty } from 'antd';
-import { SearchOutlined, MessageOutlined, LinkOutlined } from '@ant-design/icons';
+import { SearchOutlined, MessageOutlined } from '@ant-design/icons';
+import { Conversation, Message } from '@/types';
 
 const { Text, Title } = Typography;
 
@@ -14,9 +15,9 @@ interface ReferenceModalProps {
   onSearch: (value: string) => void;
   isSearching: boolean;
   searchResults: {
-    messages: any[];
+    messages: Message[];
   };
-  conversations: any[];
+  conversations: Conversation[];
   currentConversationId?: string;
   referencedConvIds: string[];
   referencedMsgIds: string[];
@@ -51,7 +52,7 @@ export const ReferenceModal: React.FC<ReferenceModalProps> = ({
         <Text type="secondary">
           Search and select conversations or specific messages to include as context.
         </Text>
-        
+
         <Input.Search
           placeholder="Search in history (semantic search)..."
           allowClear
@@ -68,8 +69,8 @@ export const ReferenceModal: React.FC<ReferenceModalProps> = ({
                 Messages Found (Semantic Search)
               </Title>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {searchResults.messages.map((msg: any) => (
-                  <div 
+                {searchResults.messages.map((msg: Message) => (
+                  <div
                     key={msg.id}
                     onClick={() => toggleMessageReference(msg.id)}
                     style={{
@@ -78,11 +79,20 @@ export const ReferenceModal: React.FC<ReferenceModalProps> = ({
                       border: `1px solid ${referencedMsgIds.includes(msg.id) ? '#13c2c2' : '#f0f0f0'}`,
                       background: referencedMsgIds.includes(msg.id) ? '#e6fffb' : '#ffffff',
                       cursor: 'pointer',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.2s',
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <Tag color={msg.role === 'user' ? 'blue' : 'green'} style={{ fontSize: '10px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      <Tag
+                        color={msg.role === 'user' ? 'blue' : 'green'}
+                        style={{ fontSize: '10px' }}
+                      >
                         {msg.role.toUpperCase()}
                       </Tag>
                       <Text type="secondary" style={{ fontSize: '11px' }}>
@@ -90,14 +100,17 @@ export const ReferenceModal: React.FC<ReferenceModalProps> = ({
                       </Text>
                     </div>
                     {msg.highlight ? (
-                      <div 
+                      <div
                         style={{ fontSize: '13px', display: 'block', color: 'rgba(0, 0, 0, 0.85)' }}
                         dangerouslySetInnerHTML={{ __html: msg.highlight }}
                       />
                     ) : (
-                      <Text style={{ fontSize: '13px', display: 'block' }} ellipsis={{ rows: 2 }}>
+                      <Typography.Paragraph
+                        style={{ fontSize: '13px', display: 'block', margin: 0 }}
+                        ellipsis={{ rows: 2 }}
+                      >
                         {msg.content}
-                      </Text>
+                      </Typography.Paragraph>
                     )}
                     {referencedMsgIds.includes(msg.id) && (
                       <div style={{ textAlign: 'right', marginTop: '4px' }}>
@@ -116,9 +129,9 @@ export const ReferenceModal: React.FC<ReferenceModalProps> = ({
           </Title>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {conversations
-              .filter(c => c.id !== currentConversationId)
-              .map(conv => (
-                <div 
+              .filter((c) => c.id !== currentConversationId)
+              .map((conv) => (
+                <div
                   key={conv.id}
                   onClick={() => toggleReference(conv.id)}
                   style={{
@@ -130,19 +143,21 @@ export const ReferenceModal: React.FC<ReferenceModalProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
                   }}
                 >
-                  <MessageOutlined style={{ color: referencedConvIds.includes(conv.id) ? '#1890ff' : '#8c8c8c' }} />
+                  <MessageOutlined
+                    style={{ color: referencedConvIds.includes(conv.id) ? '#1890ff' : '#8c8c8c' }}
+                  />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <Text strong style={{ display: 'block' }} ellipsis>{conv.title}</Text>
+                    <Text strong style={{ display: 'block' }} ellipsis>
+                      {conv.title}
+                    </Text>
                     <Text type="secondary" style={{ fontSize: '12px' }}>
                       {new Date(conv.updated_at).toLocaleDateString()}
                     </Text>
                   </div>
-                  {referencedConvIds.includes(conv.id) && (
-                    <Tag color="blue">Selected</Tag>
-                  )}
+                  {referencedConvIds.includes(conv.id) && <Tag color="blue">Selected</Tag>}
                 </div>
               ))}
             {conversations.length <= 1 && !isSearching && searchResults.messages.length === 0 && (

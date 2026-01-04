@@ -1,14 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Input, Select, Button, Typography, Space, Card, Tag, Tooltip, Spin, Badge, Collapse } from 'antd';
-import { BulbOutlined, CopyOutlined, CheckOutlined, SendOutlined, AudioOutlined, AudioMutedOutlined, DownOutlined } from '@ant-design/icons';
+import { Modal, Input, Select, Button, Typography, Space, Card, Tooltip, Collapse } from 'antd';
+import {
+  BulbOutlined,
+  CopyOutlined,
+  CheckOutlined,
+  SendOutlined,
+  AudioOutlined,
+  AudioMutedOutlined,
+} from '@ant-design/icons';
 import { usePrompts } from '@/hooks/usePrompts';
 import { useAuthStore } from '@/stores/authStore';
 import { useSettings } from '@/hooks/useSettings';
 import { useSpeech } from '@/hooks/useSpeech';
 
-const { Text, Paragraph, Title } = Typography;
+const { Text, Paragraph } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
@@ -23,12 +30,13 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
   visible,
   onClose,
   onApply,
-  initialPrompt = ''
+  initialPrompt = '',
 }) => {
   const { whiteLabel } = useSettings();
   const { accessToken } = useAuthStore();
-  const { isOptimizing, techniques, templates, profiles, fetchTechniques, optimizePrompt } = usePrompts(accessToken);
-  
+  const { isOptimizing, techniques, templates, profiles, fetchTechniques, optimizePrompt } =
+    usePrompts(accessToken);
+
   const [userInput, setUserInput] = useState(initialPrompt);
   const [context, setContext] = useState<string>('');
   const [selectedTechnique, setSelectedTechnique] = useState<string>('cot');
@@ -37,22 +45,21 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
   const [optimizedResult, setOptimizedResult] = useState<string>('');
   const [copied, setCopied] = useState(false);
 
-  const {
-    isRecording,
-    isTranscribing,
-    startRecording,
-    stopRecording,
-  } = useSpeech({
+  const { isRecording, isTranscribing, startRecording, stopRecording } = useSpeech({
     accessToken,
     onTranscription: (text) => {
-      setUserInput(prev => prev ? `${prev} ${text}` : text);
-    }
+      setUserInput((prev) => (prev ? `${prev} ${text}` : text));
+    },
   });
 
   useEffect(() => {
     if (visible) {
       fetchTechniques();
-      setUserInput(initialPrompt);
+      // Use setTimeout to avoid synchronous setState in effect warning
+      const timer = setTimeout(() => {
+        setUserInput(initialPrompt);
+      }, 0);
+      return () => clearTimeout(timer);
     } else {
       // Stop recording if modal is closed
       if (isRecording) {
@@ -71,14 +78,14 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
 
   const handleOptimize = async () => {
     if (!userInput.trim()) return;
-    
+
     const result = await optimizePrompt({
       prompt: userInput,
       technique: selectedTechnique,
       profile: selectedProfile,
-      context: context
+      context: context,
     });
-    
+
     if (result) {
       setOptimizedResult(result);
     }
@@ -104,10 +111,10 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
         <Button key="close" onClick={onClose}>
           Cancel
         </Button>,
-        <Button 
-          key="apply" 
-          type="primary" 
-          disabled={!optimizedResult} 
+        <Button
+          key="apply"
+          type="primary"
+          disabled={!optimizedResult}
           onClick={() => {
             onApply(optimizedResult);
             onClose();
@@ -115,32 +122,36 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
           icon={<SendOutlined />}
         >
           Apply to Chat
-        </Button>
+        </Button>,
       ]}
       width={700}
     >
       <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-        <Collapse 
-          ghost 
+        <Collapse
+          ghost
           size="small"
           expandIconPlacement="end"
-          items={[{
-            key: 'templates',
-            label: <Text strong>Quick Templates</Text>,
-            children: (
-              <Select
-                style={{ width: '100%' }}
-                value={selectedTemplate}
-                onChange={handleTemplateSelect}
-                placeholder="Choose a template..."
-                allowClear
-              >
-                {Object.keys(templates).map(key => (
-                  <Option key={key} value={key}>{key.charAt(0).toUpperCase() + key.slice(1)}</Option>
-                ))}
-              </Select>
-            )
-          }]} 
+          items={[
+            {
+              key: 'templates',
+              label: <Text strong>Quick Templates</Text>,
+              children: (
+                <Select
+                  style={{ width: '100%' }}
+                  value={selectedTemplate}
+                  onChange={handleTemplateSelect}
+                  placeholder="Choose a template..."
+                  allowClear
+                >
+                  {Object.keys(templates).map((key) => (
+                    <Option key={key} value={key}>
+                      {key.charAt(0).toUpperCase() + key.slice(1)}
+                    </Option>
+                  ))}
+                </Select>
+              ),
+            },
+          ]}
         />
 
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
@@ -172,9 +183,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
             >
               {Object.entries(techniques).map(([id, description]) => (
                 <Option key={id} value={id}>
-                  <Tooltip title={description}>
-                    {id.toUpperCase().replace('_', ' ')}
-                  </Tooltip>
+                  <Tooltip title={description}>{id.toUpperCase().replace('_', ' ')}</Tooltip>
                 </Option>
               ))}
             </Select>
@@ -185,17 +194,17 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text strong>Your Request / Topic</Text>
             <Space>
-              <Button 
-                type="text" 
-                size="small" 
+              <Button
+                type="text"
+                size="small"
                 onClick={() => setUserInput('')}
                 disabled={!userInput || isOptimizing}
               >
                 Clear
               </Button>
-              <Tooltip title={isRecording ? "Stop recording" : "Voice input"}>
+              <Tooltip title={isRecording ? 'Stop recording' : 'Voice input'}>
                 <Button
-                  type={isRecording ? "primary" : "text"}
+                  type={isRecording ? 'primary' : 'text'}
                   danger={isRecording}
                   shape="circle"
                   size="small"
@@ -208,30 +217,38 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
           </div>
           <TextArea
             rows={4}
-            placeholder={isRecording ? "Listening..." : isTranscribing ? "Transcribing..." : "Describe what you want the AI to do..."}
+            placeholder={
+              isRecording
+                ? 'Listening...'
+                : isTranscribing
+                  ? 'Transcribing...'
+                  : 'Describe what you want the AI to do...'
+            }
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             style={{ marginTop: 8 }}
           />
         </div>
 
-        <Collapse 
-          ghost 
+        <Collapse
+          ghost
           size="small"
           expandIconPlacement="end"
-          items={[{
-            key: 'context',
-            label: <Text strong>Additional Context (Optional)</Text>,
-            children: (
-              <TextArea
-                rows={2}
-                placeholder="Provide background info, specific data, or examples..."
-                value={context}
-                onChange={(e) => setContext(e.target.value)}
-                style={{ marginTop: 8 }}
-              />
-            )
-          }]} 
+          items={[
+            {
+              key: 'context',
+              label: <Text strong>Additional Context (Optional)</Text>,
+              children: (
+                <TextArea
+                  rows={2}
+                  placeholder="Provide background info, specific data, or examples..."
+                  value={context}
+                  onChange={(e) => setContext(e.target.value)}
+                  style={{ marginTop: 8 }}
+                />
+              ),
+            },
+          ]}
         />
 
         <div style={{ marginTop: -8 }}>
@@ -240,9 +257,9 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
           </Text>
         </div>
 
-        <Button 
-          type="primary" 
-          onClick={handleOptimize} 
+        <Button
+          type="primary"
+          onClick={handleOptimize}
           loading={isOptimizing}
           icon={<BulbOutlined />}
           block
@@ -252,17 +269,24 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
         </Button>
 
         {optimizedResult && (
-          <Card 
+          <Card
             title={
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  width: '100%',
+                }}
+              >
                 <Space>
                   <BulbOutlined style={{ color: '#faad14' }} />
                   <span>Optimized Prompt</span>
                 </Space>
-                <Button 
-                  type="text" 
-                  size="small" 
-                  icon={copied ? <CheckOutlined style={{ color: '#52c41a' }} /> : <CopyOutlined />} 
+                <Button
+                  type="text"
+                  size="small"
+                  icon={copied ? <CheckOutlined style={{ color: '#52c41a' }} /> : <CopyOutlined />}
                   onClick={handleCopy}
                 >
                   {copied ? 'Copied' : 'Copy'}
@@ -271,9 +295,12 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
             }
             style={{ background: '#f9f9f9', border: '1px solid #e6e6e6' }}
           >
-            <Paragraph style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
-              {optimizedResult}
-            </Paragraph>
+            <TextArea
+              rows={6}
+              value={optimizedResult}
+              onChange={(e) => setOptimizedResult(e.target.value)}
+              style={{ whiteSpace: 'pre-wrap' }}
+            />
           </Card>
         )}
       </Space>

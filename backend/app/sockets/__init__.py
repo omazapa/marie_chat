@@ -1,3 +1,3 @@
-from app.sockets.chat_events import *
+from app.sockets import chat_events
 
-__all__ = ['chat_events']
+__all__ = ["chat_events"]

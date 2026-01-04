@@ -13,6 +13,36 @@ export const useSpeech = ({ accessToken, onTranscription, onTranscribe }: UseSpe
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
+  const transcribeAudio = useCallback(
+    async (audioBlob: Blob, language?: string) => {
+      if (!accessToken) return;
+
+      setIsTranscribing(true);
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'recording.wav');
+      if (language) {
+        formData.append('language', language);
+      }
+
+      try {
+        const response = await apiClient.post('/speech/transcribe', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        if (response.data.text) {
+          onTranscription(response.data.text);
+        }
+      } catch (error) {
+        console.error('Error transcribing audio:', error);
+      } finally {
+        setIsTranscribing(false);
+      }
+    },
+    [accessToken, onTranscription]
+  );
+
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -28,7 +58,7 @@ export const useSpeech = ({ accessToken, onTranscription, onTranscribe }: UseSpe
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        
+
         if (onTranscribe) {
           const reader = new FileReader();
           reader.readAsDataURL(audioBlob);
@@ -39,9 +69,9 @@ export const useSpeech = ({ accessToken, onTranscription, onTranscribe }: UseSpe
         } else {
           await transcribeAudio(audioBlob);
         }
-        
+
         // Stop all tracks to release the microphone
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();
@@ -50,7 +80,7 @@ export const useSpeech = ({ accessToken, onTranscription, onTranscribe }: UseSpe
       console.error('Error accessing microphone:', error);
       alert('Could not access microphone. Please check permissions.');
     }
-  }, [accessToken, onTranscribe]);
+  }, [onTranscribe, transcribeAudio]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -58,33 +88,6 @@ export const useSpeech = ({ accessToken, onTranscription, onTranscribe }: UseSpe
       setIsRecording(false);
     }
   }, [isRecording]);
-
-  const transcribeAudio = async (audioBlob: Blob, language?: string) => {
-    if (!accessToken) return;
-
-    setIsTranscribing(true);
-    const formData = new FormData();
-    formData.append('file', audioBlob, 'recording.wav');
-    if (language) {
-      formData.append('language', language);
-    }
-
-    try {
-      const response = await apiClient.post('/speech/transcribe', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      if (response.data.text) {
-        onTranscription(response.data.text);
-      }
-    } catch (error) {
-      console.error('Error transcribing audio:', error);
-    } finally {
-      setIsTranscribing(false);
-    }
-  };
 
   return {
     isRecording,

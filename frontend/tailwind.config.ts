@@ -44,9 +44,6 @@ const config: Config = {
     },
   },
   plugins: [],
-  corePlugins: {
-    preflight: false, // Disable to avoid conflicts with Ant Design
-  },
 };
 
 export default config;

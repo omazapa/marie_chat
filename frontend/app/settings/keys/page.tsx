@@ -1,34 +1,29 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Card, 
-  Table, 
-  Button, 
-  Typography, 
-  Space, 
-  Tag, 
-  Modal, 
-  Form, 
-  Input, 
-  InputNumber, 
-  App, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Card,
+  Table,
+  Button,
+  Typography,
+  Space,
+  Tag,
+  Modal,
+  Form,
+  Input,
+  InputNumber,
+  App,
   Empty,
   Tooltip,
   Alert,
-  Divider
+  Divider,
 } from 'antd';
-import { 
-  PlusOutlined, 
-  DeleteOutlined, 
-  CopyOutlined, 
-  KeyOutlined,
-  InfoCircleOutlined,
-  EyeOutlined,
-  EyeInvisibleOutlined
-} from '@ant-design/icons';
-import apiClient from '@/lib/api';
+import { PlusOutlined, DeleteOutlined, CopyOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import apiClient, { getErrorMessage } from '@/lib/api';
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -51,31 +46,31 @@ export default function APIKeysPage() {
   const [form] = Form.useForm();
   const { message, modal } = App.useApp();
 
-  const fetchKeys = async () => {
+  const fetchKeys = useCallback(async () => {
     setLoading(true);
     try {
       const response = await apiClient.get('/api-keys');
       setKeys(response.data.keys);
-    } catch (err) {
-      message.error('Failed to fetch API keys');
+    } catch (err: unknown) {
+      message.error(getErrorMessage(err, 'Failed to fetch API keys'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [message]);
 
   useEffect(() => {
     fetchKeys();
-  }, []);
+  }, [fetchKeys]);
 
-  const handleCreateKey = async (values: any) => {
+  const handleCreateKey = async (values: { name: string; expires_in_days?: number }) => {
     try {
       const response = await apiClient.post('/api-keys', values);
       setNewKeyData(response.data);
       setIsModalVisible(false);
       form.resetFields();
       fetchKeys();
-    } catch (err) {
-      message.error('Failed to create API key');
+    } catch (err: unknown) {
+      message.error(getErrorMessage(err, 'Failed to create API key'));
     }
   };
 
@@ -91,8 +86,8 @@ export default function APIKeysPage() {
           await apiClient.delete(`/api-keys/${id}`);
           message.success('API key revoked');
           fetchKeys();
-        } catch (err) {
-          message.error('Failed to revoke API key');
+        } catch (err: unknown) {
+          message.error(getErrorMessage(err, 'Failed to revoke API key'));
         }
       },
     });
@@ -132,27 +127,26 @@ export default function APIKeysPage() {
       title: 'Last Used',
       dataIndex: 'last_used_at',
       key: 'last_used_at',
-      render: (date: string | null) => date ? dayjs(date).fromNow() : <Text type="secondary">Never</Text>,
+      render: (date: string | null) =>
+        date ? dayjs(date).fromNow() : <Text type="secondary">Never</Text>,
     },
     {
       title: 'Status',
       dataIndex: 'is_active',
       key: 'is_active',
       render: (active: boolean) => (
-        <Tag color={active ? 'success' : 'error'}>
-          {active ? 'Active' : 'Inactive'}
-        </Tag>
+        <Tag color={active ? 'success' : 'error'}>{active ? 'Active' : 'Inactive'}</Tag>
       ),
     },
     {
       title: 'Actions',
       key: 'actions',
-      render: (_: any, record: APIKey) => (
+      render: (_: unknown, record: APIKey) => (
         <Tooltip title="Revoke Key">
-          <Button 
-            type="text" 
-            danger 
-            icon={<DeleteOutlined />} 
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
             onClick={() => handleRevokeKey(record.id, record.name)}
           />
         </Tooltip>
@@ -163,24 +157,29 @@ export default function APIKeysPage() {
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '24px',
+          }}
+        >
           <div>
-            <Title level={4} style={{ margin: 0 }}>Your API Keys</Title>
+            <Title level={4} style={{ margin: 0 }}>
+              Your API Keys
+            </Title>
             <Text type="secondary">Manage keys to access MARIE via REST API</Text>
           </div>
           <Space>
-            <Button 
-              icon={<InfoCircleOutlined />} 
-              href="http://localhost:5000/api/v1/docs" 
+            <Button
+              icon={<InfoCircleOutlined />}
+              href="http://localhost:5000/api/v1/docs"
               target="_blank"
             >
               API Documentation
             </Button>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={() => setIsModalVisible(true)}
-            >
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>
               Create New Key
             </Button>
           </Space>
@@ -194,23 +193,31 @@ export default function APIKeysPage() {
           style={{ marginBottom: '24px' }}
         />
 
-        <Table 
-          dataSource={keys} 
-          columns={columns} 
-          rowKey="id" 
+        <Table
+          dataSource={keys}
+          columns={columns}
+          rowKey="id"
           loading={loading}
           locale={{ emptyText: <Empty description="No API keys found" /> }}
         />
 
         <Divider />
-        
+
         <Title level={5}>Quick Start Example</Title>
         <Paragraph>
-          You can use your API key to interact with MARIE from any application. Here is a simple <Text code>curl</Text> example:
+          You can use your API key to interact with MARIE from any application. Here is a simple{' '}
+          <Text code>curl</Text> example:
         </Paragraph>
-        <div style={{ background: '#001529', padding: '16px', borderRadius: '8px', position: 'relative' }}>
+        <div
+          style={{
+            background: '#001529',
+            padding: '16px',
+            borderRadius: '8px',
+            position: 'relative',
+          }}
+        >
           <pre style={{ color: '#fff', margin: 0, overflowX: 'auto' }}>
-{`curl -X POST http://localhost:5000/api/v1/chat/completions \\
+            {`curl -X POST http://localhost:5000/api/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: YOUR_API_KEY" \\
   -d '{
@@ -218,17 +225,26 @@ export default function APIKeysPage() {
     "model": "llama3.2"
   }'`}
           </pre>
-          <Button 
-            size="small" 
-            icon={<CopyOutlined />} 
-            style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none' }}
-            onClick={() => copyToClipboard(`curl -X POST http://localhost:5000/api/v1/chat/completions \\
+          <Button
+            size="small"
+            icon={<CopyOutlined />}
+            style={{
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              background: 'rgba(255,255,255,0.1)',
+              color: '#fff',
+              border: 'none',
+            }}
+            onClick={() =>
+              copyToClipboard(`curl -X POST http://localhost:5000/api/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: YOUR_API_KEY" \\
   -d '{
     "messages": [{"role": "user", "content": "Hello MARIE!"}],
     "model": "llama3.2"
-  }'`)}
+  }'`)
+            }
           />
         </div>
       </Card>
@@ -253,19 +269,17 @@ export default function APIKeysPage() {
           >
             <Input placeholder="e.g. My Research App" />
           </Form.Item>
-          
-          <Form.Item
-            name="expires_in_days"
-            label="Expiration (days)"
-            rules={[{ required: true }]}
-          >
+
+          <Form.Item name="expires_in_days" label="Expiration (days)" rules={[{ required: true }]}>
             <InputNumber min={1} max={3650} style={{ width: '100%' }} />
           </Form.Item>
 
           <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
             <Space>
               <Button onClick={() => setIsModalVisible(false)}>Cancel</Button>
-              <Button type="primary" htmlType="submit">Create Key</Button>
+              <Button type="primary" htmlType="submit">
+                Create Key
+              </Button>
             </Space>
           </Form.Item>
         </Form>
@@ -279,7 +293,7 @@ export default function APIKeysPage() {
         footer={[
           <Button key="close" type="primary" onClick={() => setNewKeyData(null)}>
             I have saved this key
-          </Button>
+          </Button>,
         ]}
         closable={false}
         maskClosable={false}
@@ -291,22 +305,24 @@ export default function APIKeysPage() {
           showIcon
           style={{ marginBottom: '16px' }}
         />
-        
-        <div style={{ 
-          background: '#f5f5f5', 
-          padding: '16px', 
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          border: '1px solid #d9d9d9'
-        }}>
+
+        <div
+          style={{
+            background: '#f5f5f5',
+            padding: '16px',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            border: '1px solid #d9d9d9',
+          }}
+        >
           <Text code style={{ fontSize: '16px', wordBreak: 'break-all' }}>
             {newKeyData?.api_key}
           </Text>
-          <Button 
-            type="text" 
-            icon={<CopyOutlined />} 
+          <Button
+            type="text"
+            icon={<CopyOutlined />}
             onClick={() => copyToClipboard(newKeyData?.api_key || '')}
           />
         </div>

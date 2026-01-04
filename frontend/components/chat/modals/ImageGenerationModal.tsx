@@ -42,9 +42,11 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '12px 0' }}>
         <div>
-          <Text strong style={{ display: 'block', marginBottom: '8px' }}>Prompt</Text>
-          <Input.TextArea 
-            placeholder="Describe the image you want to generate..." 
+          <Text strong style={{ display: 'block', marginBottom: '8px' }}>
+            Prompt
+          </Text>
+          <Input.TextArea
+            placeholder="Describe the image you want to generate..."
             value={imagePrompt}
             onChange={(e) => setImagePrompt(e.target.value)}
             rows={4}
@@ -52,12 +54,14 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
           />
         </div>
         <div>
-          <Text strong style={{ display: 'block', marginBottom: '8px' }}>Model</Text>
+          <Text strong style={{ display: 'block', marginBottom: '8px' }}>
+            Model
+          </Text>
           <Select
             style={{ width: '100%' }}
             value={selectedImageModel}
             onChange={setSelectedImageModel}
-            options={imageModels.map(m => ({ label: m.name, value: m.id }))}
+            options={imageModels.map((m) => ({ label: m.name, value: m.id }))}
             placeholder="Select a model"
           />
         </div>

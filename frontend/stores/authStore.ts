@@ -8,7 +8,7 @@ interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   legacyHydrated: boolean;
-  
+
   // Actions
   setAuth: (data: LoginResponse) => void;
   setUser: (user: User) => void;

@@ -10,19 +10,58 @@ const TEST_USER = {
   full_name: 'Test User'
 };
 
+const ADMIN_API_KEY = 'mc_IOM7nahO9fOev-Fp5ukRDdqHV7uhBG9bJUIejq040YE';
+
 test.describe('Create Test User', () => {
-  
+
+  test.beforeAll(async ({ request }) => {
+    console.log('Enabling registration via Developer API...');
+    const response = await request.put(`${API_URL}/api/v1/settings/registration`, {
+      headers: {
+        'X-API-Key': ADMIN_API_KEY
+      },
+      data: {
+        enabled: true
+      }
+    });
+
+    if (response.ok()) {
+      console.log('✅ Registration enabled successfully');
+    } else {
+      console.error('❌ Failed to enable registration:', await response.text());
+    }
+  });
+
+  test.afterAll(async ({ request }) => {
+    console.log('Disabling registration via Developer API...');
+    const response = await request.put(`${API_URL}/api/v1/settings/registration`, {
+      headers: {
+        'X-API-Key': ADMIN_API_KEY
+      },
+      data: {
+        enabled: false
+      }
+    });
+
+    if (response.ok()) {
+      console.log('✅ Registration disabled successfully');
+    } else {
+      console.error('❌ Failed to disable registration:', await response.text());
+    }
+  });
+
   test('should create test@example.com user', async ({ page }) => {
     console.log('Creating test user...');
-    
+
     // Navigate to register page
     await page.goto(`${BASE_URL}/register`);
     await page.waitForLoadState('networkidle');
 
     // Fill registration form
-    await page.fill('input[type="email"]', TEST_USER.email);
-    await page.fill('input[name="full_name"], input[placeholder*="name"], input[placeholder*="nombre"]', TEST_USER.full_name);
-    await page.fill('input[type="password"]', TEST_USER.password);
+    await page.fill('input[placeholder*="email"]', TEST_USER.email);
+    await page.fill('input[placeholder*="name"], input[placeholder*="nombre"]', TEST_USER.full_name);
+    await page.fill('input[placeholder*="characters"], input[placeholder*="contraseña"]', TEST_USER.password);
+    await page.fill('input[placeholder*="Repeat"], input[placeholder*="Repetir"]', TEST_USER.password);
 
     // Submit form
     await page.click('button[type="submit"]');
@@ -37,30 +76,39 @@ test.describe('Create Test User', () => {
     if (currentUrl.includes('/chat')) {
       console.log('✅ User created and auto-logged in successfully!');
       console.log('✅ Redirected to chat page');
-      
+
+      // Wait for loading state to disappear
+      await expect(page.locator('text=Loading Chat...')).not.toBeVisible({ timeout: 30000 });
+
       // Verify we're in the chat interface
-      await expect(page.getByRole('heading', { name: 'Marie', exact: true })).toBeVisible({ timeout: 5000 });
-      
+      await expect(page.locator('text=Marie').first()).toBeVisible({ timeout: 10000 });
+
       console.log('\n📧 User Details:');
       console.log(`Email: ${TEST_USER.email}`);
       console.log(`Password: ${TEST_USER.password}`);
       console.log(`Name: ${TEST_USER.full_name}`);
     } else {
       console.log('⚠️ Not redirected to chat, checking current page...');
-      await page.screenshot({ path: 'test-results/registration-state.png' });
+      // Check if user already exists
+      const errorText = await page.locator('text=/already exists|ya existe/i').isVisible();
+      if (errorText) {
+        console.log('✅ User already exists, proceeding to login test');
+      } else {
+        await page.screenshot({ path: 'test-results/registration-state.png' });
+      }
     }
   });
 
   test('should login with test@example.com', async ({ page }) => {
     console.log('Testing login with test credentials...');
-    
+
     // Navigate to login page
     await page.goto(`${BASE_URL}/login`);
     await page.waitForLoadState('networkidle');
 
     // Fill login form
-    await page.fill('input[type="email"]', TEST_USER.email);
-    await page.fill('input[type="password"]', TEST_USER.password);
+    await page.fill('input[placeholder*="email"]', TEST_USER.email);
+    await page.fill('input[placeholder*="password"], input[placeholder*="contraseña"]', TEST_USER.password);
 
     // Submit form
     await page.click('button[type="submit"]');
@@ -70,7 +118,7 @@ test.describe('Create Test User', () => {
 
     // Should be redirected to chat page
     await page.waitForURL('**/chat', { timeout: 10000 });
-    
+
     console.log('✅ Login successful!');
     console.log('✅ Redirected to chat page');
 
@@ -96,7 +144,7 @@ test.describe('Create Test User', () => {
       console.log('✅ User verified via API');
       console.log(`✅ Access token received: ${data.access_token.substring(0, 20)}...`);
       console.log(`✅ User: ${data.user.email}`);
-      
+
       expect(data).toHaveProperty('access_token');
       expect(data.user.email).toBe(TEST_USER.email);
     } else {
@@ -108,11 +156,11 @@ test.describe('Create Test User', () => {
 
   test('should create a test conversation', async ({ page }) => {
     console.log('Creating test conversation...');
-    
+
     // Login first
     await page.goto(`${BASE_URL}/login`);
-    await page.fill('input[type="email"]', TEST_USER.email);
-    await page.fill('input[type="password"]', TEST_USER.password);
+    await page.fill('input[placeholder*="email"]', TEST_USER.email);
+    await page.fill('input[placeholder*="password"], input[placeholder*="contraseña"]', TEST_USER.password);
     await page.click('button[type="submit"]');
     await page.waitForURL('**/chat', { timeout: 10000 });
 

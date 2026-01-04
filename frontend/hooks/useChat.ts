@@ -1,99 +1,136 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import apiClient from '../lib/api';
-import { useWebSocket, Message, StreamChunk } from './useWebSocket';
+import apiClient, { getErrorMessage } from '../lib/api';
+import { useWebSocket } from './useWebSocket';
+import { Conversation, Message, StreamChunk, Attachment } from '@/types';
 
-export interface Conversation {
-  id: string;
-  user_id: string;
-  title: string;
-  model: string;
-  provider: string;
-  system_prompt?: string;
-  settings?: Record<string, any>;
-  message_count: number;
-  last_message_at?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export function useChat(token: string | null, options?: { onTranscription?: (text: string) => void }) {
+export function useChat(
+  token: string | null,
+  options?: { onTranscription?: (text: string) => void }
+) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [streamingMessage, setStreamingMessage] = useState<string>('');
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingMessages, setStreamingMessages] = useState<Record<string, string>>({});
+  const [streamingStates, setStreamingStates] = useState<Record<string, boolean>>({});
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [ttsAudio, setTtsAudio] = useState<{ audio: string; message_id?: string } | null>(null);
-  const [searchResults, setSearchResults] = useState<{ conversations: Conversation[]; messages: Message[] }>({ conversations: [], messages: [] });
+  const [searchResults, setSearchResults] = useState<{
+    conversations: Conversation[];
+    messages: Message[];
+  }>({ conversations: [], messages: [] });
   const [isSearching, setIsSearching] = useState(false);
-  const [imageProgress, setImageProgress] = useState<{ 
-    conversation_id: string; 
-    progress: number; 
-    step: number; 
-    total_steps: number; 
+  const [imageProgress, setImageProgress] = useState<{
+    conversation_id: string;
+    progress: number;
+    step: number;
+    total_steps: number;
     preview?: string;
     image_url?: string;
     message?: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [updateTrigger, setUpdateTrigger] = useState(0);
-  
+
   // Use ref to keep track of current conversation for callbacks
   const currentConversationRef = useRef<Conversation | null>(null);
-  
+
+  // Use ref for streaming content to avoid stale closures
+  const streamingContentRef = useRef<Record<string, string>>({});
+
+  // Track streaming timeouts to prevent stuck "thinking" state
+  const streamingTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
+
   // Update ref when state changes
   useEffect(() => {
     currentConversationRef.current = currentConversation;
   }, [currentConversation]);
 
-  // WebSocket handlers
-  const handleStreamStart = useCallback((data: { conversation_id: string }) => {
-    if (currentConversationRef.current?.id === data.conversation_id) {
-      setIsStreaming(true);
-      setStreamingMessage('');
+  // Cleanup function to clear streaming state
+  const clearStreamingState = useCallback((conversationId: string) => {
+    delete streamingContentRef.current[conversationId];
+    setStreamingStates((prev) => ({ ...prev, [conversationId]: false }));
+    setStreamingMessages((prev) => {
+      const next = { ...prev };
+      delete next[conversationId];
+      return next;
+    });
+    // Clear timeout if exists
+    if (streamingTimeoutsRef.current[conversationId]) {
+      clearTimeout(streamingTimeoutsRef.current[conversationId]);
+      delete streamingTimeoutsRef.current[conversationId];
     }
   }, []);
 
+  // WebSocket handlers
+  const handleStreamStart = useCallback(
+    (data: { conversation_id: string }) => {
+      streamingContentRef.current[data.conversation_id] = '';
+      setStreamingStates((prev) => ({ ...prev, [data.conversation_id]: true }));
+      setStreamingMessages((prev) => ({ ...prev, [data.conversation_id]: '' }));
+
+      // Set a 60-second timeout to auto-clear if stream gets stuck
+      if (streamingTimeoutsRef.current[data.conversation_id]) {
+        clearTimeout(streamingTimeoutsRef.current[data.conversation_id]);
+      }
+      streamingTimeoutsRef.current[data.conversation_id] = setTimeout(() => {
+        console.warn(`Stream timeout for conversation ${data.conversation_id}, forcing cleanup`);
+        clearStreamingState(data.conversation_id);
+      }, 60000);
+    },
+    [clearStreamingState]
+  );
+
   const handleStreamChunk = useCallback((chunk: StreamChunk) => {
-    if (currentConversationRef.current?.id === chunk.conversation_id) {
-      if (chunk.content) {
-        setStreamingMessage((prev) => prev + chunk.content);
-      }
-      
-      // If we get follow-ups in a chunk, we can store them
-      if (chunk.follow_ups && chunk.follow_ups.length > 0) {
-        // We'll handle this in handleStreamEnd or by updating the last message
-        console.log('Follow-ups received in chunk:', chunk.follow_ups);
-      }
+    if (chunk.content) {
+      // Update ref immediately (synchronous)
+      streamingContentRef.current[chunk.conversation_id] =
+        (streamingContentRef.current[chunk.conversation_id] || '') + chunk.content;
+
+      const currentContent = streamingContentRef.current[chunk.conversation_id];
+
+      // Update state for smooth rendering with Ant Design X typing animation
+      setStreamingMessages((prev) => ({
+        ...prev,
+        [chunk.conversation_id]: currentContent,
+      }));
+    }
+
+    // If we get follow-ups in a chunk, we can store them
+    if (chunk.follow_ups && chunk.follow_ups.length > 0) {
+      // Follow-ups are stored in the chunk
     }
   }, []);
 
   const handleStreamEnd = useCallback(
     async (data: { conversation_id: string; message?: Message }) => {
-      setIsStreaming(false);
-      
+      // Clear timeout
+      if (streamingTimeoutsRef.current[data.conversation_id]) {
+        clearTimeout(streamingTimeoutsRef.current[data.conversation_id]);
+        delete streamingTimeoutsRef.current[data.conversation_id];
+      }
+
+      // Clean up ref
+      delete streamingContentRef.current[data.conversation_id];
+
+      setStreamingStates((prev) => ({ ...prev, [data.conversation_id]: false }));
+      setStreamingMessages((prev) => {
+        const next = { ...prev };
+        delete next[data.conversation_id];
+        return next;
+      });
+
       // Add the complete assistant message if provided
       if (data.message && currentConversationRef.current?.id === data.conversation_id) {
         const newMessage = { ...data.message };
         setMessages((prev) => {
           // Check if message already exists
-          const exists = prev.some(m => m.id === newMessage.id);
+          const exists = prev.some((m) => m.id === newMessage.id);
           if (exists) {
             // Update existing message to ensure metadata (like follow-ups) is included
-            return prev.map(m => m.id === newMessage.id ? newMessage : m);
+            return prev.map((m) => (m.id === newMessage.id ? newMessage : m));
           }
           return [...prev, newMessage];
         });
-        setStreamingMessage('');
-      } else if (currentConversationRef.current?.id === data.conversation_id) {
-        // Fallback: if no message object but we have streaming content, 
-        // we should probably keep it or convert it to a message
-        console.warn('Stream ended without message object, keeping streaming content as fallback');
-        // We don't clear streamingMessage here so it stays visible in the UI
-        // until a real message replaces it or the user refreshes
-      } else {
-        setStreamingMessage('');
       }
     },
     []
@@ -101,38 +138,36 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
 
   const handleMessageResponse = useCallback(
     (data: { conversation_id: string; message: Message }) => {
-      console.log('📩 Message response received in useChat:', data);
       if (currentConversationRef.current?.id === data.conversation_id) {
         setMessages((prev) => {
           // Check if message already exists
-          const exists = prev.some(m => m.id === data.message.id);
+          const exists = prev.some((m) => m.id === data.message.id);
           if (exists) {
-            console.log('⚠️ Message already exists, updating:', data.message.id);
-            return prev.map(m => m.id === data.message.id ? data.message : m);
+            return prev.map((m) => (m.id === data.message.id ? data.message : m));
           }
-          console.log('✅ Adding new message to state:', data.message.id);
           return [...prev, data.message];
         });
         // Clear image progress when the final message arrives
         setImageProgress(null);
       } else {
-        console.warn(`⚠️ Message response for different conversation: ${data.conversation_id}. Current: ${currentConversationRef.current?.id}`);
+        console.warn(
+          `⚠️ Message response for different conversation: ${data.conversation_id}. Current: ${currentConversationRef.current?.id}`
+        );
       }
     },
     []
   );
 
   const handleImageProgress = useCallback(
-    (data: { 
-      conversation_id: string; 
-      step: number; 
-      total_steps: number; 
-      progress: number; 
+    (data: {
+      conversation_id: string;
+      step: number;
+      total_steps: number;
+      progress: number;
       preview?: string;
       image_url?: string;
       message?: string;
     }) => {
-      console.log(`🖼️ Image progress: ${data.progress}% for ${data.conversation_id}. Current: ${currentConversationRef.current?.id}`);
       if (currentConversationRef.current?.id === data.conversation_id) {
         setImageProgress(data);
       }
@@ -140,23 +175,22 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     []
   );
 
-  const handleTranscriptionResult = useCallback((data: { text: string }) => {
-    setIsTranscribing(false);
-    if (data.text && options?.onTranscription) {
-      options.onTranscription(data.text);
-    }
-  }, [options]);
+  const handleTranscriptionResult = useCallback(
+    (data: { text: string }) => {
+      setIsTranscribing(false);
+      if (data.text && options?.onTranscription) {
+        options.onTranscription(data.text);
+      }
+    },
+    [options]
+  );
 
   const handleTTSResult = useCallback((data: { audio: string; message_id?: string }) => {
     setTtsAudio(data);
   }, []);
 
   const handleImageError = useCallback(
-    (data: { 
-      conversation_id: string;
-      error: string;
-      message?: string;
-    }) => {
+    (data: { conversation_id: string; error: string; message?: string }) => {
       console.error(`❌ Image error for ${data.conversation_id}: ${data.error}`);
       if (currentConversationRef.current?.id === data.conversation_id) {
         setImageProgress(null);
@@ -186,7 +220,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     onTTSResult: handleTTSResult,
     onImageProgress: handleImageProgress,
     onImageError: handleImageError,
-    onError: (err) => setError(err.message),
+    onError: (err: any) => setError(err?.message || 'WebSocket error'),
   });
 
   // Stop generation
@@ -194,16 +228,17 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     const conv = currentConversationRef.current;
     if (conv) {
       wsStopGeneration(conv.id);
-      setIsStreaming(false);
+      // Clear streaming state and timeout
+      clearStreamingState(conv.id);
     }
-  }, [wsStopGeneration]);
+  }, [wsStopGeneration, clearStreamingState]);
 
   // Send message
   const sendMessage = useCallback(
     async (
-      content: string, 
-      attachments: any[] = [], 
-      referenced_convs: { id: string, title: string }[] = [],
+      content: string,
+      attachments: Attachment[] = [],
+      referenced_convs: { id: string; title: string }[] = [],
       referenced_msg_ids: string[] = [],
       conversationId?: string
     ) => {
@@ -215,7 +250,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         return;
       }
 
-      const referenced_conv_ids = referenced_convs.map(r => r.id);
+      const referenced_conv_ids = referenced_convs.map((r) => r.id);
 
       // Add user message to UI immediately
       const userMessage: Message = {
@@ -237,57 +272,64 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       if (targetConvId === conv?.id) {
         setMessages((prev) => [...prev, userMessage]);
       }
-      
+
       setImageProgress(null);
 
       // Send via WebSocket
-      wsSendMessage(targetConvId, content, true, attachments, referenced_conv_ids, referenced_msg_ids);
+      wsSendMessage(
+        targetConvId,
+        content,
+        true,
+        attachments,
+        referenced_conv_ids,
+        referenced_msg_ids,
+        false,
+        conv?.settings?.workflow as string
+      );
     },
     [isConnected, wsSendMessage]
   );
 
   // Regenerate response
-  const regenerateResponse = useCallback(
-    async () => {
-      const conv = currentConversationRef.current;
-      if (!conv || !isConnected) {
-        setError('Not connected to chat');
-        return;
+  const regenerateResponse = useCallback(async () => {
+    const conv = currentConversationRef.current;
+    if (!conv || !isConnected) {
+      setError('Not connected to chat');
+      return;
+    }
+
+    // Find the last user message
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+    if (!lastUserMsg) {
+      setError('No user message to regenerate from');
+      return;
+    }
+
+    // Remove the last assistant message from UI
+    setMessages((prev) => {
+      const newMessages = [...prev];
+      if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
+        newMessages.pop();
       }
+      return newMessages;
+    });
 
-      // Find the last user message
-      const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
-      if (!lastUserMsg) {
-        setError('No user message to regenerate from');
-        return;
-      }
+    // Send via WebSocket with regenerate flag
+    const attachments = (lastUserMsg.metadata?.attachments as Attachment[]) || [];
+    const referenced_conv_ids = (lastUserMsg.metadata?.referenced_conv_ids as string[]) || [];
+    const referenced_msg_ids = (lastUserMsg.metadata?.referenced_msg_ids as string[]) || [];
 
-      // Remove the last assistant message from UI
-      setMessages(prev => {
-        const newMessages = [...prev];
-        if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
-          newMessages.pop();
-        }
-        return newMessages;
-      });
-
-      // Send via WebSocket with regenerate flag
-      const attachments = lastUserMsg.metadata?.attachments || [];
-      const referenced_conv_ids = lastUserMsg.metadata?.referenced_conv_ids || [];
-      const referenced_msg_ids = lastUserMsg.metadata?.referenced_msg_ids || [];
-
-      wsSendMessage(
-        conv.id, 
-        lastUserMsg.content, 
-        true, 
-        attachments, 
-        referenced_conv_ids, 
-        referenced_msg_ids,
-        true // regenerate flag
-      );
-    },
-    [isConnected, messages, wsSendMessage]
-  );
+    wsSendMessage(
+      conv.id,
+      lastUserMsg.content,
+      true,
+      attachments,
+      referenced_conv_ids,
+      referenced_msg_ids,
+      true, // regenerate flag
+      conv.settings?.workflow as string
+    );
+  }, [isConnected, messages, wsSendMessage]);
 
   // Upload file
   const uploadFile = useCallback(
@@ -307,10 +349,10 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         });
 
         return response.data;
-      } catch (err: any) {
-        const errorMsg = err.response?.data?.error || 'Failed to upload file';
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, 'Failed to upload file');
         setError(errorMsg);
-        console.error('Error uploading file:', err);
+        console.error('Error uploading file:', errorMsg);
         return null;
       } finally {
         setLoading(false);
@@ -322,10 +364,10 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
   // Edit and resend message
   const editMessage = useCallback(
     async (
-      messageId: string, 
-      newContent: string, 
-      attachments: any[] = [], 
-      referenced_convs: { id: string, title: string }[] = [],
+      messageId: string,
+      newContent: string,
+      attachments: Attachment[] = [],
+      referenced_convs: { id: string; title: string }[] = [],
       referenced_msg_ids: string[] = []
     ) => {
       const conv = currentConversationRef.current;
@@ -335,7 +377,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       }
 
       // Find the message to edit
-      const messageToEdit = messages.find(m => m.id === messageId);
+      const messageToEdit = messages.find((m) => m.id === messageId);
       if (!messageToEdit) return;
 
       try {
@@ -343,25 +385,26 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         // Truncate conversation at this message (inclusive)
         await apiClient.post(`/conversations/${conv.id}/messages/truncate`, {
           timestamp: messageToEdit.created_at,
-          inclusive: true
+          inclusive: true,
         });
 
         // Remove messages from state
-        setMessages(prev => {
-          const index = prev.findIndex(m => m.id === messageId);
+        setMessages((prev) => {
+          const index = prev.findIndex((m) => m.id === messageId);
           if (index === -1) return prev;
           return prev.slice(0, index);
         });
 
         // Send the new content
         await sendMessage(newContent, attachments, referenced_convs, referenced_msg_ids);
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to edit message');
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, 'Failed to edit message');
+        setError(errorMsg);
       } finally {
         setLoading(false);
       }
     },
-    [isConnected, messages, token, sendMessage]
+    [isConnected, messages, sendMessage]
   );
 
   // Fetch conversations
@@ -373,66 +416,86 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       const response = await apiClient.get('/conversations');
       setConversations(response.data.conversations || []);
       setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch conversations');
-      console.error('Error fetching conversations:', err);
+    } catch (err: unknown) {
+      const errorMsg = getErrorMessage(err, 'Failed to fetch conversations');
+      setError(errorMsg);
+      console.error('Error fetching conversations:', errorMsg);
     } finally {
       setLoading(false);
     }
   }, [token]);
 
   // Search conversations and messages
-  const search = useCallback(async (query: string, scope: 'conversations' | 'messages' = 'conversations', conversationId?: string) => {
-    if (!token || !query) {
-      setSearchResults({ conversations: [], messages: [] });
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const response = await apiClient.get('/conversations/search', {
-        params: {
-          q: query,
-          scope,
-          conversation_id: conversationId,
-          limit: 20
-        }
-      });
-
-      if (scope === 'messages') {
-        setSearchResults(prev => ({ ...prev, messages: response.data.results }));
-      } else {
-        setSearchResults(prev => ({ ...prev, conversations: response.data.results }));
+  const search = useCallback(
+    async (
+      query: string,
+      scope: 'conversations' | 'messages' = 'conversations',
+      conversationId?: string
+    ) => {
+      if (!token || !query) {
+        setSearchResults({ conversations: [], messages: [] });
+        return;
       }
-    } catch (err) {
-      console.error('Search error:', err);
-      setError('Failed to search');
-    } finally {
-      setIsSearching(false);
-    }
-  }, [token]);
+
+      setIsSearching(true);
+      try {
+        const response = await apiClient.get('/conversations/search', {
+          params: {
+            q: query,
+            scope,
+            conversation_id: conversationId,
+            limit: 20,
+          },
+        });
+
+        if (scope === 'messages') {
+          setSearchResults((prev) => ({ ...prev, messages: response.data.results }));
+        } else {
+          setSearchResults((prev) => ({ ...prev, conversations: response.data.results }));
+        }
+      } catch (err) {
+        console.error('Search error:', err);
+        setError('Failed to search');
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [token]
+  );
 
   // Create conversation
   const createConversation = useCallback(
-    async (title: string = 'New Conversation', model: string = 'llama3.2', provider: string = 'ollama', systemPrompt?: string) => {
+    async (
+      title: string = 'New Conversation',
+      model?: string,
+      provider?: string,
+      systemPrompt?: string,
+      settings?: Record<string, unknown>
+    ) => {
       if (!token) {
         return null;
       }
 
       try {
         setLoading(true);
-        const response = await apiClient.post(
-          '/conversations',
-          { title, model, provider, system_prompt: systemPrompt }
-        );
+        const payload: Record<string, unknown> = { title };
+
+        // Only include model/provider if explicitly provided
+        // Otherwise, backend will use defaults from settings
+        if (model) payload.model = model;
+        if (provider) payload.provider = provider;
+        if (systemPrompt) payload.system_prompt = systemPrompt;
+        if (settings) payload.settings = settings;
+
+        const response = await apiClient.post('/conversations', payload);
         const newConversation = response.data;
         setConversations((prev) => [newConversation, ...prev]);
         setError(null);
         return newConversation;
-      } catch (err: any) {
-        const errorMsg = err.response?.data?.error || 'Failed to create conversation';
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, 'Failed to create conversation');
         setError(errorMsg);
-        console.error('Error creating conversation:', err);
+        console.error('Error creating conversation:', errorMsg);
         return null;
       } finally {
         setLoading(false);
@@ -455,9 +518,10 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         }
         setError(null);
         return true;
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to delete conversation');
-        console.error('Error deleting conversation:', err);
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, 'Failed to delete conversation');
+        setError(errorMsg);
+        console.error('Error deleting conversation:', errorMsg);
         return false;
       }
     },
@@ -472,19 +536,20 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
       try {
         setLoading(true);
         await apiClient.post('/conversations/bulk-delete', { conversation_ids: conversationIds });
-        
+
         setConversations((prev) => prev.filter((c) => !conversationIds.includes(c.id)));
-        
+
         if (currentConversation && conversationIds.includes(currentConversation.id)) {
           setCurrentConversation(null);
           setMessages([]);
         }
-        
+
         setError(null);
         return true;
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to delete conversations');
-        console.error('Error bulk deleting conversations:', err);
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, 'Failed to delete conversations');
+        setError(errorMsg);
+        console.error('Error bulk deleting conversations:', errorMsg);
         return false;
       } finally {
         setLoading(false);
@@ -508,9 +573,10 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         }
         setError(null);
         return true;
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to update conversation');
-        console.error('Error updating conversation:', err);
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, 'Failed to update conversation');
+        setError(errorMsg);
+        console.error('Error updating conversation:', errorMsg);
         return false;
       }
     },
@@ -524,14 +590,13 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
 
       try {
         setLoading(true);
-        const response = await apiClient.get(
-          `/conversations/${conversationId}/messages`
-        );
+        const response = await apiClient.get(`/conversations/${conversationId}/messages`);
         setMessages(response.data.messages || []);
         setError(null);
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to fetch messages');
-        console.error('Error fetching messages:', err);
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, 'Failed to fetch messages');
+        setError(errorMsg);
+        console.error('Error fetching messages:', errorMsg);
       } finally {
         setLoading(false);
       }
@@ -546,16 +611,16 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
 
       if (typeof conversationOrId === 'string') {
         // Try to find in existing conversations
-        conversation = conversations.find(c => c.id === conversationOrId) || null;
-        
+        conversation = conversations.find((c) => c.id === conversationOrId) || null;
+
         // If not found, we might need to fetch it or create a partial one
         if (!conversation) {
           try {
             const response = await apiClient.get(`/conversations/${conversationOrId}`, {
-              headers: { Authorization: `Bearer ${token}` }
+              headers: { Authorization: `Bearer ${token}` },
             });
             conversation = response.data;
-          } catch (err) {
+          } catch (err: unknown) {
             console.error('Error fetching conversation by ID:', err);
             // Fallback: create a partial conversation object if we can't fetch it
             conversation = {
@@ -566,7 +631,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
               message_count: 0,
               model: 'unknown',
               provider: 'unknown',
-              user_id: ''
+              user_id: '',
             } as Conversation;
           }
         }
@@ -581,23 +646,27 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
         wsLeaveConversation(currentConversation.id);
       }
 
-      // Reset streaming state when switching conversations
-      setIsStreaming(false);
-      setStreamingMessage('');
-
       // Set new conversation
       setCurrentConversation(conversation);
-      
+
       // Join new conversation and wait for it to be ready
       await wsJoinConversation(conversation.id);
-      
+
       // Fetch messages
       await fetchMessages(conversation.id);
-      
+
       // Refresh conversation list to ensure the new one is there
       fetchConversations();
     },
-    [currentConversation, conversations, token, wsJoinConversation, wsLeaveConversation, fetchMessages, fetchConversations]
+    [
+      currentConversation,
+      conversations,
+      token,
+      wsJoinConversation,
+      wsLeaveConversation,
+      fetchMessages,
+      fetchConversations,
+    ]
   );
 
   // Load conversations on mount
@@ -608,18 +677,21 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
   }, [token, fetchConversations]);
 
   // Transcribe audio
-  const transcribeAudio = useCallback((base64Audio: string, language?: string) => {
-    setIsTranscribing(true);
-    wsTranscribeAudio(base64Audio, language);
-  }, [wsTranscribeAudio]);
+  const transcribeAudio = useCallback(
+    (base64Audio: string, language?: string) => {
+      setIsTranscribing(true);
+      wsTranscribeAudio(base64Audio, language);
+    },
+    [wsTranscribeAudio]
+  );
 
   return {
     // State
     conversations,
     currentConversation,
     messages,
-    streamingMessage,
-    isStreaming,
+    streamingMessage: currentConversation ? streamingMessages[currentConversation.id] || '' : '',
+    isStreaming: currentConversation ? streamingStates[currentConversation.id] || false : false,
     isTranscribing,
     ttsAudio,
     searchResults,
@@ -629,6 +701,7 @@ export function useChat(token: string | null, options?: { onTranscription?: (tex
     loading,
     error,
     isConnected,
+    setError,
 
     // Actions
     fetchConversations,

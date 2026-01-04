@@ -2,17 +2,21 @@
 API Key Service
 Manages creation, validation, and revocation of API keys
 """
-import uuid
-import secrets
+
 import hashlib
+import secrets
+import uuid
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 from opensearchpy import OpenSearch
+
 from app.db import opensearch_client
+
 
 class APIKeyService:
     """Service for managing API keys"""
-    
+
     def __init__(self):
         self.client: OpenSearch = opensearch_client.client
         self.index = "marie_api_keys"
@@ -22,21 +26,17 @@ class APIKeyService:
         return hashlib.sha256(api_key.encode()).hexdigest()
 
     def create_api_key(
-        self, 
-        user_id: str, 
-        name: str, 
-        expires_in_days: int = 365,
-        rate_limit: int = 1000
-    ) -> Dict[str, Any]:
+        self, user_id: str, name: str, expires_in_days: int = 365, rate_limit: int = 1000
+    ) -> dict[str, Any]:
         """Create a new API key for a user"""
         # Generate a secure random key with prefix
         raw_key = f"mc_{secrets.token_urlsafe(32)}"
         key_hash = self._hash_key(raw_key)
-        
+
         key_id = str(uuid.uuid4())
         now = datetime.utcnow()
         expires_at = now + timedelta(days=expires_in_days)
-        
+
         key_doc = {
             "id": key_id,
             "user_id": user_id,
@@ -48,40 +48,35 @@ class APIKeyService:
             "usage_count": 0,
             "expires_at": expires_at.isoformat(),
             "rate_limit": rate_limit,
-            "created_at": now.isoformat()
+            "created_at": now.isoformat(),
         }
-        
-        self.client.index(
-            index=self.index,
-            id=key_id,
-            body=key_doc,
-            refresh=True
-        )
-        
+
+        self.client.index(index=self.index, id=key_id, body=key_doc, refresh=True)
+
         # Return the raw key only once during creation
         key_doc_with_raw = key_doc.copy()
         key_doc_with_raw["api_key"] = raw_key
         # Remove hash from response
-        if "key_hash" in key_doc_with_raw: del key_doc_with_raw["key_hash"]
-        
+        if "key_hash" in key_doc_with_raw:
+            del key_doc_with_raw["key_hash"]
+
         return key_doc_with_raw
 
-    def list_api_keys(self, user_id: str) -> List[Dict[str, Any]]:
+    def list_api_keys(self, user_id: str) -> list[dict[str, Any]]:
         """List all API keys for a user"""
         query = {
-            "query": {
-                "term": {"user_id": user_id}
-            },
-            "sort": [{"created_at": {"order": "desc"}}]
+            "query": {"term": {"user_id": user_id}},
+            "sort": [{"created_at": {"order": "desc"}}],
         }
-        
+
         try:
             result = self.client.search(index=self.index, body=query)
             keys = []
             for hit in result["hits"]["hits"]:
                 key = hit["_source"]
                 # Never return the hash
-                if "key_hash" in key: del key["key_hash"]
+                if "key_hash" in key:
+                    del key["key_hash"]
                 keys.append(key)
             return keys
         except Exception as e:
@@ -95,52 +90,47 @@ class APIKeyService:
             res = self.client.get(index=self.index, id=key_id)
             if res["_source"]["user_id"] != user_id:
                 return False
-                
+
             self.client.update(
                 index=self.index,
                 id=key_id,
                 body={"doc": {"is_active": False, "updated_at": datetime.utcnow().isoformat()}},
-                refresh=True
+                refresh=True,
             )
             return True
         except Exception as e:
             print(f"Error revoking API key: {e}")
             return False
 
-    def validate_api_key(self, api_key: str) -> Optional[Dict[str, Any]]:
+    def validate_api_key(self, api_key: str) -> dict[str, Any] | None:
         """Validate an API key and return the associated key info"""
         if not api_key:
             return None
-            
+
         api_key = api_key.strip()
         key_hash = self._hash_key(api_key)
         print(f"🔑 Validating key: {api_key[:10]}... Hash: {key_hash}")
-        
+
         query = {
             "query": {
-                "bool": {
-                    "must": [
-                        {"term": {"key_hash": key_hash}},
-                        {"term": {"is_active": True}}
-                    ]
-                }
+                "bool": {"must": [{"term": {"key_hash": key_hash}}, {"term": {"is_active": True}}]}
             }
         }
-        
+
         try:
             result = self.client.search(index=self.index, body=query)
             if not result["hits"]["hits"]:
                 print(f"❌ Key not found in database: {key_hash}")
                 return None
-                
+
             key_doc = result["hits"]["hits"][0]["_source"]
             print(f"✅ Key found: {key_doc['name']}")
-            
+
             # Check expiration
             expires_at = datetime.fromisoformat(key_doc["expires_at"])
             if datetime.utcnow() > expires_at:
                 return None
-                
+
             # Update usage stats (fire and forget or background)
             self.client.update(
                 index=self.index,
@@ -148,17 +138,16 @@ class APIKeyService:
                 body={
                     "script": {
                         "source": "ctx._source.usage_count += 1; ctx._source.last_used_at = params.now",
-                        "params": {
-                            "now": datetime.utcnow().isoformat()
-                        }
+                        "params": {"now": datetime.utcnow().isoformat()},
                     }
-                }
+                },
             )
-            
+
             return key_doc
         except Exception as e:
             print(f"Error validating API key: {e}")
             return None
+
 
 # Global instance
 api_key_service = APIKeyService()

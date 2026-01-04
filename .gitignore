@@ -1,6 +1,7 @@
 # ===========================================
 # Marie Chat - Git Ignore
 # ===========================================
+models_cache
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

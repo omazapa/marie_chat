@@ -1,35 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import apiClient from '../lib/api';
-
-export interface ModelInfo {
-  id: string;
-  name: string;
-  provider: string;
-  description?: string;
-  context_length?: number;
-  max_tokens?: number;
-  parameters?: string;
-  quantization?: string;
-  size?: string;
-  capabilities?: string[];
-  metadata?: Record<string, any>;
-}
-
-export interface ModelsResponse {
-  models: Record<string, ModelInfo[]>;
-  total: number;
-}
-
-export interface ProviderHealth {
-  provider: string;
-  status: string;
-  available: boolean;
-  models_count?: number;
-  supports_streaming?: boolean;
-  supports_embeddings?: boolean;
-  default_model?: string;
-  error?: string;
-}
+import apiClient, { getErrorMessage } from '../lib/api';
+import { Model as ModelInfo, ProviderHealth } from '@/types';
 
 export function useModels(token: string | null) {
   const [models, setModels] = useState<Record<string, ModelInfo[]>>({});
@@ -64,9 +35,10 @@ export function useModels(token: string | null) {
           flatModels.push(...providerModels);
         });
         setAllModels(flatModels);
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to fetch models');
-        console.error('Error fetching models init:', err);
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err, 'Failed to fetch models');
+        setError(errorMsg);
+        console.error('Error fetching models init:', errorMsg);
       } finally {
         setLoading(false);
       }
@@ -93,8 +65,8 @@ export function useModels(token: string | null) {
         );
 
         return response.data.models;
-      } catch (err: any) {
-        console.error(`Error fetching models for ${provider}:`, err);
+      } catch (err: unknown) {
+        console.error(`Error fetching models for ${provider}:`, getErrorMessage(err));
         return [];
       }
     },
@@ -107,13 +79,11 @@ export function useModels(token: string | null) {
       if (!token) return null;
 
       try {
-        const response = await apiClient.get<ModelInfo>(
-          `/models/${provider}/${modelId}`
-        );
+        const response = await apiClient.get<ModelInfo>(`/models/${provider}/${modelId}`);
 
         return response.data;
-      } catch (err: any) {
-        console.error(`Error getting model info for ${provider}/${modelId}:`, err);
+      } catch (err: unknown) {
+        console.error(`Error getting model info for ${provider}/${modelId}:`, getErrorMessage(err));
         return null;
       }
     },
@@ -126,23 +96,19 @@ export function useModels(token: string | null) {
       if (!token || !query.trim()) return [];
 
       try {
-        const response = await apiClient.get<{ query: string; results: Array<{ provider: string; model: ModelInfo }> }>(
-          `/models/search?q=${encodeURIComponent(query)}`
-        );
+        const response = await apiClient.get<{
+          query: string;
+          results: Array<{ provider: string; model: ModelInfo }>;
+        }>(`/models/search?q=${encodeURIComponent(query)}`);
 
         return response.data.results;
-      } catch (err: any) {
-        console.error('Error searching models:', err);
+      } catch (err: unknown) {
+        console.error('Error searching models:', getErrorMessage(err));
         return [];
       }
     },
     [token]
   );
-
-  // Fetch providers (legacy, now uses init)
-  const fetchProviders = useCallback(async () => {
-    return fetchModelsInit();
-  }, [fetchModelsInit]);
 
   // Fetch providers health (legacy, now uses init)
   const fetchProvidersHealth = useCallback(async () => {

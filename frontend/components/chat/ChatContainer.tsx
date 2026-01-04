@@ -1,61 +1,54 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
-import { Spin, Button, Typography, Tag, Tooltip, Layout, App, Input, Alert, Space } from 'antd';
-import { 
-  RobotOutlined, 
-  EditOutlined, 
-  ThunderboltOutlined, 
+import apiClient from '@/lib/api';
+import { Message, Conversation, Attachment } from '@/types';
+import { Button, Typography, Tag, Tooltip, Layout, App, Input, Alert, Space } from 'antd';
+import {
+  RobotOutlined,
+  EditOutlined,
+  ThunderboltOutlined,
   SettingOutlined,
   FileOutlined,
   LinkOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
-import type { ConversationsProps } from '@ant-design/x';
-import type { Message as WebSocketMessage } from '@/hooks/useWebSocket';
+import type { Message as WebSocketMessage } from '@/types';
 import { useSpeech } from '@/hooks/useSpeech';
 import { useImages } from '@/hooks/useImages';
 import { ChatSidebar } from './ChatSidebar';
 import { MessageArea } from './MessageArea';
 import { ChatInput } from './ChatInput';
 import { WelcomeScreen } from './WelcomeScreen';
-import ModelSelector from './ModelSelector';
 import { ImageGenerationModal } from './modals/ImageGenerationModal';
 import { ReferenceModal } from './modals/ReferenceModal';
 import { ModelSettingsModal } from './modals/ModelSettingsModal';
 import { PromptOptimizer } from './PromptOptimizer';
-import { MarkdownContent } from '../markdown/MarkdownContent';
 
-const { Title, Text, Link } = Typography;
-const { Sider, Content } = Layout;
+const { Text } = Typography;
+const { Content } = Layout;
 const { useApp } = App;
-
-interface Conversation {
-  id: string;
-  title: string;
-  model: string;
-  provider: string;
-  updated_at: string;
-}
 
 export default function ChatContainer() {
   const router = useRouter();
   const [inputValue, setInputValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showModelSelector, setShowModelSelector] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState('ollama');
-  const [selectedModel, setSelectedModel] = useState('llama3.2');
+  const [selectedProvider, setSelectedProvider] = useState<string>('ollama');
+  const [selectedModel, setSelectedModel] = useState<string>('llama3.2');
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [attachments, setAttachments] = useState<any[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [referencedConvIds, setReferencedConvIds] = useState<string[]>([]);
   const [referencedMsgIds, setReferencedMsgIds] = useState<string[]>([]);
   const [showReferenceModal, setShowReferenceModal] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [imagePrompt, setImagePrompt] = useState('');
-  const [selectedImageModel, setSelectedImageModel] = useState('stabilityai/stable-diffusion-3.5-large');
+  const [selectedImageModel, setSelectedImageModel] = useState(
+    'stabilityai/stable-diffusion-3.5-large'
+  );
   const [showPromptOptimizer, setShowPromptOptimizer] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
@@ -64,12 +57,15 @@ export default function ChatContainer() {
   const { accessToken, user, logout: authLogout } = useAuthStore();
 
   const onTranscription = useCallback((text: string) => {
-    setInputValue(prev => prev ? `${prev} ${text}` : text);
+    setInputValue((prev) => (prev ? `${prev} ${text}` : text));
   }, []);
 
-  const chatOptions = useMemo(() => ({
-    onTranscription
-  }), [onTranscription]);
+  const chatOptions = useMemo(
+    () => ({
+      onTranscription,
+    }),
+    [onTranscription]
+  );
 
   const {
     conversations,
@@ -82,7 +78,6 @@ export default function ChatContainer() {
     loading,
     error,
     isConnected,
-    fetchMessages,
     createConversation,
     deleteConversation,
     bulkDeleteConversations,
@@ -102,13 +97,14 @@ export default function ChatContainer() {
     imageProgress,
     setImageProgress,
     setMessages,
+    setError,
   } = useChat(accessToken, chatOptions);
 
   const {
     isGenerating: isGeneratingImage,
     imageModels,
     fetchImageModels,
-    generateImage
+    generateImage,
   } = useImages(accessToken);
 
   const {
@@ -119,13 +115,13 @@ export default function ChatContainer() {
   } = useSpeech({
     accessToken,
     onTranscription: (text) => {
-      setInputValue(prev => prev ? `${prev} ${text}` : text);
+      setInputValue((prev) => (prev ? `${prev} ${text}` : text));
     },
     onTranscribe: (base64) => {
       // Use the language from selected voice as a hint (e.g., "es-CO-GonzaloNeural" -> "es")
       const langCode = selectedVoice.split('-')[0];
       transcribeAudio(base64, langCode);
-    }
+    },
   });
 
   // Use either local or chat transcription state
@@ -135,6 +131,25 @@ export default function ChatContainer() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { modal } = useApp();
+
+  // Load default provider and model from backend settings
+  useEffect(() => {
+    const loadDefaults = async () => {
+      try {
+        const response = await apiClient.get('/settings');
+        const llmConfig = response.data.llm || {};
+        if (llmConfig.default_provider) {
+          setSelectedProvider(llmConfig.default_provider);
+        }
+        if (llmConfig.default_model) {
+          setSelectedModel(llmConfig.default_model);
+        }
+      } catch (err) {
+        console.error('Failed to load default LLM settings:', err);
+      }
+    };
+    loadDefaults();
+  }, []);
 
   // Handle backend search for conversations
   useEffect(() => {
@@ -148,14 +163,14 @@ export default function ChatContainer() {
 
   const filteredConversations = useMemo(() => {
     if (!searchQuery) return conversations;
-    
+
     // If we have search results from backend, use them
     if (searchResults.conversations.length > 0 && searchQuery.trim().length > 2) {
       return searchResults.conversations;
     }
-    
+
     // Fallback to local filtering for short queries
-    return conversations.filter(conv => 
+    return conversations.filter((conv) =>
       conv.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [conversations, searchQuery, searchResults.conversations]);
@@ -168,7 +183,7 @@ export default function ChatContainer() {
   // Auto-scroll to bottom when messages change or streaming
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (!scrollContainerRef.current) return;
-    
+
     const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
     // If we are streaming, only scroll if the user is already near the bottom
     // This allows the user to scroll up to read previous messages without being snapped back
@@ -192,26 +207,26 @@ export default function ChatContainer() {
     if (ttsAudio && ttsAudio.audio) {
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.src = "";
+        audioRef.current.src = '';
       }
-      
+
       const audio = new Audio(ttsAudio.audio);
       audioRef.current = audio;
-      
+
       if (ttsAudio.message_id) {
         setPlayingMessageId(ttsAudio.message_id);
       }
-      
+
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        playPromise.catch(err => {
+        playPromise.catch((err) => {
           // Ignore AbortError as it's expected when we stop/change audio
           if (err.name !== 'AbortError') {
             console.error('Error playing audio:', err);
           }
         });
       }
-      
+
       audio.onended = () => {
         if (isMounted) {
           setPlayingMessageId(null);
@@ -224,40 +239,51 @@ export default function ChatContainer() {
       isMounted = false;
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.src = "";
+        audioRef.current.src = '';
       }
     };
   }, [ttsAudio, setTtsAudio]);
 
-  const handlePlayMessage = useCallback((text: string, id: string) => {
-    if (playingMessageId === id) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
+  const handlePlayMessage = useCallback(
+    (text: string, id: string) => {
+      if (playingMessageId === id) {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.src = '';
+        }
+        setPlayingMessageId(null);
+        setTtsAudio(null);
+      } else {
+        textToSpeech(text, id, selectedVoice);
       }
-      setPlayingMessageId(null);
-      setTtsAudio(null);
-    } else {
-      textToSpeech(text, id, selectedVoice);
-    }
-  }, [playingMessageId, textToSpeech, selectedVoice, setTtsAudio]);
+    },
+    [playingMessageId, textToSpeech, selectedVoice, setTtsAudio]
+  );
 
   // Format messages for Ant Design X
-  const chatMessages = useMemo(() => [
-    ...messages.filter((msg: WebSocketMessage) => msg.role !== 'system').map((msg: WebSocketMessage) => ({
-      id: msg.id,
-      content: msg.content,
-      role: msg.role as 'user' | 'assistant',
-      status: 'success' as const,
-      metadata: msg.metadata,
-    })),
-    ...(isStreaming ? [{
-      id: 'streaming',
-      content: streamingMessage || '',
-      role: 'assistant' as const,
-      status: 'loading' as const,
-    }] : []),
-  ], [messages, isStreaming, streamingMessage]);
+  const chatMessages = useMemo(() => {
+    return [
+      ...messages
+        .filter((msg: WebSocketMessage) => msg.role !== 'system')
+        .map((msg: WebSocketMessage) => ({
+          id: msg.id,
+          content: msg.content,
+          role: msg.role as 'user' | 'assistant',
+          status: 'success' as const,
+          metadata: msg.metadata,
+        })),
+      ...(isStreaming
+        ? [
+            {
+              id: 'streaming',
+              content: streamingMessage || '',
+              role: 'assistant' as const,
+              status: 'loading' as const,
+            },
+          ]
+        : []),
+    ];
+  }, [messages, isStreaming, streamingMessage]);
 
   const handleNewConversation = async () => {
     const conv = await createConversation('New Conversation', selectedModel, selectedProvider);
@@ -280,7 +306,7 @@ export default function ChatContainer() {
 
   const handleChangeModel = async () => {
     if (!currentConversation) return;
-    
+
     setSelectedProvider(currentConversation.provider);
     setSelectedModel(currentConversation.model);
     setShowModelSelector(true);
@@ -288,11 +314,14 @@ export default function ChatContainer() {
 
   const handleUpdateModel = async () => {
     if (!currentConversation) return;
-    
+
     setShowModelSelector(false);
     await updateConversation(currentConversation.id, {
       model: selectedModel,
       provider: selectedProvider,
+      settings: {
+        ...currentConversation.settings,
+      },
     });
   };
 
@@ -313,6 +342,8 @@ export default function ChatContainer() {
     const conv = conversations.find((c: Conversation) => c.id === id);
     if (conv) {
       await selectConversation(conv);
+      setSelectedProvider(conv.provider);
+      setSelectedModel(conv.model);
     }
   };
 
@@ -322,25 +353,31 @@ export default function ChatContainer() {
 
   const handleSend = async (content: string) => {
     if (!content || (!content.trim() && attachments.length === 0)) return;
-    
+
     setInputValue('');
     const currentAttachments = [...attachments];
-    const currentReferences = referencedConvIds.map(id => {
-      const conv = conversations.find((c: any) => c.id === id);
+    const currentReferences = referencedConvIds.map((id) => {
+      const conv = conversations.find((c: Conversation) => c.id === id);
       return { id, title: conv?.title || 'Chat' };
     });
     const currentMsgRefs = [...referencedMsgIds];
-    
+
     setAttachments([]);
     setReferencedConvIds([]);
     setReferencedMsgIds([]);
-    
+
     if (editingMessageId) {
-      await editMessage(editingMessageId, content, currentAttachments, currentReferences, currentMsgRefs);
+      await editMessage(
+        editingMessageId,
+        content,
+        currentAttachments,
+        currentReferences,
+        currentMsgRefs
+      );
       setEditingMessageId(null);
       return;
     }
-    
+
     // Create new conversation if none selected
     if (!currentConversation) {
       const conv = await createConversation('New Chat', selectedModel, selectedProvider);
@@ -365,9 +402,9 @@ export default function ChatContainer() {
 
   const handleGenerateImage = useCallback(async () => {
     if (!imagePrompt.trim()) return;
-    
+
     let convId = currentConversation?.id;
-    
+
     if (!convId) {
       const conv = await createConversation('Image Generation', selectedModel, selectedProvider);
       if (conv) {
@@ -377,24 +414,24 @@ export default function ChatContainer() {
         return;
       }
     }
-    
+
     const prompt = imagePrompt;
     const model = selectedImageModel;
-    
+
     setShowImageModal(false);
     setImagePrompt('');
-    
+
     const result = await generateImage({
       prompt,
       model,
       conversation_id: convId,
       text_model: selectedModel,
-      text_provider: selectedProvider
+      text_provider: selectedProvider,
     });
-    
+
     if (result && result.conversation_id) {
       console.log('✅ Image generation started:', result);
-      
+
       // Only update progress for the current conversation
       if (convId === result.conversation_id) {
         setImageProgress({
@@ -402,47 +439,59 @@ export default function ChatContainer() {
           progress: 0,
           step: 0,
           total_steps: 15,
-          message: 'Starting generation...'
+          message: 'Starting generation...',
         });
-        
+
         // Optimistically add the user message
         const modelParts = model.split('/');
-        const displayModel = modelParts[modelParts.length - 1] || model || "default";
-        const userMessage = {
+        const displayModel = modelParts[modelParts.length - 1] || model || 'default';
+        const userMessage: Message = {
           id: `temp-${Date.now()}`,
           conversation_id: result.conversation_id,
           user_id: user?.id || 'user',
           role: 'user',
           content: `Generate an image using ${displayModel}: ${prompt}`,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         };
-        
-        setMessages(prev => {
-          if (prev.some(m => m.content === userMessage.content)) return prev;
+
+        setMessages((prev) => {
+          if (prev.some((m) => m.content === userMessage.content)) return prev;
           return [...prev, userMessage];
         });
       }
     }
-  }, [imagePrompt, selectedImageModel, selectedModel, selectedProvider, currentConversation, createConversation, selectConversation, generateImage, user, setMessages, setImageProgress]);
+  }, [
+    imagePrompt,
+    selectedImageModel,
+    selectedModel,
+    selectedProvider,
+    currentConversation,
+    createConversation,
+    selectConversation,
+    generateImage,
+    user,
+    setMessages,
+    setImageProgress,
+  ]);
 
   const toggleReference = (id: string) => {
-    setReferencedConvIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    setReferencedConvIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
   };
 
   const removeReference = (id: string) => {
-    setReferencedConvIds(prev => prev.filter(i => i !== id));
+    setReferencedConvIds((prev) => prev.filter((i) => i !== id));
   };
 
   const toggleMessageReference = (id: string) => {
-    setReferencedMsgIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    setReferencedMsgIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
   };
 
   const removeMessageReference = (id: string) => {
-    setReferencedMsgIds(prev => prev.filter(i => i !== id));
+    setReferencedMsgIds((prev) => prev.filter((i) => i !== id));
   };
 
   const handleFileClick = () => {
@@ -458,7 +507,7 @@ export default function ChatContainer() {
       for (let i = 0; i < files.length; i++) {
         const fileData = await uploadFile(files[i]);
         if (fileData) {
-          setAttachments(prev => [...prev, fileData]);
+          setAttachments((prev) => [...prev, fileData]);
         }
       }
     } finally {
@@ -468,80 +517,83 @@ export default function ChatContainer() {
   };
 
   const removeAttachment = (id: string) => {
-    setAttachments(prev => prev.filter(a => a.file_id !== id));
+    setAttachments((prev) => prev.filter((a) => a.file_id !== id));
   };
 
-  const handleEdit = useCallback((msg: any) => {
+  const handleEdit = useCallback((msg: Message) => {
     setEditingMessageId(msg.id);
     setInputValue(msg.content);
-    
+
     // Restore attachments and references
     if (msg.metadata?.attachments) {
-      setAttachments(msg.metadata.attachments);
+      setAttachments(msg.metadata.attachments as Attachment[]);
     } else {
       setAttachments([]);
     }
-    
+
     if (msg.metadata?.referenced_conv_ids) {
-      setReferencedConvIds(msg.metadata.referenced_conv_ids);
+      setReferencedConvIds(msg.metadata.referenced_conv_ids as string[]);
     } else if (msg.metadata?.references) {
       // Fallback to references if referenced_conv_ids is missing
-      setReferencedConvIds(msg.metadata.references.map((r: any) => r.id));
+      setReferencedConvIds((msg.metadata.references as any[]).map((r: { id: string }) => r.id));
     } else {
       setReferencedConvIds([]);
     }
 
     if (msg.metadata?.referenced_msg_ids) {
-      setReferencedMsgIds(msg.metadata.referenced_msg_ids);
+      setReferencedMsgIds(msg.metadata.referenced_msg_ids as string[]);
     } else {
       setReferencedMsgIds([]);
     }
   }, []);
 
-  const handleNavigate = useCallback(async (ref: any) => {
-    const targetConvId = ref.type === 'message' ? ref.conversation_id : ref.id;
-    if (!targetConvId) return;
+  const handleNavigate = useCallback(
+    async (ref: { type?: string; id: string; conversation_id?: string }) => {
+      const targetConvId = ref.type === 'message' ? ref.conversation_id : ref.id;
+      if (!targetConvId) return;
 
-    const scrollToMessage = (id: string) => {
-      const element = document.getElementById(`message-${id}`);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Add a temporary highlight effect
-        const originalBg = element.style.backgroundColor;
-        element.style.transition = 'background-color 0.5s';
-        element.style.backgroundColor = '#e6f7ff';
-        setTimeout(() => {
-          element.style.backgroundColor = originalBg || 'transparent';
-        }, 2000);
-        return true;
-      }
-      return false;
-    };
+      const scrollToMessage = (id: string) => {
+        const element = document.getElementById(`message-${id}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Add a temporary highlight effect
+          const originalBg = element.style.backgroundColor;
+          element.style.transition = 'background-color 0.5s';
+          element.style.backgroundColor = '#e6f7ff';
+          setTimeout(() => {
+            element.style.backgroundColor = originalBg || 'transparent';
+          }, 2000);
+          return true;
+        }
+        return false;
+      };
 
-    // If it's the current conversation, just scroll
-    if (currentConversation?.id === targetConvId) {
-      if (ref.type === 'message') {
-        scrollToMessage(ref.id);
-      }
-    } else {
-      // Switch conversation
-      const conv = conversations.find((c: Conversation) => c.id === targetConvId);
-      if (conv) {
-        await selectConversation(conv);
-        
+      // If it's the current conversation, just scroll
+      if (currentConversation?.id === targetConvId) {
         if (ref.type === 'message') {
-          // Wait for messages to load and then scroll
-          let attempts = 0;
-          const interval = setInterval(() => {
-            if (scrollToMessage(ref.id) || attempts > 10) {
-              clearInterval(interval);
-            }
-            attempts++;
-          }, 200);
+          scrollToMessage(ref.id);
+        }
+      } else {
+        // Switch conversation
+        const conv = conversations.find((c: Conversation) => c.id === targetConvId);
+        if (conv) {
+          await selectConversation(conv);
+
+          if (ref.type === 'message') {
+            // Wait for messages to load and then scroll
+            let attempts = 0;
+            const interval = setInterval(() => {
+              if (scrollToMessage(ref.id) || attempts > 10) {
+                clearInterval(interval);
+              }
+              attempts++;
+            }, 200);
+          }
         }
       }
-    }
-  }, [currentConversation, conversations, selectConversation]);
+    },
+    [currentConversation, conversations, selectConversation]
+  );
 
   const handleCancelEdit = useCallback(() => {
     setEditingMessageId(null);
@@ -571,7 +623,15 @@ export default function ChatContainer() {
       />
 
       <Layout style={{ height: '100vh' }}>
-        <Content style={{ display: 'flex', flexDirection: 'column', background: '#ffffff', minWidth: 0, height: '100%' }}>
+        <Content
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            background: '#ffffff',
+            minWidth: 0,
+            height: '100%',
+          }}
+        >
           {error && (
             <div style={{ padding: '16px 16px 0 16px' }}>
               <Alert
@@ -585,24 +645,41 @@ export default function ChatContainer() {
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              flex: 1,
+              minWidth: 0,
+              overflow: 'hidden',
+            }}
+          >
             {!currentConversation ? (
-              <WelcomeScreen 
-                onSend={handleSend} 
-                onNewConversation={handleNewConversation} 
-              />
+              <WelcomeScreen onSend={handleSend} onNewConversation={handleNewConversation} />
             ) : (
-              <div key={currentConversation.id} style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                {/* Chat Header with Model Info */}
-                <div style={{
-                  padding: '16px 24px',
-                  borderBottom: '1px solid #E2E8F0',
-                  background: '#ffffff',
+              <div
+                key={currentConversation.id}
+                style={{
                   display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexShrink: 0
-                }}>
+                  flexDirection: 'column',
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                }}
+              >
+                {/* Chat Header with Model Info */}
+                <div
+                  style={{
+                    padding: '16px 24px',
+                    borderBottom: '1px solid #E2E8F0',
+                    background: '#ffffff',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexShrink: 0,
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <RobotOutlined style={{ fontSize: '20px', color: '#1B4B73' }} />
                     <div>
@@ -611,25 +688,28 @@ export default function ChatContainer() {
                           {currentConversation.title}
                         </Text>
                         <Tooltip title="Rename conversation">
-                          <Button 
-                            type="text" 
-                            size="small" 
-                            icon={<EditOutlined style={{ fontSize: '14px', color: '#8c8c8c' }} />} 
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<EditOutlined style={{ fontSize: '14px', color: '#8c8c8c' }} />}
                             onClick={() => {
                               let newTitle = currentConversation.title;
                               modal.confirm({
                                 title: 'Rename Conversation',
                                 content: (
-                                  <Input 
-                                    defaultValue={currentConversation.title} 
-                                    onChange={(e) => newTitle = e.target.value}
+                                  <Input
+                                    defaultValue={currentConversation.title}
+                                    onChange={(e) => (newTitle = e.target.value)}
                                     placeholder="Enter new title"
                                     style={{ marginTop: 16 }}
                                   />
                                 ),
                                 onOk: async () => {
                                   if (newTitle && newTitle.trim()) {
-                                    await handleRenameConversation(currentConversation.id, newTitle);
+                                    await handleRenameConversation(
+                                      currentConversation.id,
+                                      newTitle
+                                    );
                                   }
                                 },
                               });
@@ -637,7 +717,14 @@ export default function ChatContainer() {
                           />
                         </Tooltip>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          marginTop: '4px',
+                        }}
+                      >
                         <Tag icon={<ThunderboltOutlined />} color="blue">
                           {currentConversation.provider}
                         </Tag>
@@ -670,7 +757,7 @@ export default function ChatContainer() {
                 </div>
 
                 {/* Messages Area */}
-                <MessageArea 
+                <MessageArea
                   currentConversation={currentConversation}
                   scrollContainerRef={scrollContainerRef}
                   isStreaming={isStreaming}
@@ -686,33 +773,38 @@ export default function ChatContainer() {
                   handlePlayMessage={handlePlayMessage}
                   playingMessageId={playingMessageId}
                   imageProgress={
-                    imageProgress?.conversation_id === currentConversation?.id 
-                      ? imageProgress 
+                    imageProgress?.conversation_id === currentConversation?.id
+                      ? imageProgress
                       : null
                   }
                   messagesEndRef={messagesEndRef}
                 />
-
               </div>
             )}
 
             {/* Common Input Area */}
-            <div style={{ 
-              borderTop: '1px solid #E2E8F0',
-              background: '#ffffff',
-              padding: '16px 24px',
-              width: '100%',
-              boxSizing: 'border-box',
-              flexShrink: 0
-            }}>
+            <div
+              style={{
+                borderTop: '1px solid #E2E8F0',
+                background: '#ffffff',
+                padding: '16px 24px',
+                width: '100%',
+                boxSizing: 'border-box',
+                flexShrink: 0,
+              }}
+            >
               <div style={{ maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
                 {/* Attachments and References List */}
-                {(attachments.length > 0 || referencedConvIds.length > 0 || referencedMsgIds.length > 0) && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-                    {attachments.map(file => (
-                      <Tag 
-                        key={file.file_id} 
-                        closable 
+                {(attachments.length > 0 ||
+                  referencedConvIds.length > 0 ||
+                  referencedMsgIds.length > 0) && (
+                  <div
+                    style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}
+                  >
+                    {attachments.map((file) => (
+                      <Tag
+                        key={file.file_id}
+                        closable
                         onClose={() => removeAttachment(file.file_id)}
                         icon={<FileOutlined />}
                         style={{ padding: '4px 8px', borderRadius: '6px' }}
@@ -720,12 +812,12 @@ export default function ChatContainer() {
                         {file.filename}
                       </Tag>
                     ))}
-                    {referencedConvIds.map(id => {
-                      const conv = conversations.find((c: any) => c.id === id);
+                    {referencedConvIds.map((id) => {
+                      const conv = conversations.find((c: Conversation) => c.id === id);
                       return (
-                        <Tag 
-                          key={id} 
-                          closable 
+                        <Tag
+                          key={id}
+                          closable
                           onClose={() => removeReference(id)}
                           icon={<LinkOutlined />}
                           color="blue"
@@ -735,12 +827,12 @@ export default function ChatContainer() {
                         </Tag>
                       );
                     })}
-                    {referencedMsgIds.map(id => {
-                      const msg = messages.find(m => m.id === id);
+                    {referencedMsgIds.map((id) => {
+                      const msg = messages.find((m) => m.id === id);
                       return (
-                        <Tag 
-                          key={id} 
-                          closable 
+                        <Tag
+                          key={id}
+                          closable
                           onClose={() => removeMessageReference(id)}
                           icon={<LinkOutlined />}
                           color="cyan"
@@ -750,10 +842,10 @@ export default function ChatContainer() {
                         </Tag>
                       );
                     })}
-                    <Button 
-                      type="text" 
-                      size="small" 
-                      danger 
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
                       onClick={() => {
                         setAttachments([]);
                         setReferencedConvIds([]);
@@ -766,15 +858,15 @@ export default function ChatContainer() {
                   </div>
                 )}
 
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  style={{ display: 'none' }} 
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
                   onChange={handleFileChange}
                   multiple
                 />
 
-                <ChatInput 
+                <ChatInput
                   value={inputValue}
                   onChange={setInputValue}
                   onSend={handleSend}

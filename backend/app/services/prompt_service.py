@@ -2,10 +2,11 @@
 Prompt Engineering Service
 Handles prompt optimization and technique application
 """
-from typing import List, Dict, Any, Optional
-from app.services.llm_service import llm_service
-from app.services.llm_provider import ChatMessage
+
 from app.config import settings
+from app.services.llm_provider import ChatMessage
+from app.services.llm_service import llm_service
+
 
 class PromptService:
     def __init__(self):
@@ -19,14 +20,14 @@ class PromptService:
             "step_back": "Step-Back Prompting: Asks the model to first identify the broader principles or concepts involved.",
             "self_critique": "Self-Critique: Instructs the model to review and refine its own response for accuracy and quality.",
             "analogical": "Analogical Reasoning: Uses analogies to explain complex or abstract concepts more clearly.",
-            "rit": "Reasoning in Thought: Encourages the model to use a <thought> block for internal reasoning before responding."
+            "rit": "Reasoning in Thought: Encourages the model to use a <thought> block for internal reasoning before responding.",
         }
         self.templates = {
             "creative": "Write a creative story or poem about {topic}. Use vivid imagery and emotional depth.",
             "technical": "Explain the technical concept of {topic} in detail. Include architecture, pros/cons, and code examples if applicable.",
             "academic": "Provide a scholarly analysis of {topic}. Cite potential sources and use formal academic language.",
             "summary": "Summarize the following text into a concise set of bullet points: {topic}",
-            "code_review": "Review the following code for bugs, performance issues, and best practices: {topic}"
+            "code_review": "Review the following code for bugs, performance issues, and best practices: {topic}",
         }
         self.profiles = {
             "developer": "Software Developer: Expert in multiple programming languages, focuses on clean code (SOLID, DRY), performance optimization, security, and comprehensive documentation. Prefers technical, concise, and implementation-ready responses.",
@@ -34,22 +35,28 @@ class PromptService:
             "creator": "Content Creator: Expert in digital storytelling and marketing, focuses on audience psychology, viral potential, creative hooks, and multi-platform adaptation. Prefers engaging, imaginative, and emotionally resonant content.",
             "business": "Business Professional: Expert in corporate strategy and communication, focuses on ROI, actionable executive summaries, professional etiquette, and market alignment. Prefers clear, high-level, and results-oriented insights.",
             "student": "Student/Learner: Focuses on building foundational knowledge, clear analogies, step-by-step explanations, and identifying key learning objectives. Prefers educational, encouraging, and easy-to-digest information.",
-            "data_scientist": "Data Scientist: Expert in statistics and machine learning, focuses on data integrity, algorithmic efficiency, statistical significance, and clear data visualization. Prefers rigorous, mathematical, and reproducible analysis."
+            "data_scientist": "Data Scientist: Expert in statistics and machine learning, focuses on data integrity, algorithmic efficiency, statistical significance, and clear data visualization. Prefers rigorous, mathematical, and reproducible analysis.",
         }
 
-    def get_available_techniques(self) -> Dict[str, str]:
+    def get_available_techniques(self) -> dict[str, str]:
         """Returns a list of available prompt engineering techniques"""
         return self.techniques
 
-    def get_available_templates(self) -> Dict[str, str]:
+    def get_available_templates(self) -> dict[str, str]:
         """Returns a list of available prompt templates"""
         return self.templates
 
-    def get_available_profiles(self) -> Dict[str, str]:
+    def get_available_profiles(self) -> dict[str, str]:
         """Returns a list of available user profiles"""
         return self.profiles
 
-    def _generate_optimized_prompt(self, user_input: str, technique: Optional[str] = None, context: Optional[str] = None, profile: Optional[str] = None) -> str:
+    def _generate_optimized_prompt(
+        self,
+        user_input: str,
+        technique: str | None = None,
+        context: str | None = None,
+        profile: str | None = None,
+    ) -> str:
         """Internal method to generate the optimized prompt synchronously"""
         system_content = (
             "You are a world-class Prompt Engineer specializing in Large Language Models. "
@@ -62,15 +69,15 @@ class PromptService:
             "\n5. Tone & Style: Match the tone to the user's profile and intent."
             "\n\nIMPORTANT: Return ONLY the rewritten prompt. Do not include any explanations, 'Here is your prompt', or conversational filler."
         )
-        
+
         technique_instruction = ""
         if technique and technique in self.techniques:
             technique_instruction = f"\n- MANDATORY TECHNIQUE: {self.techniques[technique]}"
-        
+
         profile_instruction = ""
         if profile and profile in self.profiles:
             profile_instruction = f"\n- TARGET USER PROFILE: {self.profiles[profile]}"
-        
+
         context_instruction = ""
         if context:
             context_instruction = f"\n- ADDITIONAL CONTEXT: {context}"
@@ -88,32 +95,32 @@ class PromptService:
 
         messages = [
             ChatMessage(role="system", content=system_content),
-            ChatMessage(role="user", content=user_content)
+            ChatMessage(role="user", content=user_content),
         ]
 
         try:
             # Get current settings for default model/provider
             config = llm_service.settings_service.get_settings()
-            provider_name = config.get("llm", {}).get("default_provider", settings.DEFAULT_LLM_PROVIDER)
+            provider_name = config.get("llm", {}).get(
+                "default_provider", settings.DEFAULT_LLM_PROVIDER
+            )
             model_name = config.get("llm", {}).get("default_model", settings.DEFAULT_LLM_MODEL)
 
             from app.services.provider_factory import provider_factory
+
             provider = provider_factory.get_provider(provider_name)
-            
+
             if not provider:
                 print(f"❌ Provider {provider_name} not found in provider_factory")
                 return f"Error: Provider {provider_name} not available."
-            
+
             print(f"🤖 Optimizing prompt with {provider_name} ({model_name})")
-            
-            # Use the synchronous version to avoid event loop conflicts with eventlet
-            chunk = provider.chat_completion_sync(
-                model=model_name,
-                messages=messages
-            )
-            
+
+            # Use the synchronous version
+            chunk = provider.chat_completion_sync(model=model_name, messages=messages)
+
             response = chunk.content
-            
+
             if not response:
                 print("⚠️ LLM returned empty response for prompt optimization")
                 return f"Error: LLM returned empty response. Original: {user_input}"
@@ -122,13 +129,21 @@ class PromptService:
         except Exception as e:
             print(f"❌ Error in _generate_optimized_prompt: {e}")
             import traceback
+
             traceback.print_exc()
             return f"Error: Could not optimize prompt. Original: {user_input}"
 
-    def optimize_prompt(self, user_input: str, technique: Optional[str] = None, context: Optional[str] = None, profile: Optional[str] = None) -> str:
+    def optimize_prompt(
+        self,
+        user_input: str,
+        technique: str | None = None,
+        context: str | None = None,
+        profile: str | None = None,
+    ) -> str:
         """
         Uses an LLM to optimize a user prompt based on a specific technique and user profile.
         """
         return self._generate_optimized_prompt(user_input, technique, context, profile)
+
 
 prompt_service = PromptService()

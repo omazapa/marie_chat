@@ -2,7 +2,23 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'ax
 import { useAuthStore } from '@/stores/authStore';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-console.log('🌐 API_URL configured as:', API_URL);
+
+/**
+ * Extracts a user-friendly error message from an unknown error object,
+ * specifically handling Axios errors.
+ */
+export const getErrorMessage = (
+  error: unknown,
+  fallback = 'An unexpected error occurred'
+): string => {
+  if (axios.isAxiosError(error)) {
+    return error.response?.data?.error || error.message || fallback;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return fallback;
+};
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -17,13 +33,11 @@ const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const { accessToken } = useAuthStore.getState();
-    
-    console.log(`🚀 Axios Request: ${config.method?.toUpperCase()} ${config.url}`);
-    
+
     if (accessToken && config.headers) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
-    
+
     return config;
   },
   (error: AxiosError) => {
@@ -35,7 +49,6 @@ apiClient.interceptors.request.use(
 // Response interceptor to handle token refresh
 apiClient.interceptors.response.use(
   (response) => {
-    console.log(`✅ Axios Response: ${response.status} ${response.config.url}`);
     return response;
   },
   async (error: AxiosError) => {
@@ -44,8 +57,8 @@ apiClient.interceptors.response.use(
     const status = error.response?.status;
 
     // Skip refresh and extra logging for login, register and refresh endpoints
-    const isAuthEndpoint = 
-      url.includes('/auth/login') || 
+    const isAuthEndpoint =
+      url.includes('/auth/login') ||
       url.includes('/auth/register') ||
       url.includes('/auth/refresh');
 
@@ -62,7 +75,7 @@ apiClient.interceptors.response.use(
 
       try {
         const { refreshToken } = useAuthStore.getState();
-        
+
         if (!refreshToken) {
           throw new Error('No refresh token available');
         }
@@ -73,7 +86,7 @@ apiClient.interceptors.response.use(
         });
 
         const { access_token } = response.data;
-        
+
         // Update tokens in store
         useAuthStore.getState().updateTokens(access_token);
 
@@ -81,17 +94,17 @@ apiClient.interceptors.response.use(
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${access_token}`;
         }
-        
+
         return apiClient(originalRequest);
       } catch (refreshError) {
         // Refresh failed, logout user
         useAuthStore.getState().logout();
-        
+
         // Redirect to login if in browser
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }
-        
+
         return Promise.reject(refreshError);
       }
     }

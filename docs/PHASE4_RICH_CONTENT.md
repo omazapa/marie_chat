@@ -10,7 +10,7 @@ This phase focused on fixing critical real-time communication issues and enhanci
 
 ### 1. Real-time Communication Fixes
 - **Issue**: Chat was not updating in real-time due to conflicts between `eventlet` and Flask-SocketIO's async operations.
-- **Solution**: 
+- **Solution**:
   - Applied `eventlet.monkey_patch()` in `run.py`.
   - Refactored backend services (`OpenSearchService`, `LLMService`) and REST routes to be synchronous, avoiding event loop conflicts.
   - Preserved `async` only for LLM streaming chunks to maintain performance.

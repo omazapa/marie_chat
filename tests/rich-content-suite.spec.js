@@ -13,12 +13,12 @@ test.describe('Rich Content & UX Suite', () => {
 
   test.beforeAll(async ({ request }) => {
     console.log('🚀 Logging in test user...');
-    
+
     // Try login
     const loginResponse = await request.post(`${API_URL}/api/auth/login`, {
       data: { email: TEST_USER.email, password: TEST_USER.password }
     });
-    
+
     if (loginResponse.ok()) {
       const loginData = await loginResponse.json();
       authToken = loginData.access_token;
@@ -28,7 +28,7 @@ test.describe('Rich Content & UX Suite', () => {
       console.error(`❌ Login failed: ${loginError}`);
       throw new Error(`Failed to authenticate test user: ${loginError}`);
     }
-    
+
     if (!authToken) {
       throw new Error('Auth token is null or undefined after login');
     }
@@ -41,7 +41,7 @@ test.describe('Rich Content & UX Suite', () => {
       // Set legacy keys for AuthGuard hydration
       localStorage.setItem('auth_token', token);
       localStorage.setItem('auth_user', JSON.stringify(user));
-      
+
       // Set Zustand persist key
       const authState = {
         state: {
@@ -55,21 +55,21 @@ test.describe('Rich Content & UX Suite', () => {
       };
       localStorage.setItem('marie-auth-storage', JSON.stringify(authState));
     }, { token: authToken, user: { email: TEST_USER.email, full_name: TEST_USER.full_name } });
-    
+
     await page.goto(`${BASE_URL}/chat`);
     await page.waitForURL('**/chat', { timeout: 30000 });
-    
+
     // Wait for the app to be ready
     await page.waitForSelector('.ant-layout', { timeout: 15000 });
-    
+
     // Create new conversation to have a clean state
     const newConvBtn = page.getByRole('button', { name: 'New Conversation' });
     await expect(newConvBtn).toBeVisible({ timeout: 15000 });
     await newConvBtn.click();
-    
+
     const input = page.getByPlaceholder('Type your message here...');
     await expect(input).toBeVisible({ timeout: 15000 });
-    
+
     // If input is still disabled, it might be because of connection delay
     // Let's wait a bit more or check for connection status if we had a UI indicator
     await expect(input).toBeEnabled({ timeout: 45000 });
@@ -89,14 +89,14 @@ test.describe('Rich Content & UX Suite', () => {
 1. Ordered 1
 2. Ordered 2
     `;
-    
+
     await input.fill(markdownPrompt);
     await page.keyboard.press('Enter');
 
     // Wait for assistant response
     // We look for the last message bubble
     const lastMessage = page.locator('.ant-bubble').last();
-    
+
     await expect(lastMessage.locator('h1')).toContainText('Header 1');
     await expect(lastMessage.locator('h2')).toContainText('Header 2');
     await expect(lastMessage.locator('h3')).toContainText('Header 3');
@@ -110,7 +110,7 @@ test.describe('Rich Content & UX Suite', () => {
   test('Code Blocks: Syntax Highlighting, Copy, and Language Label', async ({ page }) => {
     const input = page.getByPlaceholder('Type your message here...');
     const codePrompt = 'Generate a Python code example that uses a class and a decorator.';
-    
+
     await input.fill(codePrompt);
     await page.keyboard.press('Enter');
 
@@ -150,7 +150,7 @@ test.describe('Rich Content & UX Suite', () => {
     await latexCard.locator('.anticon-code').click();
     // Wait for pre block
     await expect(latexCard.locator('pre')).toBeVisible();
-    
+
     // Toggle back to preview
     await latexCard.locator('.anticon-eye').click();
     await expect(latexCard.locator('.katex-display')).toBeVisible();
@@ -166,7 +166,7 @@ Generate a table with the following data:
 | Bob    | 25   | London   |
 | Charlie| 35   | Paris    |
     `;
-    
+
     await input.fill(tablePrompt);
     await page.keyboard.press('Enter');
 
@@ -183,7 +183,7 @@ Generate a table with the following data:
     // Test sorting (click on "Age" header)
     const ageHeader = tableContainer.locator('th:has-text("Age")');
     await ageHeader.click();
-    
+
     // Verify first row age (should be 25 after sort)
     const firstRowAge = tableContainer.locator('.ant-table-row').first().locator('td').nth(1);
     await expect(firstRowAge).toContainText('25');

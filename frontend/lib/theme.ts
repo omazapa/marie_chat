@@ -2,11 +2,11 @@ import type { ThemeConfig } from 'antd';
 
 export const marieTheme: ThemeConfig = {
   token: {
-    colorPrimary: '#1B4B73',      // Azul institucional
-    colorSuccess: '#17A589',      // Verde/Teal
-    colorInfo: '#2D6A9F',         // Azul primario light
-    colorWarning: '#F39C12',      // Naranja/Dorado para highlights
-    colorError: '#E74C3C',        // Rojo para alertas
+    colorPrimary: '#1B4B73', // Azul institucional
+    colorSuccess: '#17A589', // Verde/Teal
+    colorInfo: '#2D6A9F', // Azul primario light
+    colorWarning: '#F39C12', // Naranja/Dorado para highlights
+    colorError: '#E74C3C', // Rojo para alertas
     fontFamily: 'var(--font-inter)',
     fontSize: 16,
     borderRadius: 8,

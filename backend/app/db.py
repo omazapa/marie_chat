@@ -1,18 +1,19 @@
 from opensearchpy import OpenSearch
+
 from app.config import settings
 
 
 class OpenSearchClient:
     """Singleton OpenSearch client"""
-    
+
     _instance = None
-    _client = None
-    
+    _client: OpenSearch | None = None
+
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(OpenSearchClient, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
         return cls._instance
-    
+
     def __init__(self):
         if self._client is None:
             self._client = OpenSearch(
@@ -25,11 +26,13 @@ class OpenSearchClient:
                 max_retries=3,
                 retry_on_timeout=True,
             )
-    
+
     @property
-    def client(self):
+    def client(self) -> OpenSearch:
+        if self._client is None:
+            raise RuntimeError("OpenSearch client not initialized")
         return self._client
-    
+
     def close(self):
         if self._client:
             self._client.close()

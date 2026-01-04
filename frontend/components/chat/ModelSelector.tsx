@@ -1,12 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Select, Card, Space, Typography, Tag, Spin, Alert, Tooltip } from 'antd';
-import { RobotOutlined, CheckCircleOutlined, CloseCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { useModels, ModelInfo } from '@/hooks/useModels';
+import { useMemo, useEffect } from 'react';
+import { Select, Card, Space, Typography, Tag, Spin, Alert, Tooltip, Button } from 'antd';
+import {
+  RobotOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  InfoCircleOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
+import { useModels } from '@/hooks/useModels';
 
-const { Text, Title } = Typography;
-const { Option, OptGroup } = Select;
+const { Text } = Typography;
+const { Option } = Select;
 
 interface ModelSelectorProps {
   token: string | null;
@@ -28,43 +34,37 @@ export default function ModelSelector({
   disabled = false,
 }: ModelSelectorProps) {
   const { models, providers, providersHealth, loading, error, fetchModels } = useModels(token);
-  const [currentProvider, setCurrentProvider] = useState(selectedProvider);
-  const [currentModel, setCurrentModel] = useState(selectedModel);
-  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
 
+  // Auto-refresh models when provider changes to Ollama
   useEffect(() => {
-    setCurrentProvider(selectedProvider);
-    setCurrentModel(selectedModel);
-  }, [selectedProvider, selectedModel]);
-
-  useEffect(() => {
-    // Find current model info
-    if (models[currentProvider]) {
-      const found = models[currentProvider].find((m) => m.id === currentModel);
-      setModelInfo(found || null);
+    if (selectedProvider === 'ollama') {
+      fetchModels(true);
     }
-  }, [currentProvider, currentModel, models]);
+  }, [selectedProvider, fetchModels]);
+
+  const modelInfo = useMemo(() => {
+    if (models[selectedProvider]) {
+      return models[selectedProvider].find((m) => m.id === selectedModel) || null;
+    }
+    return null;
+  }, [selectedProvider, selectedModel, models]);
 
   const handleProviderChange = (provider: string) => {
-    setCurrentProvider(provider);
-    
     // Select first available model from new provider
     if (models[provider] && models[provider].length > 0) {
       const firstModel = models[provider][0].id;
-      setCurrentModel(firstModel);
       onSelect(provider, firstModel);
     }
   };
 
   const handleModelChange = (modelId: string) => {
-    setCurrentModel(modelId);
-    onSelect(currentProvider, modelId);
+    onSelect(selectedProvider, modelId);
   };
 
   const getProviderStatus = (provider: string) => {
     const health = providersHealth[provider];
     if (!health) return { status: 'unknown', color: 'default' };
-    
+
     if (health.available) {
       return { status: 'available', color: 'success', icon: <CheckCircleOutlined /> };
     } else {
@@ -90,16 +90,13 @@ export default function ModelSelector({
         description={error}
         type="error"
         showIcon
-        action={
-          <a onClick={() => fetchModels(true)}>Retry</a>
-        }
+        action={<a onClick={() => fetchModels(true)}>Retry</a>}
       />
     );
   }
 
-  const availableModels = models[currentProvider] || [];
-  const providerStatus = getProviderStatus(currentProvider);
-  const providerHealthInfo = providersHealth[currentProvider];
+  const availableModels = models[selectedProvider] || [];
+  const providerHealthInfo = providersHealth[selectedProvider];
 
   return (
     <Space orientation="vertical" style={{ width: '100%' }} size="middle">
@@ -109,7 +106,7 @@ export default function ModelSelector({
           Provider
         </Text>
         <Select
-          value={currentProvider}
+          value={selectedProvider}
           onChange={handleProviderChange}
           style={{ width: '100%' }}
           size={size}
@@ -134,17 +131,25 @@ export default function ModelSelector({
 
       {/* Model Selector */}
       <div>
-        <Text strong style={{ display: 'block', marginBottom: '8px' }}>
-          Model
-        </Text>
+        <Space style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <Text strong>Model</Text>
+          <Button
+            type="link"
+            size="small"
+            icon={<ReloadOutlined spin={loading} />}
+            onClick={() => fetchModels(true)}
+            title="Refresh models"
+          />
+        </Space>
         <Select
-          value={currentModel}
+          value={selectedModel}
           onChange={handleModelChange}
           style={{ width: '100%' }}
           size={size}
           disabled={disabled || loading || !providerHealthInfo?.available}
           showSearch
-          optionFilterProp="children"
+          optionFilterProp="label"
+          optionLabelProp="label"
           placeholder="Select a model"
           notFoundContent={
             providerHealthInfo?.available ? (
@@ -163,19 +168,47 @@ export default function ModelSelector({
           }
         >
           {availableModels.map((model) => (
-            <Option key={model.id} value={model.id}>
-              <Space orientation="vertical" size={0}>
-                <Text strong>{model.name}</Text>
+            <Option key={model.id} value={model.id} label={model.name}>
+              <Space orientation="vertical" size={0} style={{ width: '100%' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text strong>{model.name}</Text>
+                  {model.size && (
+                    <Text type="secondary" style={{ fontSize: '11px' }}>
+                      {model.size}
+                    </Text>
+                  )}
+                </div>
                 {model.description && (
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
+                  <Text
+                    type="secondary"
+                    style={{ fontSize: '11px', display: 'block', marginBottom: '4px' }}
+                  >
                     {model.description.substring(0, 60)}
                     {model.description.length > 60 ? '...' : ''}
                   </Text>
                 )}
-                <Space orientation="horizontal" size="small">
-                  {model.parameters && <Tag color="blue">{model.parameters}</Tag>}
-                  {model.quantization && <Tag color="purple">{model.quantization}</Tag>}
-                  {model.size && <Tag color="green">{model.size}</Tag>}
+                <Space size={[0, 4]} wrap>
+                  {model.parameters && (
+                    <Tag color="blue" style={{ fontSize: '10px', margin: 0 }}>
+                      {model.parameters}
+                    </Tag>
+                  )}
+                  {model.quantization && (
+                    <Tag color="purple" style={{ fontSize: '10px', margin: 0 }}>
+                      {model.quantization}
+                    </Tag>
+                  )}
+                  {!!model.metadata?.family && (
+                    <Tag style={{ fontSize: '10px', margin: 0 }}>
+                      {model.metadata.family as string}
+                    </Tag>
+                  )}
                 </Space>
               </Space>
             </Option>
@@ -190,15 +223,17 @@ export default function ModelSelector({
           style={{
             background: '#f0f5ff',
             border: '1px solid #adc6ff',
-            borderRadius: '8px'
+            borderRadius: '8px',
           }}
         >
           <Space orientation="vertical" size="small" style={{ width: '100%' }}>
             <Space orientation="horizontal">
               <RobotOutlined style={{ color: '#1B4B73', fontSize: '18px' }} />
-              <Text strong style={{ color: '#1B4B73', fontSize: '15px' }}>{modelInfo.name}</Text>
+              <Text strong style={{ color: '#1B4B73', fontSize: '15px' }}>
+                {modelInfo.name}
+              </Text>
             </Space>
-            
+
             {modelInfo.description && (
               <Text type="secondary" style={{ fontSize: '13px' }}>
                 {modelInfo.description}
@@ -226,6 +261,16 @@ export default function ModelSelector({
               {modelInfo.context_length && (
                 <Tooltip title="Context length">
                   <Tag color="orange">{modelInfo.context_length} tokens</Tag>
+                </Tooltip>
+              )}
+              {!!modelInfo.metadata?.family && (
+                <Tooltip title="Family">
+                  <Tag color="cyan">{modelInfo.metadata.family as string}</Tag>
+                </Tooltip>
+              )}
+              {!!modelInfo.metadata?.format && (
+                <Tooltip title="Format">
+                  <Tag color="gold">{modelInfo.metadata.format as string}</Tag>
                 </Tooltip>
               )}
             </Space>

@@ -16,18 +16,92 @@ test.describe('Phase 2: Chat Core Functionality', () => {
   let conversationId = null;
 
   test.beforeAll(async ({ request }) => {
-    console.log('Setting up test user...');
-    
-    // Register test user
+    console.log('Setting up test environment...');
+
+    // 1. Login as admin to enable registration
+    const adminLoginResponse = await request.post(`${API_URL}/api/auth/login`, {
+      data: {
+        email: 'admin@example.com',
+        password: 'AdminPassword123!'
+      }
+    });
+
+    if (adminLoginResponse.ok()) {
+      const adminData = await adminLoginResponse.json();
+      const adminToken = adminData.access_token;
+
+      // 2. Enable registration
+      await request.put(`${API_URL}/api/settings`, {
+        headers: {
+          'Authorization': `Bearer ${adminToken}`
+        },
+        data: {
+          white_label: {
+            registration_enabled: true
+          }
+        }
+      });
+      console.log('✓ Registration enabled temporarily');
+    } else {
+      console.warn('⚠️ Could not login as admin, registration might fail if disabled');
+    }
+
+    // 3. Register test user
+    console.log('Registering test user...');
     const registerResponse = await request.post(`${API_URL}/api/auth/register`, {
       data: TEST_USER
     });
-    
+
     expect(registerResponse.ok()).toBeTruthy();
     const registerData = await registerResponse.json();
     authToken = registerData.access_token;
-    
+
+    // 4. Create an initial conversation so listing tests don't fail
+    const convResponse = await request.post(`${API_URL}/api/conversations`, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      },
+      data: {
+        title: 'Initial Test Conversation',
+        model: 'llama3',
+        provider: 'ollama'
+      }
+    });
+
+    if (convResponse.ok()) {
+      const convData = await convResponse.json();
+      conversationId = convData.id;
+      console.log(`✓ Initial conversation created: ${conversationId}`);
+    }
+
     console.log('✅ Test user created and authenticated');
+  });
+
+  test.afterAll(async ({ request }) => {
+    // Disable registration again
+    const adminLoginResponse = await request.post(`${API_URL}/api/auth/login`, {
+      data: {
+        email: 'admin@example.com',
+        password: 'AdminPassword123!'
+      }
+    });
+
+    if (adminLoginResponse.ok()) {
+      const adminData = await adminLoginResponse.json();
+      const adminToken = adminData.access_token;
+
+      await request.put(`${API_URL}/api/settings`, {
+        headers: {
+          'Authorization': `Bearer ${adminToken}`
+        },
+        data: {
+          white_label: {
+            registration_enabled: false
+          }
+        }
+      });
+      console.log('✓ Registration disabled after tests');
+    }
   });
 
   test.beforeEach(async ({ page }) => {
@@ -46,15 +120,18 @@ test.describe('Phase 2: Chat Core Functionality', () => {
 
   test('should display chat interface when authenticated', async ({ page }) => {
     console.log('Testing chat interface display...');
-    
+
     await page.goto(`${BASE_URL}/chat`);
+
+    // Wait for loading state to disappear
+    await expect(page.locator('text=Loading Chat...')).not.toBeVisible({ timeout: 30000 });
     await page.waitForLoadState('networkidle');
 
-    // Check for main chat container
-    await expect(page.getByRole('heading', { name: 'Marie', exact: true })).toBeVisible();
-    
+    // Check for main chat container - use a more flexible locator for the app name
+    await expect(page.locator('text=Marie').first()).toBeVisible();
+
     // Check for connection status
-    const connectionStatus = page.locator('text=/Connected|Disconnected/');
+    const connectionStatus = page.locator('text=/System Online|System Offline/');
     await expect(connectionStatus).toBeVisible();
 
     // Check for new conversation button
@@ -80,12 +157,12 @@ test.describe('Phase 2: Chat Core Functionality', () => {
 
     expect(response.ok()).toBeTruthy();
     const conversation = await response.json();
-    
+
     expect(conversation).toHaveProperty('id');
     expect(conversation).toHaveProperty('title', 'Test Conversation');
     expect(conversation).toHaveProperty('model', 'llama3.2');
     expect(conversation).toHaveProperty('user_id');
-    
+
     conversationId = conversation.id;
     console.log(`✅ Conversation created: ${conversationId}`);
   });
@@ -101,7 +178,7 @@ test.describe('Phase 2: Chat Core Functionality', () => {
 
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
-    
+
     expect(data).toHaveProperty('conversations');
     expect(Array.isArray(data.conversations)).toBeTruthy();
     expect(data.conversations.length).toBeGreaterThan(0);
@@ -128,7 +205,7 @@ test.describe('Phase 2: Chat Core Functionality', () => {
     });
 
     expect(response.ok()).toBeTruthy();
-    
+
     // Verify the update
     const getResponse = await request.get(`${API_URL}/api/conversations/${conversationId}`, {
       headers: {
@@ -147,18 +224,21 @@ test.describe('Phase 2: Chat Core Functionality', () => {
     console.log('Testing UI conversation creation...');
 
     await page.goto(`${BASE_URL}/chat`);
+
+    // Wait for loading state to disappear
+    await expect(page.locator('text=Loading Chat...')).not.toBeVisible({ timeout: 30000 });
     await page.waitForLoadState('networkidle');
 
     // Click new conversation button
     await page.click('button:has-text("New Conversation")');
-    
+
     // Wait for conversation to be created
     await page.waitForTimeout(2000);
 
     // Check if new conversation appears in sidebar
-    const conversations = page.locator('.ant-list-item');
-    const count = await conversations.count();
-    expect(count).toBeGreaterThan(0);
+    // We look for the text "New Conversation" which should appear in the list
+    // (The first one is usually the button, the second one is the list item)
+    await expect(page.locator('text=New Conversation').nth(1)).toBeVisible({ timeout: 5000 });
 
     console.log('✅ Conversation created from UI');
   });
@@ -167,13 +247,16 @@ test.describe('Phase 2: Chat Core Functionality', () => {
     console.log('Testing WebSocket connection...');
 
     await page.goto(`${BASE_URL}/chat`);
+
+    // Wait for loading state to disappear
+    await expect(page.locator('text=Loading Chat...')).not.toBeVisible({ timeout: 30000 });
     await page.waitForLoadState('networkidle');
 
     // Wait for WebSocket connection
     await page.waitForTimeout(3000);
 
     // Check connection status indicator
-    const connectedIndicator = page.locator('text=Connected');
+    const connectedIndicator = page.locator('text=System Online');
     await expect(connectedIndicator).toBeVisible({ timeout: 10000 });
 
     console.log('✅ WebSocket connected');
@@ -241,7 +324,7 @@ test.describe('Phase 2: Chat Core Functionality', () => {
 
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
-    
+
     console.log(`Found ${data.messages.length} messages in conversation`);
 
     if (data.messages.length > 0) {
@@ -288,7 +371,7 @@ test.describe('Phase 2: Chat Core Functionality', () => {
 
     try {
       const response = await request.get(`${API_URL}/api/models`);
-      
+
       if (response.ok()) {
         const data = await response.json();
         console.log('✅ Ollama is available');

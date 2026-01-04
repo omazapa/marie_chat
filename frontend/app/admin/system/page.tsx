@@ -1,21 +1,37 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Typography, Tag, Spin, Alert, Divider, Progress, Space } from 'antd';
-import { 
-  CloudServerOutlined, 
-  HddOutlined, 
-  GlobalOutlined,
-  InfoCircleOutlined
-} from '@ant-design/icons';
-import apiClient from '@/lib/api';
+import { Card, Row, Col, Typography, Tag, Spin, Alert, Progress, Space } from 'antd';
+import { CloudServerOutlined, HddOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import apiClient, { getErrorMessage } from '@/lib/api';
 import { useSettings } from '@/hooks/useSettings';
 
 const { Title, Text, Paragraph } = Typography;
 
+interface AdminStats {
+  users_count: number;
+  conversations_count: number;
+  messages_count: number;
+  files_count: number;
+  system_info: {
+    os: string;
+    python_version: string;
+    cpu_usage: number;
+    memory_usage: number;
+  };
+  cluster_health?: string;
+  cluster_name?: string;
+  nodes_count?: number;
+  timestamp?: string;
+  indices?: Record<
+    string,
+    { docs_count: number; size_in_bytes: number; store_size_bytes?: number }
+  >;
+}
+
 export default function SystemStats() {
   const { whiteLabel } = useSettings();
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,8 +40,8 @@ export default function SystemStats() {
       try {
         const response = await apiClient.get('/admin/stats');
         setStats(response.data);
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to fetch system statistics');
+      } catch (err: unknown) {
+        setError(getErrorMessage(err, 'Failed to fetch system statistics'));
       } finally {
         setLoading(false);
       }
@@ -41,24 +57,38 @@ export default function SystemStats() {
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
       <Row gutter={[24, 24]}>
         <Col span={24}>
-          <Card title={<Space><CloudServerOutlined /> Cluster Information</Space>} variant="borderless">
+          <Card
+            title={
+              <Space>
+                <CloudServerOutlined /> Cluster Information
+              </Space>
+            }
+            variant="borderless"
+          >
             <Row gutter={24}>
               <Col span={8}>
                 <Text type="secondary">Status</Text>
                 <div style={{ marginTop: '8px' }}>
-                  <Tag color={stats.cluster_health === 'green' ? 'success' : 'warning'} style={{ fontSize: '16px', padding: '4px 12px' }}>
-                    {stats.cluster_health?.toUpperCase()}
+                  <Tag
+                    color={stats?.cluster_health === 'green' ? 'success' : 'warning'}
+                    style={{ fontSize: '16px', padding: '4px 12px' }}
+                  >
+                    {stats?.cluster_health?.toUpperCase()}
                   </Tag>
                 </div>
               </Col>
               <Col span={8}>
                 <Text type="secondary">Nodes</Text>
-                <Title level={3} style={{ margin: '8px 0' }}>{stats.nodes_count}</Title>
+                <Title level={3} style={{ margin: '8px 0' }}>
+                  {stats?.nodes_count}
+                </Title>
               </Col>
               <Col span={8}>
                 <Text type="secondary">Last Updated</Text>
                 <div style={{ marginTop: '8px' }}>
-                  <Text>{new Date(stats.timestamp).toLocaleString()}</Text>
+                  <Text>
+                    {stats?.timestamp ? new Date(stats.timestamp).toLocaleString() : 'N/A'}
+                  </Text>
                 </div>
               </Col>
             </Row>
@@ -66,13 +96,34 @@ export default function SystemStats() {
         </Col>
 
         <Col span={24}>
-          <Card title={<Space><HddOutlined /> Storage & Indices</Space>} variant="borderless">
+          <Card
+            title={
+              <Space>
+                <HddOutlined /> Storage & Indices
+              </Space>
+            }
+            variant="borderless"
+          >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              {Object.entries(stats.indices || {}).map(([name, data]: [string, any], index, arr) => (
+              {Object.entries(stats?.indices || {}).map(([name, data], index, arr) => (
                 <div key={name}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <Text strong style={{ fontSize: '16px' }}>{name}</Text>
-                    <Tag color="blue">{(data.store_size_bytes / (1024 * 1024)).toFixed(2)} MB</Tag>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '12px',
+                    }}
+                  >
+                    <Text strong style={{ fontSize: '16px' }}>
+                      {name}
+                    </Text>
+                    <Tag color="blue">
+                      {data.store_size_bytes
+                        ? (data.store_size_bytes / (1024 * 1024)).toFixed(2)
+                        : (data.size_in_bytes / (1024 * 1024)).toFixed(2)}{' '}
+                      MB
+                    </Tag>
                   </div>
                   <Row gutter={16}>
                     <Col span={12}>
@@ -81,10 +132,17 @@ export default function SystemStats() {
                     </Col>
                     <Col span={12}>
                       <Text type="secondary">Storage Efficiency</Text>
-                      <Progress percent={100} size="small" showInfo={false} strokeColor={whiteLabel.primary_color} />
+                      <Progress
+                        percent={100}
+                        size="small"
+                        showInfo={false}
+                        strokeColor={whiteLabel.primary_color}
+                      />
                     </Col>
                   </Row>
-                  {index < arr.length - 1 && <div style={{ height: '1px', background: '#f0f0f0', marginTop: '24px' }} />}
+                  {index < arr.length - 1 && (
+                    <div style={{ height: '1px', background: '#f0f0f0', marginTop: '24px' }} />
+                  )}
                 </div>
               ))}
             </div>
@@ -92,7 +150,14 @@ export default function SystemStats() {
         </Col>
 
         <Col span={24}>
-          <Card title={<Space><InfoCircleOutlined /> System Environment</Space>} variant="borderless">
+          <Card
+            title={
+              <Space>
+                <InfoCircleOutlined /> System Environment
+              </Space>
+            }
+            variant="borderless"
+          >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
                 <Text strong>Backend Framework:</Text> <Text>Flask 3.x</Text>
