@@ -102,12 +102,10 @@ export function useWebSocket({
   // Initialize socket connection
   useEffect(() => {
     if (!token) {
-      console.log('⚠️ No token provided for WebSocket, skipping connection');
       return;
     }
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-    console.log(`🔌 Connecting to WebSocket at ${API_URL}...`);
 
     const socket = io(API_URL, {
       auth: { token },
@@ -122,36 +120,30 @@ export function useWebSocket({
 
     // Message handlers - REGISTER FIRST before connection handlers
     socket.on('stream_start', (data) => {
-      console.log('🚀 Stream started:', data);
       handlersRef.current.onStreamStart?.(data);
     });
 
     socket.on('stream_chunk', (chunk: StreamChunk) => {
-      console.log('📦 Stream chunk received:', chunk);
       handlersRef.current.onStreamChunk?.(chunk);
     });
 
     socket.on('stream_end', (data) => {
-      console.log('✅ Stream ended:', data);
       handlersRef.current.onStreamEnd?.(data);
     });
 
     socket.on('message_response', (data) => {
-      console.log('📩 Message response:', data);
       handlersRef.current.onMessageResponse?.(data);
     });
 
     socket.on('message_received', (data) => {
-      console.log('📨 Message received acknowledgment:', data);
+      // Message acknowledged
     });
 
     socket.on('transcription_result', (data) => {
-      console.log('🎙️ Transcription result:', data);
       handlersRef.current.onTranscriptionResult?.(data);
     });
 
     socket.on('tts_result', (data) => {
-      console.log('🔊 TTS result received');
       handlersRef.current.onTTSResult?.(data);
     });
 
@@ -160,7 +152,6 @@ export function useWebSocket({
     });
 
     socket.on('image_progress', (data) => {
-      console.log('🖼️ Socket event: image_progress', data);
       handlersRef.current.onImageProgress?.(data);
     });
 
@@ -171,26 +162,20 @@ export function useWebSocket({
 
     // Connection handlers - AFTER message handlers
     socket.on('connect', () => {
-      console.log(
-        `✅ WebSocket connected! ID: ${socket.id}, Transport: ${socket.io.engine.transport.name}`
-      );
       setIsConnected(true);
       setSocket(socket);
 
       // Re-join current conversation on reconnect
       if (currentConversationRef.current) {
-        console.log(`🔄 Re-joining conversation: ${currentConversationRef.current}`);
         socket.emit('join_conversation', { conversation_id: currentConversationRef.current });
       }
     });
 
     socket.on('connected', (data) => {
-      console.log('✅ Authenticated:', data);
       handlersRef.current.onConnected?.();
     });
 
     socket.on('disconnect', (reason) => {
-      console.log(`👋 WebSocket disconnected: ${reason}`);
       setIsConnected(false);
       handlersRef.current.onDisconnected?.();
     });
@@ -280,16 +265,6 @@ export function useWebSocket({
           regenerate,
           workflow,
         });
-        console.log(`💬 Sent message to ${conversationId}:`, message.substring(0, 50));
-        if (attachments.length > 0) {
-          console.log(`📎 With ${attachments.length} attachments`);
-        }
-        if (referenced_conv_ids.length > 0) {
-          console.log(`🔗 Referencing ${referenced_conv_ids.length} conversations`);
-        }
-        if (referenced_msg_ids.length > 0) {
-          console.log(`📍 Referencing ${referenced_msg_ids.length} specific messages`);
-        }
       } else {
         console.error('❌ Socket not connected');
       }
@@ -313,7 +288,6 @@ export function useWebSocket({
       socketRef.current.emit('stop_generation', {
         conversation_id: conversationId,
       });
-      console.log(`🛑 Stop generation requested for ${conversationId}`);
     }
   }, []);
 

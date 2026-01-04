@@ -2,7 +2,6 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'ax
 import { useAuthStore } from '@/stores/authStore';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-console.log('🌐 API_URL configured as:', API_URL);
 
 /**
  * Extracts a user-friendly error message from an unknown error object,
@@ -35,8 +34,6 @@ apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const { accessToken } = useAuthStore.getState();
 
-    console.log(`🚀 Axios Request: ${config.method?.toUpperCase()} ${config.url}`);
-
     if (accessToken && config.headers) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
@@ -52,7 +49,6 @@ apiClient.interceptors.request.use(
 // Response interceptor to handle token refresh
 apiClient.interceptors.response.use(
   (response) => {
-    console.log(`✅ Axios Response: ${response.status} ${response.config.url}`);
     return response;
   },
   async (error: AxiosError) => {
