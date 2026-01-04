@@ -37,6 +37,7 @@ import { Tag } from 'antd';
 import apiClient, { getErrorMessage } from '@/lib/api';
 import { useModels } from '@/hooks/useModels';
 import { useAuthStore } from '@/stores/authStore';
+import { useSettings } from '@/hooks/useSettings';
 import { SystemSettings as SystemSettingsType, ProviderStatus } from '@/types';
 
 const { Title, Paragraph, Text } = Typography;
@@ -48,6 +49,7 @@ export default function SystemSettings() {
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
   const [providerStatus, setProviderStatus] = useState<Record<string, ProviderStatus>>({});
   const { message } = App.useApp();
+  const { refetch: refetchPublicSettings } = useSettings();
 
   const { accessToken } = useAuthStore();
   const { models, loading: loadingModels, fetchModels } = useModels(accessToken || '');
@@ -115,6 +117,14 @@ export default function SystemSettings() {
     try {
       await apiClient.put('/settings', values);
       message.success('Settings updated successfully');
+
+      // Refetch settings to ensure state is synced
+      const response = await apiClient.get<SystemSettingsType>('/settings');
+      form.setFieldsValue(response.data);
+
+      // Refresh public settings (white label) for all components
+      await refetchPublicSettings();
+
       // Refresh models to show newly discovered agents
       fetchModels(true);
     } catch {
