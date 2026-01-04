@@ -27,6 +27,13 @@ def setup_logging_middleware(app: Flask):
     @app.before_request
     def before_request():
         """Execute before each request"""
+        # Skip WebSocket and Socket.IO connections completely
+        if (
+            request.path.startswith("/socket.io")
+            or request.environ.get("HTTP_UPGRADE") == "websocket"
+        ):
+            return None
+
         # Generate unique request ID
         request.id = str(uuid.uuid4())  # type: ignore[attr-defined]
         g.start_time = time.time()
@@ -55,6 +62,13 @@ def setup_logging_middleware(app: Flask):
     @app.after_request
     def after_request(response):
         """Execute after each request"""
+        # Skip WebSocket and Socket.IO connections completely
+        if (
+            request.path.startswith("/socket.io")
+            or request.environ.get("HTTP_UPGRADE") == "websocket"
+        ):
+            return response
+
         # Calculate request duration
         if hasattr(g, "start_time"):
             duration_ms = (time.time() - g.start_time) * 1000
@@ -84,6 +98,10 @@ def setup_logging_middleware(app: Flask):
     @app.teardown_request
     def teardown_request(exception=None):
         """Execute at the end of request, even if exception occurred"""
+        # Skip WebSocket connections
+        if request.path.startswith("/socket.io"):
+            return
+
         if exception:
             logger.error(
                 f"Request failed with exception: {str(exception)}",
