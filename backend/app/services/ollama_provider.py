@@ -300,18 +300,13 @@ class OllamaProvider(LLMProvider):
 
     async def _stream_chat(self, payload: dict[str, Any]) -> AsyncGenerator[dict[str, Any], None]:
         """Streaming chat completion"""
-        print(f"[OLLAMA] Starting stream chat with model: {payload.get('model')}")
         try:
-            import eventlet
+            import asyncio
 
-            print("[OLLAMA] Creating HTTP stream request")
             async with self.client.stream(
                 "POST", f"{self.base_url}/api/chat", json=payload, timeout=300.0
             ) as response:
-                print(f"[OLLAMA] Got response status: {response.status_code}")
                 response.raise_for_status()
-
-                print("[OLLAMA] Starting to iterate lines")
                 async for line in response.aiter_lines():
                     if not line.strip():
                         continue
@@ -337,15 +332,13 @@ class OllamaProvider(LLMProvider):
                             "tokens_used": chunk.get("eval_count", 0) if is_done else 0,
                         }
 
-                        # Yield control to eventlet for smooth streaming
-                        eventlet.sleep(0)
+                        # Yield control to event loop for smooth streaming
+                        await asyncio.sleep(0)
 
                         # Stop if done
                         if is_done:
-                            print("[OLLAMA] Stream completed")
                             break
-                    except json.JSONDecodeError as e:
-                        print(f"[OLLAMA] JSON decode error: {e}, line: {line}")
+                    except json.JSONDecodeError:
                         continue
         except Exception as e:
             print(f"[OLLAMA] Error in streaming chat: {e}")

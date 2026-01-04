@@ -283,7 +283,7 @@ class AgentProvider(LLMProvider):
         self, model: str, payload: dict, headers: dict
     ) -> AsyncGenerator[ChatCompletionChunk, None]:
         """Streaming call to external agent"""
-        import eventlet
+        import asyncio
 
         async with httpx.AsyncClient(timeout=300.0) as client:
             try:
@@ -313,8 +313,8 @@ class AgentProvider(LLMProvider):
                                 if content:
                                     print(f"[AGENT] Chunk: {content[:50]}...")
                                     yield ChatCompletionChunk(content=content, done=False)
-                                    # Yield control to eventlet
-                                    eventlet.sleep(0)
+                                    # Yield control to event loop
+                                    await asyncio.sleep(0)
                             except json.JSONDecodeError as e:
                                 print(f"[AGENT] JSON decode error: {e}")
                                 continue

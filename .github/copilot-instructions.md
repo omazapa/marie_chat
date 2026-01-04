@@ -6,6 +6,8 @@
 - **ALL code MUST be written in English** (variables, functions, classes, comments).
 - **ALL documentation MUST be in English** (README, comments, commit messages).
 - **NO Spanish in code or technical documentation** - Only user-facing UI text can be multilingual.
+- **Be CONCISE in responses** - Provide essential information only, avoid verbose explanations.
+- **DO NOT create documentation files for every change** - Only create docs when explicitly requested or for major architectural changes.
 
 ### Workflow & Automation
 - **Git Operations**: ONLY perform git commits or version control operations if the user EXPLICITLY requests it. Otherwise, the user handles all git commands manually.

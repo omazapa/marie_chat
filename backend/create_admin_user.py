@@ -1,8 +1,5 @@
-import eventlet
-
-eventlet.monkey_patch()
-
-import argparse  # noqa: E402
+#!/usr/bin/env python3
+import argparse
 
 from app import create_app  # noqa: E402
 from app.services.opensearch_service import OpenSearchService  # noqa: E402

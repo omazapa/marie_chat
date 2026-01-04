@@ -116,7 +116,7 @@ class PromptService:
 
             print(f"🤖 Optimizing prompt with {provider_name} ({model_name})")
 
-            # Use the synchronous version to avoid event loop conflicts with eventlet
+            # Use the synchronous version
             chunk = provider.chat_completion_sync(model=model_name, messages=messages)
 
             response = chunk.content

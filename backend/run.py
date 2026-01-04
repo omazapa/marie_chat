@@ -3,14 +3,10 @@
 Marie Backend Server
 """
 
-import eventlet
+import os
 
-eventlet.monkey_patch()
-
-import os  # noqa: E402
-
-from app import create_app, socketio  # noqa: E402
-from app.services.opensearch_init import init_opensearch_indices  # noqa: E402
+from app import create_app, socketio
+from app.services.opensearch_init import init_opensearch_indices
 
 # Create Flask app
 app = create_app()
@@ -33,6 +29,8 @@ def init_app():
 if __name__ == "__main__":
     init_app()
 
-    # Run with SocketIO
+    # Run with SocketIO (threading mode)
     port = int(os.getenv("PORT", 5000))
-    socketio.run(app, host="0.0.0.0", port=port, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(
+        app, host="0.0.0.0", port=port, debug=True, allow_unsafe_werkzeug=True, use_reloader=False
+    )

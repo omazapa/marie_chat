@@ -4,9 +4,10 @@ REST API endpoints for image generation and viewing
 """
 
 import queue
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 
-import eventlet  # type: ignore
-import eventlet.tpool  # type: ignore
 from flask import Blueprint, jsonify, request, send_from_directory
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
@@ -14,6 +15,9 @@ from app import socketio
 from app.config import settings
 from app.services.image_service import image_service
 from app.services.llm_service import llm_service
+
+# Thread pool for CPU-bound image generation tasks
+executor = ThreadPoolExecutor(max_workers=4)
 
 images_bp = Blueprint("images", __name__)
 
@@ -93,35 +97,31 @@ def generate_image():
         print(f"📡 Background generation task started for {conv_id}")
 
         # Give the frontend time to join the room
-        eventlet.sleep(1.0)
+        time.sleep(1.0)
 
         # Create a THREAD-SAFE queue for progress updates (native thread -> greenlet)
         progress_queue: queue.Queue = queue.Queue()
 
         # Background task to consume the queue and emit events
         def emit_progress_task():
-            print(f"📡 Progress emitter started for {conv_id}")
             while True:
                 try:
-                    # Use non-blocking get to avoid blocking the event loop
                     try:
                         item = progress_queue.get(block=False)
                     except queue.Empty:
-                        eventlet.sleep(0.1)
+                        time.sleep(0.1)
                         continue
 
-                    if item is None:  # Sentinel to stop
+                    if item is None:
                         break
 
                     event_type = item.get("event", "image_progress")
                     payload = item.get("payload")
                     room = item.get("room")
 
-                    # print(f"📤 Emitting {event_type} to room {room}")
                     socketio.emit(event_type, payload, room=room)
                 except Exception as e:
-                    print(f"❌ Emitter error: {str(e)}")
-            print(f"🏁 Progress emitter finished for {conv_id}")
+                    print(f"❌ Image emit error: {str(e)}")
 
         # Start the emitter greenlet
         socketio.start_background_task(emit_progress_task)
@@ -148,7 +148,7 @@ def generate_image():
         def simulated_progress_task():
             current_sim_progress = 0
             while not stop_simulated_progress and current_sim_progress < 90:
-                eventlet.sleep(2.0)
+                time.sleep(2.0)
                 if stop_simulated_progress:
                     break
                 current_sim_progress += 5
@@ -167,52 +167,40 @@ def generate_image():
                 )
 
         if is_remote:
-            eventlet.spawn(simulated_progress_task)
+            threading.Thread(target=simulated_progress_task, daemon=True).start()
 
         def progress_callback(step, total_steps, latents):
             nonlocal stop_simulated_progress
-            # Stop simulated progress if we get real progress
             stop_simulated_progress = True
-
-            # Calculate progress
             progress = min(int(((step + 1) / total_steps) * 100), 99)
-            # print(f"🖼️ Image progress: {progress}% (Step {step + 1}/{total_steps}) for room {conv_id}")
-
             payload = {
                 "conversation_id": conv_id,
                 "step": step + 1,
                 "total_steps": total_steps,
                 "progress": progress,
             }
-
-            # Put into queue instead of emitting directly
             progress_queue.put(
                 {"event": "image_progress", "room": str(conv_id), "payload": payload}
             )
 
         try:
-            print(f"🎨 Starting image generation for conversation {conv_id}...")
-
-            # Generate image in a native thread
-            result = eventlet.tpool.execute(
+            # Generate image in a native thread using executor
+            future = executor.submit(
                 image_service.generate_image,
                 prompt=p,
                 model=m,
                 num_inference_steps=steps,
                 progress_callback=progress_callback,
             )
+            result = future.result()
 
             if "error" in result:
-                print(f"❌ Generation error: {result['error']}")
                 stop_simulated_progress = True
                 progress_queue.put(None)
                 return
 
             image_url = result.get("url")
             stop_simulated_progress = True
-
-            # Final progress update
-            print(f"🏁 Emitting 100% progress for room {conv_id}")
             progress_queue.put(
                 {
                     "event": "image_progress",
@@ -227,8 +215,7 @@ def generate_image():
                 }
             )
 
-            # Save message to database with correct metadata for frontend
-            print(f"💾 Saving image message for conversation {conv_id}")
+            # Save message to database
             metadata = {
                 "type": "image_generation",
                 "image": {"url": image_url, "prompt": p, "model": result.get("model")},
@@ -247,8 +234,6 @@ def generate_image():
             if "content_vector" in display_message:
                 del display_message["content_vector"]
 
-            # Emit final message response
-            print(f"📡 Emitting message_response for room {conv_id}")
             progress_queue.put(
                 {
                     "event": "message_response",
@@ -305,10 +290,14 @@ def generate_image():
             progress_queue.put(None)
 
     # Start the background task
-    eventlet.spawn(run_generation_task, conversation_id, user_id, prompt, model, num_steps)
+    threading.Thread(
+        target=run_generation_task,
+        args=(conversation_id, user_id, prompt, model, num_steps),
+        daemon=True,
+    ).start()
 
     # Yield control to allow the background task to start
-    eventlet.sleep(0.1)
+    time.sleep(0.1)
 
     # Return immediately with the conversation_id
     print(f"✅ Returning response to client for conv {conversation_id}")

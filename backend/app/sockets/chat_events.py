@@ -303,13 +303,12 @@ async def process_chat_message_async(
             )
             print("[ITER] Got generator, starting iteration")
 
-            import eventlet
+            import asyncio
 
             # Now iterate over the generator
             async for chunk in cast(AsyncGenerator[dict[str, Any], None], generator):
                 # Check if generation was stopped
                 if conversation_id in stopped_generations:
-                    print(f"[STOP] Generation stopped for conversation {conversation_id}")
                     socketio.emit(
                         "stream_end",
                         {"conversation_id": conversation_id, "message": None, "stopped": True},
@@ -319,11 +318,9 @@ async def process_chat_message_async(
 
                 chunk_count += 1
                 chunk_content = chunk.get("content", "")
-                print(f"[CHUNK {chunk_count}] Got chunk: {chunk_content[:50]}...")
                 full_content += chunk_content
 
                 # Emit each chunk to the client
-                print(f"[EMIT] Emitting stream_chunk to conversation room {conversation_id}")
                 socketio.emit(
                     "stream_chunk",
                     {
@@ -334,10 +331,9 @@ async def process_chat_message_async(
                     },
                     room=conversation_id,
                 )
-                print(f"[EMIT] stream_chunk emitted (chunk #{chunk_count})")
 
-                # Yield control to eventlet for smooth operation
-                eventlet.sleep(0)
+                # Yield control for smooth operation
+                await asyncio.sleep(0)
 
             print(
                 f"[STREAM] Stream complete. Total chunks: {chunk_count}, Total content length: {len(full_content)}"

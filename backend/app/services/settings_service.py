@@ -165,14 +165,28 @@ class SettingsService:
     def update_settings(self, new_settings: dict[str, Any]) -> bool:
         """Update system-wide settings"""
         try:
-            new_settings["updated_at"] = datetime.utcnow().isoformat()
-            self.client.index(
-                index=self.index_name, id="system_config", body=new_settings, refresh=True
-            )
+            # Get existing settings to merge with new ones
+            existing_settings = self.get_settings()
+
+            # Deep merge: update existing with new settings
+            updated = self._deep_merge(existing_settings, new_settings)
+            updated["updated_at"] = datetime.utcnow().isoformat()
+
+            self.client.index(index=self.index_name, id="system_config", body=updated, refresh=True)
             return True
         except Exception as e:
             print(f"Error updating settings: {e}")
             return False
+
+    def _deep_merge(self, base: dict[str, Any], update: dict[str, Any]) -> dict[str, Any]:
+        """Deep merge two dictionaries"""
+        result = base.copy()
+        for key, value in update.items():
+            if isinstance(value, dict) and key in result and isinstance(result[key], dict):
+                result[key] = self._deep_merge(result[key], value)
+            else:
+                result[key] = value
+        return result
 
 
 settings_service = SettingsService()
