@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     FLASK_ENV: str = os.getenv("FLASK_ENV", "development")
     SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
     DEBUG: bool = FLASK_ENV == "development"
+    PRODUCTION: bool = os.getenv("PRODUCTION", "false").lower() == "true"
     PORT: int = int(os.getenv("PORT", "5000"))
 
     # JWT
