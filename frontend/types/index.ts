@@ -125,6 +125,8 @@ export interface ProviderConfig {
 export interface SystemSettings {
   llm: {
     default_provider: string;
+    default_provider_type?: string;
+    default_provider_id?: string;
     default_model: string;
     default_system_prompt?: string;
   };
