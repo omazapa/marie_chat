@@ -295,7 +295,12 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
             }
             style={{ background: '#f9f9f9', border: '1px solid #e6e6e6' }}
           >
-            <Paragraph style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{optimizedResult}</Paragraph>
+            <TextArea
+              rows={6}
+              value={optimizedResult}
+              onChange={(e) => setOptimizedResult(e.target.value)}
+              style={{ whiteSpace: 'pre-wrap' }}
+            />
           </Card>
         )}
       </Space>

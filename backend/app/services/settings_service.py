@@ -125,6 +125,25 @@ class SettingsService:
                     "api_key": app_settings.REMOTE_AGENT_KEY,
                 }
 
+            # Ensure stt exists for older configs
+            if "stt" not in settings:
+                settings["stt"] = {
+                    "model_size": app_settings.WHISPER_MODEL,
+                }
+
+            # Ensure tts exists for older configs
+            if "tts" not in settings:
+                settings["tts"] = {
+                    "default_voices": {
+                        "es": "es-CO-GonzaloNeural",
+                        "en": "en-US-AndrewNeural",
+                        "fr": "fr-FR-HenriNeural",
+                        "de": "de-DE-ConradNeural",
+                        "it": "it-IT-DiegoNeural",
+                        "pt": "pt-BR-AntonioNeural",
+                    }
+                }
+
             return settings
         except Exception:
             # Return defaults if not found

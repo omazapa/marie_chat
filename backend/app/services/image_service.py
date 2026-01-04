@@ -73,8 +73,8 @@ class ImageService:
                     self._local_pipe.enable_model_cpu_offload()
 
                 self._local_pipe.enable_attention_slicing()
-            else:
-                self._local_pipe = self._local_pipe.to(device)
+            # Note: No need to call .to(device) when using CPU offloading
+            # as it's already handled by enable_sequential_cpu_offload() or enable_model_cpu_offload()
 
             print(f"✅ Local image model loaded on {device} (with CPU offloading)")
         return self._local_pipe
