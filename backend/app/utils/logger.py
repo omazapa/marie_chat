@@ -4,8 +4,16 @@ Structured Logging for MARIE Backend
 Provides JSON-formatted logs with contextual information for better debugging
 and monitoring in production environments.
 
+Features:
+- JSON structured logging
+- Automatic log rotation
+- Request context tracking
+- Performance timing
+- Multiple output handlers (console + file)
+- Environment-based configuration
+
 Usage:
-    from app.utils.logger import get_logger, log_with_context
+    from app.utils.logger import get_logger, log_with_context, LogTimer
 
     logger = get_logger(__name__)
 
@@ -16,19 +24,26 @@ Usage:
     @log_with_context(user_id=user_id, conversation_id=conv_id)
     def process_message():
         logger.info("Processing message")  # Automatically includes context
+
+    # With timing
+    with LogTimer(logger, "database_query", user_id=user_id):
+        result = db.query()
 """
 
 import json
 import logging
+import os
 import sys
 from contextvars import ContextVar
 from datetime import datetime
 from functools import wraps
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 from flask import has_request_context, request
 
 # Context variables for request-scoped data
-request_context: ContextVar[dict] = ContextVar("request_context", default=None)  # type: ignore[arg-type]
+request_context: ContextVar[dict] = ContextVar("request_context", default={})  # type: ignore[arg-type]
 
 
 class JSONFormatter(logging.Formatter):
@@ -59,19 +74,23 @@ class JSONFormatter(logging.Formatter):
 
         # Add request context if available
         if has_request_context():
-            log_obj["request"] = {
-                "method": request.method,
-                "path": request.path,
-                "remote_addr": request.remote_addr,
-                "user_agent": request.headers.get("User-Agent", ""),
-            }
+            try:
+                log_obj["request"] = {
+                    "method": request.method,
+                    "path": request.path,
+                    "remote_addr": request.remote_addr,
+                    "user_agent": request.headers.get("User-Agent", "")[:200],  # Truncate
+                }
 
-            # Add request ID if available
-            if hasattr(request, "id"):
-                log_obj["request_id"] = request.id
+                # Add request ID if available
+                if hasattr(request, "id"):
+                    log_obj["request_id"] = request.id
+            except RuntimeError:
+                # Outside request context
+                pass
 
         # Add context variables
-        ctx = request_context.get()
+        ctx = request_context.get({})
         if ctx:
             log_obj["context"] = ctx
 
@@ -83,7 +102,7 @@ class JSONFormatter(logging.Formatter):
         if hasattr(record, "message_id"):
             log_obj["message_id"] = record.message_id
         if hasattr(record, "duration_ms"):
-            log_obj["duration_ms"] = record.duration_ms
+            log_obj["duration_ms"] = round(record.duration_ms, 2)
         if hasattr(record, "provider"):
             log_obj["provider"] = record.provider
         if hasattr(record, "model"):
@@ -91,7 +110,7 @@ class JSONFormatter(logging.Formatter):
         if hasattr(record, "tokens"):
             log_obj["tokens"] = record.tokens
         if hasattr(record, "error"):
-            log_obj["error"] = record.error
+            log_obj["error"] = str(record.error)
         if hasattr(record, "status_code"):
             log_obj["status_code"] = record.status_code
 
@@ -105,30 +124,95 @@ class JSONFormatter(logging.Formatter):
 
         return json.dumps(log_obj)
 
+        return json.dumps(log_obj)
 
-def setup_logging(app_name: str = "marie", level: str = "INFO") -> logging.Logger:
+
+def setup_logging(
+    app_name: str = "marie",
+    level: str = "INFO",
+    log_dir: str = "logs",
+    max_bytes: int = 10485760,  # 10MB
+    backup_count: int = 5,
+    console_output: bool = True,
+    file_output: bool = True,
+) -> logging.Logger:
     """
     Configure logging for the application
 
     Args:
         app_name: Name of the application
         level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        log_dir: Directory for log files
+        max_bytes: Maximum size of each log file before rotation
+        backup_count: Number of backup files to keep
+        console_output: Enable console output
+        file_output: Enable file output
 
     Returns:
         Configured logger instance
     """
-    # Create handler
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(JSONFormatter())
+    # Get log level from environment or parameter
+    log_level = os.getenv("LOG_LEVEL", level).upper()
+    level_value = getattr(logging, log_level, logging.INFO)
+
+    # Create formatter
+    json_formatter = JSONFormatter()
 
     # Configure root logger
     root_logger = logging.getLogger()
-    root_logger.setLevel(getattr(logging, level.upper()))
-    root_logger.addHandler(handler)
+    root_logger.setLevel(level_value)
+    root_logger.handlers.clear()  # Remove existing handlers
+
+    # Console handler
+    if console_output:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(json_formatter)
+        console_handler.setLevel(level_value)
+        root_logger.addHandler(console_handler)
+
+    # File handler with rotation
+    if file_output:
+        # Create log directory if it doesn't exist
+        log_path = Path(log_dir)
+        log_path.mkdir(parents=True, exist_ok=True)
+
+        # Main application log file
+        app_log_file = log_path / f"{app_name}.log"
+        file_handler = RotatingFileHandler(
+            app_log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8"
+        )
+        file_handler.setFormatter(json_formatter)
+        file_handler.setLevel(level_value)
+        root_logger.addHandler(file_handler)
+
+        # Separate error log file
+        error_log_file = log_path / f"{app_name}_error.log"
+        error_handler = RotatingFileHandler(
+            error_log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8"
+        )
+        error_handler.setFormatter(json_formatter)
+        error_handler.setLevel(logging.ERROR)
+        root_logger.addHandler(error_handler)
+
+    # Silence noisy libraries
+    logging.getLogger("werkzeug").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
 
     # Create app logger
     logger = logging.getLogger(app_name)
-    logger.setLevel(getattr(logging, level.upper()))
+    logger.setLevel(level_value)
+
+    logger.info(
+        f"Logging initialized",
+        extra={
+            "log_level": log_level,
+            "console_output": console_output,
+            "file_output": file_output,
+            "log_dir": str(log_path) if file_output else None,
+        },
+    )
 
     return logger
 
@@ -153,7 +237,9 @@ def set_context(**kwargs):
     Usage:
         set_context(user_id="user123", conversation_id="conv456")
     """
-    ctx = request_context.get()
+    ctx = request_context.get({})
+    if not isinstance(ctx, dict):
+        ctx = {}
     ctx.update(kwargs)
     request_context.set(ctx)
 
@@ -161,6 +247,12 @@ def set_context(**kwargs):
 def clear_context():
     """Clear context variables"""
     request_context.set({})
+
+
+def get_context() -> dict:
+    """Get current context variables"""
+    ctx = request_context.get({})
+    return ctx if isinstance(ctx, dict) else {}
 
 
 def log_with_context(**context_kwargs):

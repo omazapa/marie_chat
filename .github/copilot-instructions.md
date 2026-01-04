@@ -7,7 +7,13 @@
 - **ALL documentation MUST be in English** (README, comments, commit messages).
 - **NO Spanish in code or technical documentation** - Only user-facing UI text can be multilingual.
 - **Be CONCISE in responses** - Provide essential information only, avoid verbose explanations.
-- **DO NOT create documentation files for every change** - Only create docs when explicitly requested or for major architectural changes.
+- **❌ CRITICAL: DO NOT CREATE DOCUMENTATION FILES** - This is a STRICT rule:
+  - **NO README files** for each feature/change
+  - **NO CHANGELOG files** after implementations
+  - **NO SUMMARY documents** for completed tasks
+  - **NO TECHNICAL SPECS** unless explicitly requested
+  - Only create documentation when the user EXPLICITLY asks for it or for major architectural changes
+  - Focus on implementing code, not documenting every change
 
 ### Workflow & Automation
 - **Git Operations**: ONLY perform git commits or version control operations if the user EXPLICITLY requests it. Otherwise, the user handles all git commands manually.
