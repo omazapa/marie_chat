@@ -1,57 +1,90 @@
+"""
+Settings routes - FastAPI version
+Public settings, admin settings management, and provider testing.
+"""
+
 from typing import Any
 
-from flask import Blueprint, jsonify, request
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 
 from app.services.settings_service import settings_service
-from app.utils.auth import admin_required
+from app.utils.auth import get_current_admin_user
 
-settings_bp = Blueprint("settings", __name__)
+router = APIRouter()
 
 
-@settings_bp.route("/public", methods=["GET"])
-def get_public_settings():
-    """Get public system settings (white label)"""
+class SettingsUpdate(BaseModel):
+    """Settings update request"""
+
+    white_label: dict[str, Any] | None = None
+    llm: dict[str, Any] | None = None
+    image_generation: dict[str, Any] | None = None
+
+
+class ProviderTestRequest(BaseModel):
+    """Provider test request"""
+
+    provider: str
+    config: dict[str, Any] = {}
+
+
+@router.get("/public")
+async def get_public_settings():
+    """
+    Get public system settings (white label).
+    No authentication required.
+    """
     config = settings_service.get_settings()
-    # Only return white label info
-    return jsonify({"white_label": config.get("white_label", {})}), 200
+    return {"white_label": config.get("white_label", {})}
 
 
-@settings_bp.route("", methods=["GET"])
-@admin_required
-def get_settings():
-    """Get system settings"""
+@router.get("")
+async def get_settings(current_user: dict = Depends(get_current_admin_user)):
+    """
+    Get all system settings.
+    Requires admin authentication.
+    """
     config = settings_service.get_settings()
-    return jsonify(config), 200
+    return config
 
 
-@settings_bp.route("", methods=["PUT"])
-@admin_required
-def update_settings():
-    """Update system settings"""
-    data = request.get_json()
+@router.put("")
+async def update_settings(
+    settings: SettingsUpdate, current_user: dict = Depends(get_current_admin_user)
+):
+    """
+    Update system settings.
+    Requires admin authentication.
+    """
+    data = settings.model_dump(exclude_unset=True)
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No data provided")
 
     success = settings_service.update_settings(data)
-    if success:
-        # Re-initialize providers to apply new API keys/endpoints
-        from app.services.provider_factory import initialize_providers
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update settings",
+        )
 
-        initialize_providers()
-        return jsonify({"message": "Settings updated successfully"}), 200
-    return jsonify({"error": "Failed to update settings"}), 500
+    # Re-initialize providers to apply new API keys/endpoints
+    from app.services.provider_factory import initialize_providers
+
+    initialize_providers()
+    return {"message": "Settings updated successfully"}
 
 
-@settings_bp.route("/test-provider", methods=["POST"])
-@admin_required
-def test_provider():
-    """Test a provider connection with provided configuration"""
-    data = request.get_json()
-    provider_name = data.get("provider")
-    config = data.get("config", {})
-
-    if not provider_name:
-        return jsonify({"error": "Provider name is required"}), 400
+@router.post("/test-provider")
+async def test_provider(
+    test_request: ProviderTestRequest, current_user: dict = Depends(get_current_admin_user)
+):
+    """
+    Test a provider connection with provided configuration.
+    Requires admin authentication.
+    """
+    provider_name = test_request.provider
+    config = test_request.config
 
     try:
         from app.services.agent_provider import AgentProvider
@@ -67,13 +100,18 @@ def test_provider():
         }
 
         if provider_name not in provider_classes:
-            return jsonify({"error": f"Unknown provider: {provider_name}"}), 400
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unknown provider: {provider_name}",
+            )
 
         # Create a temporary instance to test
         provider_class = provider_classes[provider_name]
         temp_provider: Any = provider_class(config)  # type: ignore[abstract]
         health = temp_provider.health_check()
 
-        return jsonify(health), 200
+        return health
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({"error": str(e), "available": False}), 500
+        return {"error": str(e), "available": False}
