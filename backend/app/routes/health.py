@@ -1,9 +1,10 @@
 """
-Health Check Endpoints for MARIE Backend
+Health Check Endpoints for MARIE Backend - FastAPI Version
 
 Provides:
 - /health/live - Liveness probe (is the app running?)
 - /health/ready - Readiness probe (can it handle requests?)
+- /health/startup - Startup probe (has initialization completed?)
 
 Usage in Kubernetes:
   livenessProbe:
@@ -14,21 +15,27 @@ Usage in Kubernetes:
     httpGet:
       path: /health/ready
       port: 5000
+  startupProbe:
+    httpGet:
+      path: /health/startup
+      port: 5000
 """
 
 import logging
+from typing import Any
 
-from flask import Blueprint, jsonify
+from fastapi import APIRouter, status
+from fastapi.responses import JSONResponse
 
 from app.db import opensearch_client
 
 logger = logging.getLogger(__name__)
 
-health_bp = Blueprint("health", __name__, url_prefix="/health")
+router = APIRouter(prefix="/health")
 
 
-@health_bp.route("/live", methods=["GET"])
-def liveness():
+@router.get("/live")
+async def liveness() -> dict[str, Any]:
     """
     Liveness probe - indicates if the application is alive
 
@@ -39,11 +46,11 @@ def liveness():
     This should be a very lightweight check that only fails
     if the application process is completely broken.
     """
-    return jsonify({"status": "alive", "service": "marie-backend"}), 200
+    return {"status": "alive", "service": "marie-backend"}
 
 
-@health_bp.route("/ready", methods=["GET"])
-def readiness():
+@router.get("/ready")
+async def readiness():
     """
     Readiness probe - indicates if the application can handle requests
 
@@ -62,44 +69,60 @@ def readiness():
 
     # Check OpenSearch
     try:
-        health = opensearch_client.cluster.health()
-        opensearch_healthy = health["status"] in ["green", "yellow"]
+        health = opensearch_client.info()  # Use info() instead of cluster.health()
         checks["opensearch"] = {
-            "status": "healthy" if opensearch_healthy else "unhealthy",
-            "cluster_status": health["status"],
-            "nodes": health["number_of_nodes"],
+            "status": "healthy",
+            "version": health.get("version", {}).get("number", "unknown"),
         }
-
-        if not opensearch_healthy:
-            all_healthy = False
-
     except Exception as e:
         logger.error(f"OpenSearch health check failed: {e}")
         checks["opensearch"] = {"status": "unhealthy", "error": str(e)}
         all_healthy = False
 
-    # TODO: Add more health checks
-    # - Redis cache
-    # - Ollama service
-    # - File storage
+    # Overall status
+    response = {
+        "status": "ready" if all_healthy else "not_ready",
+        "service": "marie-backend",
+        "checks": checks,
+    }
 
-    status_code = 200 if all_healthy else 503
-    response_status = "ready" if all_healthy else "not ready"
+    if all_healthy:
+        return JSONResponse(content=response, status_code=status.HTTP_200_OK)
+    else:
+        return JSONResponse(content=response, status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-    return jsonify({"status": response_status, "checks": checks}), status_code
 
-
-@health_bp.route("/startup", methods=["GET"])
-def startup():
+@router.get("/startup")
+async def startup():
     """
-    Startup probe - used during application initialization
+    Startup probe - indicates if the application has finished starting up
+
+    This is used by Kubernetes to know when the app is initialized
+    and ready for liveness/readiness checks.
 
     Returns:
-        200: Application has completed startup
+        200: Application has started successfully
         503: Application is still starting up
-
-    Useful for slow-starting applications.
     """
-    # For now, same as readiness
-    # In the future, could check if indices are created, etc.
-    return readiness()
+    checks = {}
+    all_healthy = True
+
+    # Check OpenSearch initialization
+    try:
+        opensearch_client.info()
+        checks["opensearch"] = {"status": "initialized"}
+    except Exception as e:
+        logger.error(f"OpenSearch startup check failed: {e}")
+        checks["opensearch"] = {"status": "not_initialized", "error": str(e)}
+        all_healthy = False
+
+    response = {
+        "status": "started" if all_healthy else "starting",
+        "service": "marie-backend",
+        "checks": checks,
+    }
+
+    if all_healthy:
+        return JSONResponse(content=response, status_code=status.HTTP_200_OK)
+    else:
+        return JSONResponse(content=response, status_code=status.HTTP_503_SERVICE_UNAVAILABLE)

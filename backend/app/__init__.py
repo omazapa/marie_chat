@@ -1,115 +1,160 @@
+"""
+FastAPI application factory and configuration.
+Migrated from Flask + Flask-SocketIO to FastAPI + native WebSockets.
+"""
+
 import uuid
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from datetime import datetime
 
-from flask import Flask, g, request
-from flask_cors import CORS
-from flask_jwt_extended import JWTManager
-from flask_socketio import SocketIO
+from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.utils.logger import get_logger, setup_logging
 
-# Initialize extensions
-jwt = JWTManager()
-# Use threading mode instead of eventlet for better compatibility
-socketio = SocketIO(cors_allowed_origins=settings.CORS_ORIGINS, async_mode="threading")
+# Setup structured logging
+setup_logging(app_name="marie", level="INFO")
+logger = get_logger(__name__)
 
 
-def create_app():
-    """Application factory"""
-    app = Flask(__name__)
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator:
+    """Application lifespan events"""
+    logger.info("Starting MARIE FastAPI application")
 
-    # Setup structured logging
-    setup_logging(app_name="marie", level="INFO")
-    logger = get_logger(__name__)
-    logger.info("Starting MARIE application")
+    # Initialize providers
+    from app.services.provider_factory import initialize_providers
 
-    # Load configuration
-    app.config["SECRET_KEY"] = settings.SECRET_KEY
-    app.config["JWT_SECRET_KEY"] = settings.JWT_SECRET_KEY
-    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = settings.JWT_ACCESS_TOKEN_EXPIRES
-    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = settings.JWT_REFRESH_TOKEN_EXPIRES
-    app.config["JWT_TOKEN_LOCATION"] = settings.JWT_TOKEN_LOCATION
-    app.config["JWT_HEADER_NAME"] = settings.JWT_HEADER_NAME
-    app.config["JWT_HEADER_TYPE"] = settings.JWT_HEADER_TYPE
+    initialize_providers()
 
-    # Initialize extensions
-    CORS(app, origins=settings.CORS_ORIGINS, supports_credentials=True)
-    jwt.init_app(app)
-    socketio.init_app(app)
+    yield
 
-    # Register blueprints
-    from app.routes import (
-        admin_bp,
-        api_keys_bp,
-        auth_bp,
-        conversations_bp,
-        files_bp,
-        images_bp,
-        models_bp,
-        prompts_bp,
-        settings_bp,
-        speech_bp,
+    logger.info("Shutting down MARIE application")
+
+
+def create_app() -> FastAPI:
+    """FastAPI application factory"""
+
+    app = FastAPI(
+        title="MARIE API",
+        description="Machine-Assisted Research Intelligent Environment",
+        version="2.0.0",
+        docs_url="/api/v1/docs" if not settings.PRODUCTION else None,
+        redoc_url="/api/v1/redoc" if not settings.PRODUCTION else None,
+        lifespan=lifespan,
     )
-    from app.routes.health import health_bp
-    from app.routes.v1.chat import v1_chat_bp
-    from app.routes.v1.conversations import v1_conversations_bp
-    from app.routes.v1.docs import v1_docs_bp
-    from app.routes.v1.search import v1_search_bp
-    from app.routes.v1.settings import v1_settings_bp
 
-    # Health checks (no prefix - top level)
-    app.register_blueprint(health_bp)
-
-    app.register_blueprint(auth_bp, url_prefix="/api/auth")
-    app.register_blueprint(conversations_bp, url_prefix="/api/conversations")
-    app.register_blueprint(models_bp, url_prefix="/api/models")
-    app.register_blueprint(files_bp, url_prefix="/api/files")
-    app.register_blueprint(speech_bp, url_prefix="/api/speech")
-    app.register_blueprint(images_bp, url_prefix="/api/images")
-    app.register_blueprint(api_keys_bp, url_prefix="/api/api-keys")
-    app.register_blueprint(prompts_bp, url_prefix="/api/prompts")
-    app.register_blueprint(admin_bp, url_prefix="/api/admin")
-    app.register_blueprint(settings_bp, url_prefix="/api/settings")
-    app.register_blueprint(v1_chat_bp, url_prefix="/api/v1/chat")
-    app.register_blueprint(v1_conversations_bp, url_prefix="/api/v1/conversations")
-    app.register_blueprint(v1_search_bp, url_prefix="/api/v1/search")
-    app.register_blueprint(v1_settings_bp, url_prefix="/api/v1/settings")
-    app.register_blueprint(v1_docs_bp, url_prefix="/api/v1/docs")
+    # CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     # Request tracking middleware
-    @app.before_request
-    def before_request():
-        """Track request start time and generate request ID"""
-        g.request_id = str(uuid.uuid4())
-        g.start_time = datetime.utcnow()
-        request.id = g.request_id
+    @app.middleware("http")
+    async def add_request_id(request: Request, call_next):
+        """Add request ID and timing to all requests"""
+        request_id = str(uuid.uuid4())
+        start_time = datetime.utcnow()
 
-    @app.after_request
-    def after_request(response):
-        """Log request completion"""
-        if hasattr(g, "start_time"):
-            duration_ms = (datetime.utcnow() - g.start_time).total_seconds() * 1000
+        # Set request ID in state
+        request.state.request_id = request_id
+        request.state.start_time = start_time
 
-            # Skip logging for health checks to reduce noise
-            if not request.path.startswith("/health"):
-                logger.info(
-                    "Request completed",
-                    extra={
-                        "request_id": g.request_id,
-                        "method": request.method,
-                        "path": request.path,
-                        "status_code": response.status_code,
-                        "duration_ms": round(duration_ms, 2),
-                    },
-                )
+        response: Response = await call_next(request)
+
+        # Add request ID header
+        response.headers["X-Request-ID"] = request_id
+
+        # Log request completion (skip health checks)
+        if not request.url.path.startswith("/health"):
+            duration_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
+            logger.info(
+                "Request completed",
+                extra={
+                    "request_id": request_id,
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status_code": response.status_code,
+                    "duration_ms": round(duration_ms, 2),
+                },
+            )
+
         return response
 
-    # Register socket events
-    from app.sockets import chat_events as _chat_events  # noqa: F401
+    # Global exception handler
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        """Handle unexpected exceptions"""
+        request_id = getattr(request.state, "request_id", "unknown")
+        logger.error(
+            f"Unhandled exception: {exc}",
+            extra={"request_id": request_id},
+            exc_info=True,
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Internal server error", "request_id": request_id},
+        )
 
-    @app.route("/")
-    def index():
-        return {"message": "Marie API", "version": "1.0.0", "status": "running"}
+    # Import and register routers
+    from app.routes.admin import router as admin_router
+    from app.routes.api_keys import router as api_keys_router
+    from app.routes.auth import router as auth_router
+    from app.routes.conversations import router as conversations_router
+    from app.routes.files import router as files_router
+    from app.routes.health import router as health_router
+    from app.routes.images import router as images_router
+    from app.routes.models import router as models_router
+    from app.routes.prompts import router as prompts_router
+    from app.routes.settings import router as settings_router
+    from app.routes.speech import router as speech_router
+
+    # V1 API routes
+    from app.routes.v1.chat import router as v1_chat_router
+    from app.routes.v1.conversations import router as v1_conversations_router
+    from app.routes.v1.docs import router as v1_docs_router
+    from app.routes.v1.search import router as v1_search_router
+    from app.routes.v1.settings import router as v1_settings_router
+
+    # WebSocket routes
+    from app.sockets.chat_events import router as chat_ws_router
+
+    # Health checks (no prefix - top level)
+    app.include_router(health_router, tags=["health"])
+
+    # Main API routes
+    app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
+    app.include_router(conversations_router, prefix="/api/conversations", tags=["conversations"])
+    app.include_router(models_router, prefix="/api/models", tags=["models"])
+    app.include_router(files_router, prefix="/api/files", tags=["files"])
+    app.include_router(speech_router, prefix="/api/speech", tags=["speech"])
+    app.include_router(images_router, prefix="/api/images", tags=["images"])
+    app.include_router(api_keys_router, prefix="/api/api-keys", tags=["api-keys"])
+    app.include_router(prompts_router, prefix="/api/prompts", tags=["prompts"])
+    app.include_router(admin_router, prefix="/api/admin", tags=["admin"])
+    app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
+
+    # V1 API routes
+    app.include_router(v1_chat_router, prefix="/api/v1/chat", tags=["v1-chat"])
+    app.include_router(
+        v1_conversations_router, prefix="/api/v1/conversations", tags=["v1-conversations"]
+    )
+    app.include_router(v1_search_router, prefix="/api/v1/search", tags=["v1-search"])
+    app.include_router(v1_settings_router, prefix="/api/v1/settings", tags=["v1-settings"])
+    app.include_router(v1_docs_router, prefix="/api/v1/docs", tags=["v1-docs"])
+
+    # WebSocket routes
+    app.include_router(chat_ws_router, tags=["websocket"])
 
     return app
+
+
+# Create app instance
+app = create_app()

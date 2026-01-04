@@ -76,15 +76,16 @@
 - Fix any failures
 - Document test results
 
-## 📊 Overall Progress: 60%
+## 📊 Overall Progress: 70%
 
 ### Architecture Improvements Made:
 1. ✅ Removed deprecated eventlet
-2. ✅ Cleaner async handling
-3. ✅ Better settings persistence
-4. ✅ Improved streaming UX
-5. 🔄 FastAPI foundation laid
-6. ⏳ Full migration pending
+2. ✅ FastAPI migration complete (core files)
+3. ✅ Better async handling
+4. ✅ Better settings persistence
+5. ✅ Improved streaming UX
+6. 🔄 Remaining routes to migrate
+7. ⏳ WebSocket migration pending
 
 ### Code Quality:
 - All commits pass pre-commit hooks

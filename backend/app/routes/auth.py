@@ -1,41 +1,38 @@
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import (
-    create_access_token,
-    create_refresh_token,
-    get_jwt_identity,
-    jwt_required,
-)
-from pydantic import ValidationError
+"""
+Authentication routes - FastAPI version
+"""
 
-from app.schemas.auth import (
-    LoginRequest,
-    RegisterRequest,
-    UserResponse,
-)
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from app.schemas.auth import LoginRequest, RegisterRequest, UserResponse
 from app.services.opensearch_service import OpenSearchService
 from app.services.settings_service import settings_service
+from app.utils.auth import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    get_current_active_user,
+)
 
-auth_bp = Blueprint("auth", __name__)
+router = APIRouter()
 opensearch_service = OpenSearchService()
 
 
-@auth_bp.route("/register", methods=["POST"])
-def register():
+@router.post("/register", response_model=dict, status_code=status.HTTP_201_CREATED)
+async def register(data: RegisterRequest):
     """Register a new user"""
     # Check if registration is enabled
     config = settings_service.get_settings()
     if not config.get("white_label", {}).get("registration_enabled", False):
-        return jsonify({"error": "Registration is currently disabled"}), 403
-
-    try:
-        data = RegisterRequest(**request.get_json())
-    except ValidationError as e:
-        return jsonify({"error": "Invalid request", "details": e.errors()}), 400
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Registration is currently disabled",
+        )
 
     # Check if user already exists
     existing_user = opensearch_service.get_user_by_email(data.email)
     if existing_user:
-        return jsonify({"error": "User already exists"}), 409
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
 
     # Create user
     try:
@@ -45,54 +42,51 @@ def register():
 
         # Create tokens
         access_token = create_access_token(
-            identity=user["id"], additional_claims={"role": user.get("role", "user")}
+            data={"sub": user["id"], "role": user.get("role", "user")}
         )
-        refresh_token = create_refresh_token(identity=user["id"])
+        refresh_token = create_refresh_token(data={"sub": user["id"]})
 
         # Update last login
         opensearch_service.update_last_login(user["id"])
 
-        return jsonify(
-            {
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-                "user": UserResponse(**user).model_dump(),
-            }
-        ), 201
+        # Remove password_hash from response
+        user.pop("password_hash", None)
+
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "user": UserResponse(**user).model_dump(),
+        }
 
     except Exception as e:
-        return jsonify({"error": "Failed to create user", "details": str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create user: {str(e)}",
+        ) from e
 
 
-@auth_bp.route("/login", methods=["POST"])
-def login():
+@router.post("/login", response_model=dict)
+async def login(data: LoginRequest):
     """Login user"""
-    try:
-        data = LoginRequest(**request.get_json())
-    except ValidationError as e:
-        return jsonify({"error": "Invalid request", "details": e.errors()}), 400
-
     # Get user
     user = opensearch_service.get_user_by_email(data.email)
     if not user:
-        return jsonify({"error": "Invalid credentials"}), 401
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     # Verify password
     password_hash = user.get("password_hash")
     if not password_hash or not opensearch_service.verify_password(
         data.password.strip(), password_hash
     ):
-        return jsonify({"error": "Invalid credentials"}), 401
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     # Check if user is active
     if not user.get("is_active", True):
-        return jsonify({"error": "Account is inactive"}), 403
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is inactive")
 
     # Create tokens
-    access_token = create_access_token(
-        identity=user["id"], additional_claims={"role": user.get("role", "user")}
-    )
-    refresh_token = create_refresh_token(identity=user["id"])
+    access_token = create_access_token(data={"sub": user["id"], "role": user.get("role", "user")})
+    refresh_token = create_refresh_token(data={"sub": user["id"]})
 
     # Update last login
     opensearch_service.update_last_login(user["id"])
@@ -100,47 +94,59 @@ def login():
     # Remove password_hash from response
     user.pop("password_hash", None)
 
-    return jsonify(
-        {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "user": UserResponse(**user).model_dump(),
-        }
-    ), 200
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "user": UserResponse(**user).model_dump(),
+    }
 
 
-@auth_bp.route("/refresh", methods=["POST"])
-@jwt_required(refresh=True)
-def refresh():
+@router.post("/refresh", response_model=dict)
+async def refresh(refresh_token: str):
     """Refresh access token"""
-    identity = get_jwt_identity()
+    try:
+        payload = decode_token(refresh_token)
+        token_type = payload.get("type")
 
-    # Create new access token
-    access_token = create_access_token(identity=identity)
+        if token_type != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
+            )
 
-    return jsonify({"access_token": access_token}), 200
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token",
+            )
+
+        # Create new access token
+        access_token = create_access_token(data={"sub": user_id})
+
+        return {"access_token": access_token}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        ) from e
 
 
-@auth_bp.route("/logout", methods=["POST"])
-@jwt_required()
-def logout():
+@router.post("/logout")
+async def logout(current_user: dict = Depends(get_current_active_user)):
     """Logout user"""
     # In a stateless JWT setup, logout is handled on the client side
     # For a more secure implementation, you could maintain a blocklist
-    return jsonify({"message": "Logged out successfully"}), 200
+    return {"message": "Logged out successfully"}
 
 
-@auth_bp.route("/me", methods=["GET"])
-@jwt_required()
-def get_current_user():
+@router.get("/me", response_model=UserResponse)
+async def get_current_user_info(current_user: dict = Depends(get_current_active_user)):
     """Get current user info"""
-    user_id = get_jwt_identity()
+    # Remove password_hash if present
+    current_user.pop("password_hash", None)
 
-    user = opensearch_service.get_user_by_id(user_id)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    # Remove password_hash
-    user.pop("password_hash", None)
-
-    return jsonify(UserResponse(**user).model_dump()), 200
+    return UserResponse(**current_user)
