@@ -98,7 +98,7 @@ def setup_logging_middleware(app: Flask):
     @app.teardown_request
     def teardown_request(exception=None):
         """Execute at the end of request, even if exception occurred"""
-        # Skip WebSocket connections
+        # Skip WebSocket and Socket.IO connections completely
         if request.path.startswith("/socket.io"):
             return
 
