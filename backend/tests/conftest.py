@@ -15,15 +15,15 @@ os.environ["TESTING"] = "true"
 os.environ["OPENSEARCH_HOST"] = "localhost"
 os.environ["OPENSEARCH_PORT"] = "9200"
 
-from app import create_app
-from app.utils.auth import create_access_token, get_password_hash
-
 fake = Faker()
 
 
 @pytest.fixture(scope="session")
 def app():
     """Create FastAPI app for testing."""
+    # Lazy import to avoid loading during test collection
+    from app import create_app
+
     return create_app()
 
 
@@ -49,6 +49,8 @@ def mock_opensearch():
 @pytest.fixture(scope="function")
 def mock_opensearch_service():
     """Mock OpenSearchService."""
+    from app.utils.auth import get_password_hash
+
     with patch("app.services.opensearch_service.OpenSearchService") as MockService:
         service = MockService.return_value
         service.create_user.return_value = {
@@ -105,6 +107,8 @@ def test_admin():
 @pytest.fixture
 def auth_headers(test_user):
     """Generate authentication headers."""
+    from app.utils.auth import create_access_token
+
     token = create_access_token(data={"sub": test_user["id"], "role": test_user["role"]})
     return {"Authorization": f"Bearer {token}"}
 
@@ -112,6 +116,8 @@ def auth_headers(test_user):
 @pytest.fixture
 def admin_headers(test_admin):
     """Generate admin authentication headers."""
+    from app.utils.auth import create_access_token
+
     token = create_access_token(data={"sub": test_admin["id"], "role": test_admin["role"]})
     return {"Authorization": f"Bearer {token}"}
 
