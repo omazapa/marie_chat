@@ -121,13 +121,6 @@ def handle_join_conversation(data):
         return
 
     join_room(conversation_id)
-    print(f"📥 Client {cast(Any, request).sid} joined conversation {conversation_id}")
-
-    # Debug: list rooms for this client
-    from flask_socketio import rooms
-
-    print(f"🔍 Client {cast(Any, request).sid} is now in rooms: {rooms()}")
-
     emit("joined_conversation", {"conversation_id": conversation_id})
 
 
@@ -141,7 +134,6 @@ def handle_leave_conversation(data):
         return
 
     leave_room(conversation_id)
-    print(f"📤 Client {cast(Any, request).sid} left conversation {conversation_id}")
     emit("left_conversation", {"conversation_id": conversation_id})
 
 
@@ -197,8 +189,6 @@ def handle_send_message(data):
         },
     )
 
-    print(f"[TASK] Starting background task for conversation {conversation_id}")
-
     # Process message in background task
     socketio.start_background_task(
         process_chat_message_wrapper,
@@ -213,8 +203,6 @@ def handle_send_message(data):
         regenerate=regenerate,
     )
 
-    print(f"[STARTED] Background task started for conversation {conversation_id}")
-
 
 def process_chat_message_wrapper(
     user_id: str,
@@ -228,10 +216,8 @@ def process_chat_message_wrapper(
     regenerate: bool = False,
 ):
     """Wrapper to run async function in dedicated event loop"""
-    print(f"[WRAPPER] Started for conversation {conversation_id}")
     try:
         loop = get_async_loop()
-        print(f"[LOOP] Got event loop for conversation {conversation_id}")
         # Schedule coroutine in the dedicated loop
         future = asyncio.run_coroutine_threadsafe(
             process_chat_message_async(

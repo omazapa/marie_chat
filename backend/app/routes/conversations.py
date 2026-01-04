@@ -154,7 +154,6 @@ def bulk_delete_conversations():
 def get_conversation_messages(conversation_id: str):
     """Get messages for a conversation"""
     user_id = get_jwt_identity()
-    print(f"🔍 [GET] /api/conversations/{conversation_id}/messages (user: {user_id})")
 
     limit = request.args.get("limit", 100, type=int)
     offset = request.args.get("offset", 0, type=int)
@@ -163,7 +162,6 @@ def get_conversation_messages(conversation_id: str):
         messages = llm_service.get_messages(
             conversation_id=conversation_id, user_id=user_id, limit=limit, offset=offset
         )
-        print(f"✅ Found {len(messages)} messages")
         return jsonify({"messages": messages}), 200
     except Exception as e:
         print(f"❌ Error in get_conversation_messages: {e}")
