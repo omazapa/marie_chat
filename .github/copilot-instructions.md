@@ -60,8 +60,7 @@
 ## 🤖 Tech Stack & Expertise
 
 ### Backend (Flask 3 + Python 3.12)
-- **Real-time**: `Flask-SocketIO` with `eventlet`.
-- **Critical**: `eventlet.monkey_patch()` MUST be the first line in `run.py`.
+- **Real-time**: `Flask-SocketIO` with threading.
 - **Concurrency**: Keep REST routes synchronous. Use async ONLY for LLM streaming chunks.
 - **Search**: OpenSearch 2.11 (k-NN vector search).
 - **Auth**: Flask-JWT-Extended (RBAC).
@@ -114,7 +113,7 @@ const handleEvent = useCallback(() => {
 ---
 
 ## 📂 Key Files & Directories
-- `backend/run.py`: Entry point, contains `eventlet.monkey_patch()`.
+- `backend/run.py`: Entry point for the backend server.
 - `backend/app/routes/v1/`: Developer API implementation.
 - `frontend/hooks/useChat.ts`: Core chat logic and WebSocket integration.
 - `frontend/components/chat/ChatContainer.tsx`: Main chat UI component.

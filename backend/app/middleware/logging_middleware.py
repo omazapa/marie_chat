@@ -28,10 +28,13 @@ def setup_logging_middleware(app: Flask):
     def before_request():
         """Execute before each request"""
         # Skip WebSocket and Socket.IO connections completely
-        if (
-            request.path.startswith("/socket.io")
-            or request.environ.get("HTTP_UPGRADE") == "websocket"
-        ):
+        # Check multiple indicators of WebSocket/Socket.IO traffic
+        is_socketio_path = request.path.startswith("/socket.io")
+        is_websocket_upgrade = "websocket" in request.environ.get("HTTP_UPGRADE", "").lower()
+        is_websocket_key = "HTTP_SEC_WEBSOCKET_KEY" in request.environ
+        has_upgrade_connection = "upgrade" in request.environ.get("HTTP_CONNECTION", "").lower()
+
+        if is_socketio_path or is_websocket_upgrade or is_websocket_key or has_upgrade_connection:
             return None
 
         # Generate unique request ID
@@ -63,10 +66,12 @@ def setup_logging_middleware(app: Flask):
     def after_request(response):
         """Execute after each request"""
         # Skip WebSocket and Socket.IO connections completely
-        if (
-            request.path.startswith("/socket.io")
-            or request.environ.get("HTTP_UPGRADE") == "websocket"
-        ):
+        is_socketio_path = request.path.startswith("/socket.io")
+        is_websocket_upgrade = "websocket" in request.environ.get("HTTP_UPGRADE", "").lower()
+        is_websocket_key = "HTTP_SEC_WEBSOCKET_KEY" in request.environ
+        has_upgrade_connection = "upgrade" in request.environ.get("HTTP_CONNECTION", "").lower()
+
+        if is_socketio_path or is_websocket_upgrade or is_websocket_key or has_upgrade_connection:
             return response
 
         # Calculate request duration

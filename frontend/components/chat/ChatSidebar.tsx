@@ -107,16 +107,26 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Sidebar Header */}
         <div style={{ padding: '20px 16px', borderBottom: '1px solid #f0f0f0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-            <img
-              src={whiteLabel.app_icon}
-              alt="Logo"
-              style={{ width: '32px', height: '32px', objectFit: 'contain' }}
-            />
-            <Text strong style={{ fontSize: '18px', color: whiteLabel.primary_color }}>
-              {(whiteLabel.app_name || 'Marie').replace(/\s*Chat/i, '')}
-            </Text>
-          </div>
+          <Link href="/chat" style={{ textDecoration: 'none' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px',
+                cursor: 'pointer',
+              }}
+            >
+              <img
+                src={whiteLabel.app_icon}
+                alt="Logo"
+                style={{ width: '32px', height: '32px', objectFit: 'contain' }}
+              />
+              <Text strong style={{ fontSize: '18px', color: whiteLabel.primary_color }}>
+                {(whiteLabel.app_name || 'Marie').replace(/\s*Chat/i, '')}
+              </Text>
+            </div>
+          </Link>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div

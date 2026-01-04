@@ -41,7 +41,7 @@ Complete control over the environment with a powerful administration suite:
 
 MARIE is built on a modern, scalable stack:
 - **Frontend**: Next.js 16 (React 19), TypeScript, Ant Design X, Tailwind CSS.
-- **Backend**: Flask 3, Socket.IO (Eventlet), Python 3.12.
+- **Backend**: Flask 3, Socket.IO, Python 3.12.
 - **Database**: OpenSearch 2.11 with k-NN vector search for semantic memory.
 - **Infrastructure**: Fully containerized with Docker for easy deployment.
 

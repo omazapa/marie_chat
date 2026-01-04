@@ -110,7 +110,7 @@ export function useWebSocket({
     const socket = io(API_URL, {
       auth: { token },
       query: { token },
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
