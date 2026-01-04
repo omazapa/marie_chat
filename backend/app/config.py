@@ -9,6 +9,7 @@ class Settings(BaseSettings):
 
     # Flask
     FLASK_ENV: str = os.getenv("FLASK_ENV", "development")
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", os.getenv("FLASK_ENV", "development"))
     SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
     DEBUG: bool = FLASK_ENV == "development"
     PORT: int = int(os.getenv("PORT", "5000"))

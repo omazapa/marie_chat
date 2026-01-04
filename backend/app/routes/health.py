@@ -62,7 +62,7 @@ def readiness():
 
     # Check OpenSearch
     try:
-        health = opensearch_client.cluster.health()
+        health = opensearch_client.cluster.health()  # type: ignore[attr-defined]
         opensearch_healthy = health["status"] in ["green", "yellow"]
         checks["opensearch"] = {
             "status": "healthy" if opensearch_healthy else "unhealthy",

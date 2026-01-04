@@ -786,7 +786,6 @@ class LLMService:
         chat_messages = [ChatMessage(role=m["role"], content=m["content"]) for m in messages]
 
         # Get completion directly from provider
-        result = None
 
         response = provider.chat_completion(
             model=model,
@@ -798,6 +797,7 @@ class LLMService:
         )
 
         # Handle both generator and direct response
+        result: Any = None
         if hasattr(response, "__aiter__"):
             async for chunk in response:
                 # In non-streaming, we expect one chunk or the last one to be the result
@@ -889,11 +889,16 @@ class LLMService:
         print("[SERVICE] Starting provider response iteration")
         async for chunk in response:
             # Handle both dict and ChatCompletionChunk
-            content = chunk.content if hasattr(chunk, "content") else chunk.get("content", "")
-            done = chunk.done if hasattr(chunk, "done") else chunk.get("done", False)
-            chunk_model = chunk.model if hasattr(chunk, "model") else chunk.get("model")
+            chunk_any: Any = chunk
+            content = (
+                chunk_any.content if hasattr(chunk_any, "content") else chunk_any.get("content", "")
+            )
+            done = chunk_any.done if hasattr(chunk_any, "done") else chunk_any.get("done", False)
+            chunk_model = chunk_any.model if hasattr(chunk_any, "model") else chunk_any.get("model")
             tokens_used = (
-                chunk.tokens_used if hasattr(chunk, "tokens_used") else chunk.get("tokens_used")
+                chunk_any.tokens_used
+                if hasattr(chunk_any, "tokens_used")
+                else chunk_any.get("tokens_used")
             )
 
             full_content += content

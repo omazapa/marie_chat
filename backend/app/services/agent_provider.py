@@ -137,7 +137,7 @@ class AgentProvider(LLMProvider):
         schema = await self._get_input_schema(model)
         print(f"🔍 AgentProvider: Schema for {model}: {schema}")
 
-        input_data = {}
+        input_data: dict[str, Any] | str = {}
         last_message = messages[-1].content if messages else ""
 
         # Adaptive input mapping
@@ -171,7 +171,7 @@ class AgentProvider(LLMProvider):
             print("⚠️ AgentProvider: No clear schema, falling back to 'messages' format")
             input_data = {"messages": [m.to_dict() for m in messages]}
 
-        payload = {"input": input_data}
+        payload: dict[str, Any] = {"input": input_data}
 
         # Only add config if there are relevant settings to pass
         # and if it's not a simple string input (which usually doesn't take config)

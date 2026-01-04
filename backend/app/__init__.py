@@ -1,12 +1,10 @@
-import uuid
-from datetime import datetime
-
-from flask import Flask, g, request
+from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_socketio import SocketIO
 
 from app.config import settings
+from app.middleware.logging_middleware import setup_logging_middleware
 from app.utils.logger import get_logger, setup_logging
 
 # Initialize extensions
@@ -24,10 +22,19 @@ def create_app():
     """Application factory"""
     app = Flask(__name__)
 
-    # Setup structured logging
-    setup_logging(app_name="marie", level="INFO")
+    # Setup structured logging with file rotation
+    log_level = "DEBUG" if settings.DEBUG else "INFO"
+    setup_logging(
+        app_name="marie",
+        level=log_level,
+        log_dir="logs",
+        max_bytes=10485760,  # 10MB
+        backup_count=5,
+        console_output=True,
+        file_output=True,
+    )
     logger = get_logger(__name__)
-    logger.info("Starting MARIE application")
+    logger.info("🚀 Starting MARIE application", extra={"environment": settings.ENVIRONMENT})
 
     # Load configuration
     app.config["SECRET_KEY"] = settings.SECRET_KEY
@@ -42,6 +49,9 @@ def create_app():
     CORS(app, origins=settings.CORS_ORIGINS, supports_credentials=True)
     jwt.init_app(app)
     socketio.init_app(app)
+
+    # Setup logging middleware (request/response logging)
+    setup_logging_middleware(app)
 
     # Register blueprints
     from app.routes import (
@@ -82,36 +92,10 @@ def create_app():
     app.register_blueprint(v1_settings_bp, url_prefix="/api/v1/settings")
     app.register_blueprint(v1_docs_bp, url_prefix="/api/v1/docs")
 
-    # Request tracking middleware
-    @app.before_request
-    def before_request():
-        """Track request start time and generate request ID"""
-        g.request_id = str(uuid.uuid4())
-        g.start_time = datetime.utcnow()
-        request.id = g.request_id
-
-    @app.after_request
-    def after_request(response):
-        """Log request completion"""
-        if hasattr(g, "start_time"):
-            duration_ms = (datetime.utcnow() - g.start_time).total_seconds() * 1000
-
-            # Skip logging for health checks to reduce noise
-            if not request.path.startswith("/health"):
-                logger.info(
-                    "Request completed",
-                    extra={
-                        "request_id": g.request_id,
-                        "method": request.method,
-                        "path": request.path,
-                        "status_code": response.status_code,
-                        "duration_ms": round(duration_ms, 2),
-                    },
-                )
-        return response
-
     # Register socket events
     from app.sockets import chat_events as _chat_events  # noqa: F401
+
+    logger.info("✅ MARIE application initialized successfully")
 
     @app.route("/")
     def index():

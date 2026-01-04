@@ -43,7 +43,7 @@ from pathlib import Path
 from flask import has_request_context, request
 
 # Context variables for request-scoped data
-request_context: ContextVar[dict] = ContextVar("request_context", default={})  # type: ignore[arg-type]
+request_context: ContextVar[dict | None] = ContextVar("request_context", default=None)
 
 
 class JSONFormatter(logging.Formatter):
@@ -90,7 +90,7 @@ class JSONFormatter(logging.Formatter):
                 pass
 
         # Add context variables
-        ctx = request_context.get({})
+        ctx = request_context.get()
         if ctx:
             log_obj["context"] = ctx
 
@@ -205,7 +205,7 @@ def setup_logging(
     logger.setLevel(level_value)
 
     logger.info(
-        f"Logging initialized",
+        "Logging initialized",
         extra={
             "log_level": log_level,
             "console_output": console_output,
@@ -237,8 +237,8 @@ def set_context(**kwargs):
     Usage:
         set_context(user_id="user123", conversation_id="conv456")
     """
-    ctx = request_context.get({})
-    if not isinstance(ctx, dict):
+    ctx = request_context.get()
+    if ctx is None:
         ctx = {}
     ctx.update(kwargs)
     request_context.set(ctx)
@@ -246,13 +246,13 @@ def set_context(**kwargs):
 
 def clear_context():
     """Clear context variables"""
-    request_context.set({})
+    request_context.set(None)
 
 
 def get_context() -> dict:
     """Get current context variables"""
-    ctx = request_context.get({})
-    return ctx if isinstance(ctx, dict) else {}
+    ctx = request_context.get()
+    return ctx if ctx is not None else {}
 
 
 def log_with_context(**context_kwargs):
