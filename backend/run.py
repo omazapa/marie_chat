@@ -3,10 +3,6 @@
 Marie Backend Server
 """
 
-import eventlet
-
-eventlet.monkey_patch()
-
 import os  # noqa: E402
 
 from app import create_app, socketio  # noqa: E402

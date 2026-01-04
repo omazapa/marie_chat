@@ -11,7 +11,8 @@ from app.utils.logger import get_logger, setup_logging
 
 # Initialize extensions
 jwt = JWTManager()
-socketio = SocketIO(cors_allowed_origins=settings.CORS_ORIGINS, async_mode="eventlet")
+# Use threading mode instead of eventlet for better compatibility
+socketio = SocketIO(cors_allowed_origins=settings.CORS_ORIGINS, async_mode="threading")
 
 
 def create_app():
