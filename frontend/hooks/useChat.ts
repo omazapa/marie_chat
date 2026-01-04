@@ -37,17 +37,48 @@ export function useChat(
   // Use ref for streaming content to avoid stale closures
   const streamingContentRef = useRef<Record<string, string>>({});
 
+  // Track streaming timeouts to prevent stuck "thinking" state
+  const streamingTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
+
   // Update ref when state changes
   useEffect(() => {
     currentConversationRef.current = currentConversation;
   }, [currentConversation]);
 
-  // WebSocket handlers
-  const handleStreamStart = useCallback((data: { conversation_id: string }) => {
-    streamingContentRef.current[data.conversation_id] = '';
-    setStreamingStates((prev) => ({ ...prev, [data.conversation_id]: true }));
-    setStreamingMessages((prev) => ({ ...prev, [data.conversation_id]: '' }));
+  // Cleanup function to clear streaming state
+  const clearStreamingState = useCallback((conversationId: string) => {
+    delete streamingContentRef.current[conversationId];
+    setStreamingStates((prev) => ({ ...prev, [conversationId]: false }));
+    setStreamingMessages((prev) => {
+      const next = { ...prev };
+      delete next[conversationId];
+      return next;
+    });
+    // Clear timeout if exists
+    if (streamingTimeoutsRef.current[conversationId]) {
+      clearTimeout(streamingTimeoutsRef.current[conversationId]);
+      delete streamingTimeoutsRef.current[conversationId];
+    }
   }, []);
+
+  // WebSocket handlers
+  const handleStreamStart = useCallback(
+    (data: { conversation_id: string }) => {
+      streamingContentRef.current[data.conversation_id] = '';
+      setStreamingStates((prev) => ({ ...prev, [data.conversation_id]: true }));
+      setStreamingMessages((prev) => ({ ...prev, [data.conversation_id]: '' }));
+
+      // Set a 60-second timeout to auto-clear if stream gets stuck
+      if (streamingTimeoutsRef.current[data.conversation_id]) {
+        clearTimeout(streamingTimeoutsRef.current[data.conversation_id]);
+      }
+      streamingTimeoutsRef.current[data.conversation_id] = setTimeout(() => {
+        console.warn(`Stream timeout for conversation ${data.conversation_id}, forcing cleanup`);
+        clearStreamingState(data.conversation_id);
+      }, 60000);
+    },
+    [clearStreamingState]
+  );
 
   const handleStreamChunk = useCallback((chunk: StreamChunk) => {
     if (chunk.content) {
@@ -56,7 +87,6 @@ export function useChat(
         (streamingContentRef.current[chunk.conversation_id] || '') + chunk.content;
 
       const currentContent = streamingContentRef.current[chunk.conversation_id];
-      console.log(`[Stream] Chunk ${currentContent.length} chars: "${chunk.content}"`);
 
       // Update state for smooth rendering with Ant Design X typing animation
       setStreamingMessages((prev) => ({
@@ -67,12 +97,18 @@ export function useChat(
 
     // If we get follow-ups in a chunk, we can store them
     if (chunk.follow_ups && chunk.follow_ups.length > 0) {
-      console.log('Follow-ups received in chunk:', chunk.follow_ups);
+      // Follow-ups are stored in the chunk
     }
   }, []);
 
   const handleStreamEnd = useCallback(
     async (data: { conversation_id: string; message?: Message }) => {
+      // Clear timeout
+      if (streamingTimeoutsRef.current[data.conversation_id]) {
+        clearTimeout(streamingTimeoutsRef.current[data.conversation_id]);
+        delete streamingTimeoutsRef.current[data.conversation_id];
+      }
+
       // Clean up ref
       delete streamingContentRef.current[data.conversation_id];
 
@@ -102,16 +138,13 @@ export function useChat(
 
   const handleMessageResponse = useCallback(
     (data: { conversation_id: string; message: Message }) => {
-      console.log('📩 Message response received in useChat:', data);
       if (currentConversationRef.current?.id === data.conversation_id) {
         setMessages((prev) => {
           // Check if message already exists
           const exists = prev.some((m) => m.id === data.message.id);
           if (exists) {
-            console.log('⚠️ Message already exists, updating:', data.message.id);
             return prev.map((m) => (m.id === data.message.id ? data.message : m));
           }
-          console.log('✅ Adding new message to state:', data.message.id);
           return [...prev, data.message];
         });
         // Clear image progress when the final message arrives
@@ -135,9 +168,6 @@ export function useChat(
       image_url?: string;
       message?: string;
     }) => {
-      console.log(
-        `🖼️ Image progress: ${data.progress}% for ${data.conversation_id}. Current: ${currentConversationRef.current?.id}`
-      );
       if (currentConversationRef.current?.id === data.conversation_id) {
         setImageProgress(data);
       }
@@ -198,16 +228,10 @@ export function useChat(
     const conv = currentConversationRef.current;
     if (conv) {
       wsStopGeneration(conv.id);
-      // Clear streaming state for the current conversation
-      delete streamingContentRef.current[conv.id];
-      setStreamingStates((prev) => ({ ...prev, [conv.id]: false }));
-      setStreamingMessages((prev) => {
-        const next = { ...prev };
-        delete next[conv.id];
-        return next;
-      });
+      // Clear streaming state and timeout
+      clearStreamingState(conv.id);
     }
-  }, [wsStopGeneration]);
+  }, [wsStopGeneration, clearStreamingState]);
 
   // Send message
   const sendMessage = useCallback(
