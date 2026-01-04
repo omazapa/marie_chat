@@ -5,13 +5,9 @@ import { Think } from '@ant-design/x';
 
 interface ThinkingIndicatorProps {
   title?: React.ReactNode;
-  showIcon?: boolean;
 }
 
-export const ThinkingIndicator: React.FC<ThinkingIndicatorProps> = ({
-  title = 'Thinking...',
-  showIcon = true,
-}) => {
+export const ThinkingIndicator: React.FC<ThinkingIndicatorProps> = ({ title = 'Thinking...' }) => {
   return (
     <Think
       title={title}

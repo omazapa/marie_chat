@@ -37,7 +37,7 @@ export const MessageList = memo(
   ({
     messages,
     isStreaming,
-    streamingMessage,
+    streamingMessage: _streamingMessage,
     onEdit,
     onReference,
     referencedMsgIds,
