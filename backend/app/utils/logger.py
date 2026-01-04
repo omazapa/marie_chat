@@ -25,8 +25,6 @@ from contextvars import ContextVar
 from datetime import datetime
 from functools import wraps
 
-from flask import has_request_context, request
-
 # Context variables for request-scoped data
 request_context: ContextVar[dict] = ContextVar("request_context", default=None)  # type: ignore[arg-type]
 
@@ -56,19 +54,6 @@ class JSONFormatter(logging.Formatter):
             "function": record.funcName,
             "line": record.lineno,
         }
-
-        # Add request context if available
-        if has_request_context():
-            log_obj["request"] = {
-                "method": request.method,
-                "path": request.path,
-                "remote_addr": request.remote_addr,
-                "user_agent": request.headers.get("User-Agent", ""),
-            }
-
-            # Add request ID if available
-            if hasattr(request, "id"):
-                log_obj["request_id"] = request.id
 
         # Add context variables
         ctx = request_context.get()
@@ -225,24 +210,22 @@ class LogTimer:
 
 
 # Example usage functions
-def log_http_request(response, logger: logging.Logger):
+def log_http_request(status_code: int, duration_ms: float | None, logger: logging.Logger):
     """
     Log HTTP request/response
 
-    Usage in Flask:
-        @app.after_request
-        def after_request(response):
-            log_http_request(response, logger)
-            return response
+    Args:
+        status_code: HTTP status code
+        duration_ms: Request duration in milliseconds
+        logger: Logger instance
     """
-    if has_request_context():
-        logger.info(
-            "HTTP request",
-            extra={
-                "status_code": response.status_code,
-                "duration_ms": getattr(request, "duration_ms", None),
-            },
-        )
+    logger.info(
+        "HTTP request",
+        extra={
+            "status_code": status_code,
+            "duration_ms": duration_ms,
+        },
+    )
 
 
 def log_websocket_event(event_name: str, data: dict, logger: logging.Logger):

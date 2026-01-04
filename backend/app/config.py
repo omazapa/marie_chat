@@ -7,10 +7,10 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Application settings"""
 
-    # Flask
-    FLASK_ENV: str = os.getenv("FLASK_ENV", "development")
+    # Application
+    APP_ENV: str = os.getenv("APP_ENV", "development")
     SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
-    DEBUG: bool = FLASK_ENV == "development"
+    DEBUG: bool = APP_ENV == "development"
     PRODUCTION: bool = os.getenv("PRODUCTION", "false").lower() == "true"
     PORT: int = int(os.getenv("PORT", "5000"))
 
