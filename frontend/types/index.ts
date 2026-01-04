@@ -100,6 +100,23 @@ export interface ApiError {
   details?: unknown;
 }
 
+export interface Provider {
+  id: string;
+  name: string;
+  type: 'ollama' | 'openai' | 'huggingface' | 'agent';
+  enabled: boolean;
+  config: {
+    base_url?: string;
+    api_key?: string;
+    [key: string]: any;
+  };
+  status?: {
+    available: boolean;
+    models_count?: number;
+    error?: string;
+  };
+}
+
 export interface ProviderConfig {
   api_key?: string;
   base_url?: string;
@@ -131,7 +148,7 @@ export interface SystemSettings {
     welcome_subtitle: string;
     suggested_prompts: string[];
   };
-  providers: Record<string, ProviderConfig>;
+  providers: Provider[];
 }
 
 export interface ProviderStatus {
