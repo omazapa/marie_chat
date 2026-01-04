@@ -443,8 +443,8 @@ export function useChat(
   const createConversation = useCallback(
     async (
       title: string = 'New Conversation',
-      model: string = 'llama3.2',
-      provider: string = 'ollama',
+      model?: string,
+      provider?: string,
       systemPrompt?: string,
       settings?: Record<string, unknown>
     ) => {
@@ -454,13 +454,16 @@ export function useChat(
 
       try {
         setLoading(true);
-        const response = await apiClient.post('/conversations', {
-          title,
-          model,
-          provider,
-          system_prompt: systemPrompt,
-          settings,
-        });
+        const payload: Record<string, unknown> = { title };
+
+        // Only include model/provider if explicitly provided
+        // Otherwise, backend will use defaults from settings
+        if (model) payload.model = model;
+        if (provider) payload.provider = provider;
+        if (systemPrompt) payload.system_prompt = systemPrompt;
+        if (settings) payload.settings = settings;
+
+        const response = await apiClient.post('/conversations', payload);
         const newConversation = response.data;
         setConversations((prev) => [newConversation, ...prev]);
         setError(null);

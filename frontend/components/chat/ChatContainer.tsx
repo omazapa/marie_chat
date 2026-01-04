@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation';
 import { useChat } from '@/hooks/useChat';
 import { useAuthStore } from '@/stores/authStore';
+import apiClient from '@/lib/api';
 import { Message, Conversation, Attachment } from '@/types';
 import { Button, Typography, Tag, Tooltip, Layout, App, Input, Alert, Space } from 'antd';
 import {
@@ -36,8 +37,8 @@ export default function ChatContainer() {
   const [inputValue, setInputValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showModelSelector, setShowModelSelector] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState('ollama');
-  const [selectedModel, setSelectedModel] = useState('llama3.2');
+  const [selectedProvider, setSelectedProvider] = useState<string>('ollama');
+  const [selectedModel, setSelectedModel] = useState<string>('llama3.2');
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [referencedConvIds, setReferencedConvIds] = useState<string[]>([]);
@@ -130,6 +131,25 @@ export default function ChatContainer() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { modal } = useApp();
+
+  // Load default provider and model from backend settings
+  useEffect(() => {
+    const loadDefaults = async () => {
+      try {
+        const response = await apiClient.get('/settings');
+        const llmConfig = response.data.llm || {};
+        if (llmConfig.default_provider) {
+          setSelectedProvider(llmConfig.default_provider);
+        }
+        if (llmConfig.default_model) {
+          setSelectedModel(llmConfig.default_model);
+        }
+      } catch (err) {
+        console.error('Failed to load default LLM settings:', err);
+      }
+    };
+    loadDefaults();
+  }, []);
 
   // Handle backend search for conversations
   useEffect(() => {
