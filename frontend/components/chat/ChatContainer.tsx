@@ -15,6 +15,8 @@ import {
   FileOutlined,
   LinkOutlined,
   PlusOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from '@ant-design/icons';
 import type { Message as WebSocketMessage } from '@/types';
 import { useSpeech } from '@/hooks/useSpeech';
@@ -55,6 +57,7 @@ export default function ChatContainer() {
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState('es-CO-GonzaloNeural');
   const [showAgentConfigModal, setShowAgentConfigModal] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { accessToken, user, logout: authLogout } = useAuthStore();
 
@@ -622,6 +625,7 @@ export default function ChatContainer() {
         handleLogout={handleLogout}
         user={user}
         isConnected={isConnected}
+        collapsed={sidebarCollapsed}
       />
 
       <Layout style={{ height: '100vh' }}>
@@ -658,7 +662,28 @@ export default function ChatContainer() {
             }}
           >
             {!currentConversation ? (
-              <WelcomeScreen onSend={handleSend} onNewConversation={handleNewConversation} />
+              <>
+                {/* Header for Welcome Screen */}
+                <div
+                  style={{
+                    padding: '16px 24px',
+                    borderBottom: '1px solid #E2E8F0',
+                    background: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Tooltip title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}>
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                      onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                    />
+                  </Tooltip>
+                </div>
+                <WelcomeScreen onSend={handleSend} onNewConversation={handleNewConversation} />
+              </>
             ) : (
               <div
                 key={currentConversation.id}
@@ -683,6 +708,14 @@ export default function ChatContainer() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <Tooltip title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                      />
+                    </Tooltip>
                     <RobotOutlined style={{ fontSize: '20px', color: '#1B4B73' }} />
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

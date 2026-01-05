@@ -39,6 +39,7 @@ interface ChatSidebarProps {
   handleLogout: () => void;
   user: User | null;
   isConnected: boolean;
+  collapsed?: boolean;
 }
 
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
@@ -56,6 +57,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   handleLogout,
   user,
   isConnected,
+  collapsed = false,
 }) => {
   const { modal } = App.useApp();
   const { whiteLabel } = useSettings();
@@ -97,11 +99,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     <Sider
       width={300}
       theme="light"
+      collapsed={collapsed}
+      collapsedWidth={0}
       style={{
-        borderRight: '1px solid #f0f0f0',
+        borderRight: collapsed ? 'none' : '1px solid #f0f0f0',
         height: '100vh',
         position: 'relative',
         zIndex: 10,
+        transition: 'all 0.2s',
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
