@@ -81,19 +81,24 @@ export default function AgentConfigModal({
         await fetchSchema(provider, modelId);
         const currentConfig = await loadConfig(provider, modelId, conversationId);
 
-        // Set form initial values
-        if (currentConfig && Object.keys(currentConfig).length > 0) {
-          form.setFieldsValue(currentConfig);
-        } else {
-          // Set default values from schema
-          const defaults: Record<string, any> = {};
-          fields.forEach((field) => {
-            if (field.default !== undefined && field.default !== null) {
-              defaults[field.key] = field.default;
+        // Wait for next tick to ensure Form is rendered
+        setTimeout(() => {
+          // Set form initial values only if form is connected (fields available)
+          if (fields.length > 0) {
+            if (currentConfig && Object.keys(currentConfig).length > 0) {
+              form.setFieldsValue(currentConfig);
+            } else {
+              // Set default values from schema
+              const defaults: Record<string, any> = {};
+              fields.forEach((field) => {
+                if (field.default !== undefined && field.default !== null) {
+                  defaults[field.key] = field.default;
+                }
+              });
+              form.setFieldsValue(defaults);
             }
-          });
-          form.setFieldsValue(defaults);
-        }
+          }
+        }, 0);
       };
 
       initialize();
@@ -104,7 +109,7 @@ export default function AgentConfigModal({
       clearError();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, provider, modelId, conversationId]);
+  }, [visible, provider, modelId, conversationId, fields.length]);
 
   const handleSave = async () => {
     try {
