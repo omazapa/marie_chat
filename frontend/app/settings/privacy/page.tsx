@@ -99,13 +99,15 @@ export default function PrivacyPage() {
             name="conversation_retention_days"
             help="Number of days to keep conversations. Use -1 for unlimited retention."
           >
-            <InputNumber
-              min={-1}
-              max={3650}
-              style={{ width: "100%" }}
-              addonAfter="days"
-              placeholder="-1 (forever)"
-            />
+            <Space.Compact style={{ width: "100%" }}>
+              <InputNumber
+                min={-1}
+                max={3650}
+                style={{ width: "100%" }}
+                placeholder="-1 (forever)"
+              />
+              <Button disabled>days</Button>
+            </Space.Compact>
           </Form.Item>
 
           <Paragraph type="secondary" style={{ fontSize: 12, marginTop: -16, marginBottom: 16 }}>
@@ -148,7 +150,7 @@ export default function PrivacyPage() {
 
       <Card title="Data Management" style={{ marginBottom: 24 }}>
         <Alert
-          message="Conversation History"
+          title="Conversation History"
           description="Delete all your conversation history. This will permanently remove all conversations and messages. This action cannot be undone."
           type="warning"
           showIcon
@@ -173,7 +175,7 @@ export default function PrivacyPage() {
           type="info"
           showIcon
         />
-        <Space direction="vertical" style={{ width: "100%", marginTop: 16 }}>
+        <Space orientation="vertical" style={{ width: "100%", marginTop: 16 }}>
           <Text strong>Planned Features:</Text>
           <ul style={{ paddingLeft: 20, marginTop: 8 }}>
             <li>View all active sessions</li>

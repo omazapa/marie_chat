@@ -93,7 +93,8 @@
       "showTimestamps": "Mostrar Marcas de Tiempo",
       "enableMarkdown": "Habilitar Renderizado Markdown",
       "enableCodeHighlighting": "Habilitar Resaltado de Código",
-      "preferencesUpdated": "Preferencias de interfaz guardadas exitosamente"
+      "preferencesUpdated": "Preferencias de interfaz guardadas exitosamente",
+      "savePreferences": "Guardar Preferencias"
     },
     
     "privacySection": {
