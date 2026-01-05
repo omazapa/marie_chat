@@ -192,7 +192,12 @@ export default function SystemSettings() {
     if (loadingAgentSchema) {
       return (
         <Card style={{ marginTop: 16 }} size="small">
-          <Spin tip="Loading agent configuration schema..." />
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: 8 }}>
+              <Text type="secondary">Loading agent configuration schema...</Text>
+            </div>
+          </div>
         </Card>
       );
     }
