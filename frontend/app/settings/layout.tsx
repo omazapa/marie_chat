@@ -8,11 +8,13 @@ import { KeyOutlined, ArrowLeftOutlined, UserOutlined, RobotOutlined, SettingOut
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSettings } from '@/hooks/useSettings';
+import { useTranslations } from '@/hooks/useLanguage';
 
 const { Header, Content, Sider } = Layout;
 const { Title, Text } = Typography;
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
+  const t = useTranslations('settings');
   const { user, isAuthenticated } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
@@ -38,16 +40,29 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     {
       key: '/settings/profile',
       icon: <UserOutlined />,
-      label: <Link href="/settings/profile">Profile</Link>,
+      label: <Link href="/settings/profile">{t('profile')}</Link>,
     },
     {
       key: '/settings/agent',
       icon: <RobotOutlined />,
-      label: <Link href="/settings/agent">Agent Preferences</Link>,
+      label: <Link href="/settings/agent">{t('agent')}</Link>,
     },
     {
       key: '/settings/interface',
       icon: <SettingOutlined />,
+      label: <Link href="/settings/interface">{t('interface')}</Link>,
+    },
+    {
+      key: '/settings/privacy',
+      icon: <LockOutlined />,
+      label: <Link href="/settings/privacy">{t('privacy')}</Link>,
+    },
+    {
+      key: '/settings/keys',
+      icon: <KeyOutlined />,
+      label: <Link href="/settings/keys">{t('apiKeys')}</Link>,
+    },
+  ];
       label: <Link href="/settings/interface">Interface</Link>,
     },
     {
@@ -63,7 +78,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     {
       key: 'back',
       icon: <ArrowLeftOutlined />,
-      label: <Link href="/chat">Back to Chat</Link>,
+      label: <Link href="/chat">{t('title')}</Link>,
     },
   ];
 

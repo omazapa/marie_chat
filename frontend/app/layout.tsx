@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
 import { ClientProviders } from '@/components/ClientProviders';
 import './globals.css';
 
@@ -38,18 +40,23 @@ export const metadata: Metadata = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Get messages for the current locale (will be determined by middleware)
+  const messages = await getMessages();
+  
   return (
     <html
       lang="en"
       className={`${inter.variable} ${plusJakarta.variable} ${jetbrainsMono.variable}`}
     >
       <body suppressHydrationWarning>
-        <ClientProviders>{children}</ClientProviders>
+        <NextIntlClientProvider messages={messages}>
+          <ClientProviders>{children}</ClientProviders>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

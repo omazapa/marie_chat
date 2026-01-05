@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import { Form, Select, Switch, Card, Button, message, Radio } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
 import { useInterfaceStore } from "@/stores/interfaceStore";
+import { useTranslations } from "@/hooks/useLanguage";
 
 export default function InterfacePage() {
+  const t = useTranslations('settings.interfaceSection');
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const interfaceStore = useInterfaceStore();
@@ -27,6 +29,9 @@ export default function InterfacePage() {
   const handleSave = async (values: any) => {
     setLoading(true);
     try {
+      // Check if language changed
+      const languageChanged = values.language !== interfaceStore.language;
+      
       await interfaceStore.updateAllPreferences({
         theme: values.theme,
         language: values.language,
@@ -37,7 +42,12 @@ export default function InterfacePage() {
         enableMarkdown: values.enable_markdown,
         enableCodeHighlighting: values.enable_code_highlighting,
       });
-      message.success("Interface preferences saved successfully");
+      message.success(t('preferencesUpdated'));
+      
+      // Reload page if language changed to apply new locale
+      if (languageChanged) {
+        setTimeout(() => window.location.reload(), 500);
+      }
     } catch (error: any) {
       // Error already handled in store
     } finally {
@@ -47,29 +57,29 @@ export default function InterfacePage() {
 
   return (
     <div style={{ maxWidth: 800 }}>
-      <h1 style={{ marginBottom: 24, fontSize: 24, fontWeight: 600 }}>Interface Preferences</h1>
+      <h1 style={{ marginBottom: 24, fontSize: 24, fontWeight: 600 }}>{t('appearance')}</h1>
 
       <Form form={form} layout="vertical" onFinish={handleSave} autoComplete="off">
-        <Card title="Appearance" style={{ marginBottom: 24 }}>
-          <Form.Item label="Theme" name="theme">
+        <Card title={t('appearance')} style={{ marginBottom: 24 }}>
+          <Form.Item label={t('theme')} name="theme">
             <Radio.Group size="large">
-              <Radio.Button value="light">Light</Radio.Button>
-              <Radio.Button value="dark">Dark</Radio.Button>
-              <Radio.Button value="auto">Auto</Radio.Button>
+              <Radio.Button value="light">{t('light')}</Radio.Button>
+              <Radio.Button value="dark">{t('dark')}</Radio.Button>
+              <Radio.Button value="auto">{t('auto')}</Radio.Button>
             </Radio.Group>
           </Form.Item>
 
-          <Form.Item label="Message Density" name="message_density">
+          <Form.Item label={t('messageDensity')} name="message_density">
             <Radio.Group size="large">
-              <Radio.Button value="compact">Compact</Radio.Button>
-              <Radio.Button value="comfortable">Comfortable</Radio.Button>
-              <Radio.Button value="spacious">Spacious</Radio.Button>
+              <Radio.Button value="compact">{t('compact')}</Radio.Button>
+              <Radio.Button value="comfortable">{t('comfortable')}</Radio.Button>
+              <Radio.Button value="spacious">{t('spacious')}</Radio.Button>
             </Radio.Group>
           </Form.Item>
         </Card>
 
-        <Card title="Language & Voice" style={{ marginBottom: 24 }}>
-          <Form.Item label="Language" name="language">
+        <Card title={t('languageVoice')} style={{ marginBottom: 24 }}>
+          <Form.Item label={t('language')} name="language">
             <Select
               size="large"
               options={[
@@ -79,7 +89,7 @@ export default function InterfacePage() {
             />
           </Form.Item>
 
-          <Form.Item label="Text-to-Speech Voice" name="tts_voice">
+          <Form.Item label={t('ttsVoice')} name="tts_voice">
             <Select
               size="large"
               options={[
@@ -91,7 +101,7 @@ export default function InterfacePage() {
             />
           </Form.Item>
 
-          <Form.Item label="Speech-to-Text Language" name="stt_language">
+          <Form.Item label={t('sttLanguage')} name="stt_language">
             <Select
               size="large"
               options={[
@@ -102,17 +112,17 @@ export default function InterfacePage() {
           </Form.Item>
         </Card>
 
-        <Card title="Display Options" style={{ marginBottom: 24 }}>
-          <Form.Item label="Show Timestamps" name="show_timestamps" valuePropName="checked">
+        <Card title={t('displayOptions')} style={{ marginBottom: 24 }}>
+          <Form.Item label={t('showTimestamps')} name="show_timestamps" valuePropName="checked">
             <Switch />
           </Form.Item>
 
-          <Form.Item label="Enable Markdown Rendering" name="enable_markdown" valuePropName="checked">
+          <Form.Item label={t('enableMarkdown')} name="enable_markdown" valuePropName="checked">
             <Switch />
           </Form.Item>
 
           <Form.Item
-            label="Enable Code Syntax Highlighting"
+            label={t('enableCodeHighlighting')}
             name="enable_code_highlighting"
             valuePropName="checked"
           >
@@ -121,8 +131,8 @@ export default function InterfacePage() {
         </Card>
 
         <Form.Item>
-          <Button type="primary" htmlType="submit" loading={loading} size="large">
-            Save Preferences
+          <Button type="primary" htmlType="submit" loading={loading} size="large" icon={<SaveOutlined />}>
+            {t('savePreferences')}
           </Button>
         </Form.Item>
       </Form>
