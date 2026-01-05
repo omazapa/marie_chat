@@ -33,6 +33,7 @@ import { Tag } from 'antd';
 import apiClient from '@/lib/api';
 import { useModels } from '@/hooks/useModels';
 import { useAuthStore } from '@/stores/authStore';
+import { useAgentConfig, ConfigField } from '@/stores/agentConfigStore';
 import { useSettings } from '@/hooks/useSettings';
 import { SystemSettings as SystemSettingsType, ProviderStatus, Provider } from '@/types';
 import { ProviderManager } from '@/components/admin/ProviderManager';
@@ -44,8 +45,11 @@ export default function SystemSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [providers, setProviders] = useState<Provider[]>([]);
+  const [agentConfigFields, setAgentConfigFields] = useState<ConfigField[]>([]);
+  const [loadingAgentSchema, setLoadingAgentSchema] = useState(false);
   const { message } = App.useApp();
   const { refetch: refetchPublicSettings } = useSettings();
+  const { fetchSchema } = useAgentConfig();
 
   const { accessToken } = useAuthStore();
   const { models, loading: loadingModels, fetchModels } = useModels(accessToken || '');
@@ -53,6 +57,7 @@ export default function SystemSettings() {
   // Watch provider to update model list
   const selectedProviderType = Form.useWatch(['llm', 'default_provider_type'], form);
   const selectedProviderId = Form.useWatch(['llm', 'default_provider_id'], form);
+  const selectedModel = Form.useWatch(['llm', 'default_model'], form);
 
   // Get provider instance to fetch models
   const selectedProvider = selectedProviderId
@@ -65,6 +70,32 @@ export default function SystemSettings() {
       fetchModels(true);
     }
   }, [selectedProvider, fetchModels]);
+
+  // Load agent configuration schema when agent is selected
+  useEffect(() => {
+    const loadAgentSchema = async () => {
+      if (selectedProviderType === 'agent' && selectedModel) {
+        setLoadingAgentSchema(true);
+        try {
+          const schema = await fetchSchema('agent', selectedModel);
+          if (schema) {
+            setAgentConfigFields(schema.fields || []);
+          } else {
+            setAgentConfigFields([]);
+          }
+        } catch (error) {
+          console.error('Failed to load agent schema:', error);
+          setAgentConfigFields([]);
+        } finally {
+          setLoadingAgentSchema(false);
+        }
+      } else {
+        setAgentConfigFields([]);
+      }
+    };
+
+    loadAgentSchema();
+  }, [selectedProviderType, selectedModel, fetchSchema]);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -137,6 +168,64 @@ export default function SystemSettings() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Render dynamic agent configuration fields
+  const renderAgentConfigFields = () => {
+    if (selectedProviderType !== 'agent' || agentConfigFields.length === 0) {
+      return null;
+    }
+
+    return (
+      <Card style={{ marginTop: 16, background: '#fafafa' }} size="small">
+        <Title level={5}>Agent Default Parameters</Title>
+        <Paragraph type="secondary" style={{ fontSize: '12px' }}>
+          These parameters will be applied by default to all users. Users can override them in their
+          chat settings.
+        </Paragraph>
+        <Spin spinning={loadingAgentSchema}>
+          <Row gutter={[16, 16]}>
+            {agentConfigFields.map((field) => (
+              <Col span={field.type === 'array' ? 24 : 12} key={field.key}>
+                <Form.Item
+                  name={['llm', 'agent_config', field.key]}
+                  label={field.label || field.key}
+                  tooltip={field.description}
+                  initialValue={field.default}
+                >
+                  {field.type === 'string' && field.enumValues ? (
+                    <Select placeholder={`Select ${field.label || field.key}`} allowClear>
+                      {field.enumValues.map((opt: string) => (
+                        <Select.Option key={opt} value={opt}>
+                          {opt}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  ) : field.type === 'number' || field.type === 'integer' ? (
+                    <Input
+                      type="number"
+                      placeholder={field.description}
+                      min={field.min}
+                      max={field.max}
+                    />
+                  ) : field.type === 'boolean' ? (
+                    <Switch />
+                  ) : field.type === 'array' ? (
+                    <Select
+                      mode="tags"
+                      placeholder={`Enter ${field.label || field.key}`}
+                      style={{ width: '100%' }}
+                    />
+                  ) : (
+                    <Input placeholder={field.description} />
+                  )}
+                </Form.Item>
+              </Col>
+            ))}
+          </Row>
+        </Spin>
+      </Card>
+    );
   };
 
   return (
@@ -294,6 +383,7 @@ export default function SystemSettings() {
                         </Form.Item>
                       </Col>
                     </Row>
+                    {renderAgentConfigFields()}
                     <Form.Item
                       name={['llm', 'default_system_prompt']}
                       label="Default System Prompt"

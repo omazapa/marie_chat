@@ -56,6 +56,7 @@ def create_app():
     # Register blueprints
     from app.routes import (
         admin_bp,
+        agent_config_bp,
         api_keys_bp,
         auth_bp,
         conversations_bp,
@@ -79,6 +80,7 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(conversations_bp, url_prefix="/api/conversations")
     app.register_blueprint(models_bp, url_prefix="/api/models")
+    app.register_blueprint(agent_config_bp, url_prefix="/api")
     app.register_blueprint(files_bp, url_prefix="/api/files")
     app.register_blueprint(speech_bp, url_prefix="/api/speech")
     app.register_blueprint(images_bp, url_prefix="/api/images")

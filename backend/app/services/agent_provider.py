@@ -9,6 +9,7 @@ from typing import Any
 
 import httpx
 
+from app.domain.entities.agent_config import ConfigField
 from app.domain.entities.chat import ChatCompletionChunk, ChatMessage, ModelInfo
 
 from .llm_provider import LLMProvider
@@ -28,8 +29,11 @@ class AgentProvider(LLMProvider):
 
     def list_models(self) -> list[ModelInfo]:
         """
-        List available agents from the external service by parsing its OpenAPI schema.
-        If the service doesn't support discovery, returns a default 'agent' model.
+        List available agents from the external service.
+        Tries multiple strategies:
+        1. OpenAI-compatible /v1/models (Open WebUI, etc.)
+        2. LangServe OpenAPI /openapi.json
+        3. Fallback to default agent
         """
         print(f"🔍 AgentProvider: Listing models from {self.base_url}")
         if not self.base_url:
@@ -37,72 +41,89 @@ class AgentProvider(LLMProvider):
             return []
 
         try:
-            # Try to discover models via LangServe openapi.json
             import httpx
 
             with httpx.Client(timeout=5.0) as client:
-                # Ensure base_url doesn't end with slash for joining
                 base = self.base_url.rstrip("/")
-                print(f"🔍 AgentProvider: Fetching {base}/openapi.json")
-                response = client.get(f"{base}/openapi.json")
 
-                if response.status_code == 200:
-                    schema = response.json()
-                    paths = schema.get("paths", {})
-                    print(f"🔍 AgentProvider: Found {len(paths)} paths in OpenAPI")
+                # Strategy 1: Try OpenAI-compatible /v1/models first (Open WebUI, etc.)
+                try:
+                    headers = {}
+                    if self.api_key:
+                        headers["Authorization"] = f"Bearer {self.api_key}"
 
-                    # Find all unique base paths that have an /invoke endpoint
-                    # e.g., /llama3/invoke -> llama3
-                    discovered_ids = set()
-                    for path in paths.keys():
-                        if path.endswith("/invoke") and "{" not in path:
-                            # Strip leading slash and trailing /invoke
-                            model_id = path[1:-7] if path.startswith("/") else path[:-7]
-                            if model_id:
-                                discovered_ids.add(model_id)
+                    print(f"🔍 AgentProvider: Trying {base}/v1/models")
+                    response = client.get(f"{base}/v1/models", headers=headers)
 
-                    if discovered_ids:
-                        print(f"✅ AgentProvider: Discovered models: {discovered_ids}")
-                        return [
-                            ModelInfo(
-                                id=mid,
-                                name=mid.replace("_", " ").title(),
-                                description=f"Remote agent at /{mid}",
-                                context_length=128000,
-                                provider="agent",
+                    if response.status_code == 200:
+                        data = response.json()
+                        models_data = data.get("data", [])
+
+                        if models_data:
+                            print(
+                                f"✅ AgentProvider: Discovered {len(models_data)} models via /v1/models"
                             )
-                            for mid in sorted(discovered_ids)
-                        ]
-                else:
-                    print(f"⚠️ AgentProvider: openapi.json returned status {response.status_code}")
+                            return [
+                                ModelInfo(
+                                    id=model.get("id"),
+                                    name=model.get("name", model.get("id")),
+                                    description=f"Remote agent: {model.get('name', model.get('id'))}",
+                                    context_length=128000,
+                                    provider="agent",
+                                )
+                                for model in models_data
+                                if model.get("id")
+                            ]
+                except Exception as e:
+                    print(f"⚠️ AgentProvider: /v1/models failed: {e}")
+
+                # Strategy 2: Try LangServe openapi.json discovery
+                try:
+                    print(f"🔍 AgentProvider: Trying {base}/openapi.json")
+                    response = client.get(f"{base}/openapi.json")
+
+                    if response.status_code == 200:
+                        schema = response.json()
+                        paths = schema.get("paths", {})
+                        print(f"🔍 AgentProvider: Found {len(paths)} paths in OpenAPI")
+
+                        # Find all unique base paths that have an /invoke endpoint
+                        discovered_ids = set()
+                        for path in paths.keys():
+                            if path.endswith("/invoke") and "{" not in path:
+                                model_id = path[1:-7] if path.startswith("/") else path[:-7]
+                                if model_id:
+                                    discovered_ids.add(model_id)
+
+                        if discovered_ids:
+                            print(f"✅ AgentProvider: Discovered models: {discovered_ids}")
+                            return [
+                                ModelInfo(
+                                    id=mid,
+                                    name=mid.replace("_", " ").title(),
+                                    description=f"Remote agent at /{mid}",
+                                    context_length=128000,
+                                    provider="agent",
+                                )
+                                for mid in sorted(discovered_ids)
+                            ]
+                except Exception as e:
+                    print(f"⚠️ AgentProvider: openapi.json failed: {e}")
 
             print("ℹ️ AgentProvider: Falling back to default model")
-            # Fallback to default agent model plus any configured in settings
-            default_agent = ModelInfo(
-                id="external-agent",
-                name="External Agent",
-                description="Custom agentic system via remote API",
-                context_length=128000,
-                provider="agent",
-            )
-
-            # If the user provided specific model IDs in config, add them
-            custom_models = self.config.get("models", [])
-            if not custom_models:
-                return [default_agent]
-
+            # Fallback to default agent model
             return [
                 ModelInfo(
-                    id=m.get("id", "agent"),
-                    name=m.get("name", "Agent"),
-                    description=m.get("description", "Remote Agent"),
-                    context_length=m.get("context_length", 128000),
+                    id="external-agent",
+                    name="External Agent",
+                    description="Custom agentic system via remote API",
+                    context_length=128000,
                     provider="agent",
                 )
-                for m in custom_models
             ]
+
         except Exception as e:
-            print(f"Error discovering models from AgentProvider: {e}")
+            print(f"❌ AgentProvider: Error listing models: {e}")
             return []
 
     def get_model_info(self, model_id: str) -> ModelInfo | None:
@@ -361,3 +382,189 @@ class AgentProvider(LLMProvider):
                 return response.status_code < 500
         except Exception:
             return False
+
+    async def get_config_schema(self, model: str) -> dict[str, Any] | None:
+        """
+        Fetch configuration schema from agent service.
+
+        Tries multiple strategies:
+        1. LangServe /config_schema endpoint
+        2. Open WebUI /pipelines/{id}/valves endpoint
+        3. OpenAPI schema inspection
+
+        Args:
+            model: Model/agent identifier
+
+        Returns:
+            JSON schema dict or None if not available
+        """
+        base = self.base_url.rstrip("/")
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            # Strategy 1: LangServe config_schema
+            try:
+                url = (
+                    f"{base}/config_schema"
+                    if model == "external-agent"
+                    else f"{base}/{model}/config_schema"
+                )
+                response = await client.get(url, headers=headers)
+                if response.status_code == 200:
+                    schema = response.json()
+                    print(f"✅ AgentProvider: Found config_schema for {model}")
+                    return schema
+            except Exception as e:
+                print(f"⚠️ Strategy 1 (config_schema) failed: {e}")
+
+            # Strategy 2: Open WebUI valves
+            try:
+                url = f"{base}/pipelines/{model}/valves"
+                response = await client.get(url, headers=headers)
+                if response.status_code == 200:
+                    valves = response.json()
+                    print(f"✅ AgentProvider: Found valves for {model}")
+                    # Convert valves format to JSON schema-like format
+                    return self._convert_valves_to_schema(valves)
+            except Exception as e:
+                print(f"⚠️ Strategy 2 (valves) failed: {e}")
+
+            # Strategy 3: Check OpenAPI for configurable hints
+            try:
+                url = f"{base}/openapi.json"
+                response = await client.get(url)
+                if response.status_code == 200:
+                    openapi = response.json()
+                    # Extract schema from OpenAPI if available
+                    schema = self._extract_schema_from_openapi(openapi, model)
+                    if schema:
+                        print(f"✅ AgentProvider: Extracted schema from OpenAPI for {model}")
+                        return schema
+            except Exception as e:
+                print(f"⚠️ Strategy 3 (OpenAPI) failed: {e}")
+
+        print(f"ℹ️ AgentProvider: No configuration schema found for {model}")
+        return None
+
+    def parse_schema_to_fields(self, schema: dict[str, Any]) -> list[ConfigField]:
+        """
+        Convert JSON Schema to list of ConfigField objects.
+
+        Args:
+            schema: JSON Schema dict
+
+        Returns:
+            List of ConfigField objects
+        """
+        fields: list[ConfigField] = []
+
+        # Handle LangServe format: {"type": "object", "properties": {"configurable": {...}}}
+        if "properties" in schema:
+            if "configurable" in schema["properties"]:
+                properties = schema["properties"]["configurable"].get("properties", {})
+            else:
+                properties = schema["properties"]
+        else:
+            properties = schema
+
+        for key, prop in properties.items():
+            field_type = prop.get("type", "string")
+
+            # Map JSON Schema types to our field types
+            if field_type == "number":
+                field_type = "number"
+            elif field_type == "integer":
+                field_type = "integer"
+            elif field_type == "boolean":
+                field_type = "boolean"
+            elif "enum" in prop:
+                field_type = "enum"
+            elif field_type == "array":
+                field_type = "array"
+            else:
+                field_type = "string"
+
+            field = ConfigField(
+                key=key,
+                label=prop.get("title", key.replace("_", " ").title()),
+                type=field_type,  # type: ignore
+                default=prop.get("default"),
+                description=prop.get("description"),
+                min=prop.get("minimum"),
+                max=prop.get("maximum"),
+                enum_values=prop.get("enum"),
+                items_type=prop.get("items", {}).get("type") if field_type == "array" else None,
+                required=key in schema.get("required", []),
+            )
+            fields.append(field)
+
+        return fields
+
+    def _convert_valves_to_schema(self, valves: dict[str, Any]) -> dict[str, Any]:
+        """
+        Convert Open WebUI valves format to JSON Schema format.
+
+        Valves format:
+        {
+          "field_name": {
+            "type": "str",
+            "default": "value",
+            "description": "...",
+            "enum": ["a", "b"]
+          }
+        }
+        """
+        properties = {}
+        for key, valve_def in valves.items():
+            valve_type = valve_def.get("type", "str")
+
+            # Map valve types to JSON Schema types
+            if valve_type in ["float", "int"]:
+                prop_type = "number" if valve_type == "float" else "integer"
+            elif valve_type == "bool":
+                prop_type = "boolean"
+            else:
+                prop_type = "string"
+
+            prop: dict[str, Any] = {
+                "type": prop_type,
+                "title": key.replace("_", " ").title(),
+                "default": valve_def.get("default"),
+                "description": valve_def.get("description"),
+            }
+
+            if "enum" in valve_def:
+                prop["enum"] = valve_def["enum"]
+            if "range" in valve_def and len(valve_def["range"]) == 2:
+                prop["minimum"] = valve_def["range"][0]
+                prop["maximum"] = valve_def["range"][1]
+
+            properties[key] = prop
+
+        return {"type": "object", "properties": properties}
+
+    def _extract_schema_from_openapi(
+        self, openapi: dict[str, Any], model: str
+    ) -> dict[str, Any] | None:
+        """
+        Extract configuration schema from OpenAPI specification.
+
+        Looks for config-related request bodies in invoke/stream endpoints.
+        """
+        paths = openapi.get("paths", {})
+        model_path = f"/{model}/invoke" if model != "external-agent" else "/invoke"
+
+        if model_path in paths:
+            post_op = paths[model_path].get("post", {})
+            request_body = post_op.get("requestBody", {})
+            content = request_body.get("content", {})
+            json_content = content.get("application/json", {})
+            schema = json_content.get("schema", {})
+
+            # Look for config in properties
+            if "properties" in schema and "config" in schema["properties"]:
+                return schema["properties"]["config"]
+
+        return None
