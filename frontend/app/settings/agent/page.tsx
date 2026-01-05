@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Form, Select, Slider, Card, Button, Input, Radio, message } from "antd";
+import { Form, Select, Slider, Card, Button, Input, Radio, App } from "antd";
 import { RobotOutlined } from "@ant-design/icons";
 import api from "@/lib/api";
 
 const { TextArea } = Input;
 
 export default function AgentPage() {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [providers, setProviders] = useState<any[]>([]);

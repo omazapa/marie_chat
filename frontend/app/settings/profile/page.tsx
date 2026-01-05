@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Form, Input, Button, Card, Space, message, Divider } from "antd";
+import { Form, Input, Button, Card, Space, Divider, App } from "antd";
 import { UserOutlined, MailOutlined, LockOutlined } from "@ant-design/icons";
 import api from "@/lib/api";
 
 export default function ProfilePage() {
+  const { message } = App.useApp();
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
   const [loading, setLoading] = useState(false);

@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Form, Select, Switch, Card, Button, message, Radio } from "antd";
+import { Form, Select, Switch, Card, Button, Radio, App } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
 import { useInterfaceStore } from "@/stores/interfaceStore";
 import { useTranslations } from "@/hooks/useLanguage";
 
 export default function InterfacePage() {
+  const { message } = App.useApp();
   const t = useTranslations('settings.interfaceSection');
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);

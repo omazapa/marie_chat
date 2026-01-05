@@ -5,7 +5,6 @@ import {
   Card,
   Button,
   Modal,
-  message,
   Alert,
   Form,
   InputNumber,
@@ -13,6 +12,7 @@ import {
   Space,
   Typography,
   Divider,
+  App,
 } from "antd";
 import { DeleteOutlined, ExclamationCircleOutlined, SaveOutlined } from "@ant-design/icons";
 import api from "@/lib/api";
@@ -21,6 +21,7 @@ const { confirm } = Modal;
 const { Text, Paragraph } = Typography;
 
 export default function PrivacyPage() {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
