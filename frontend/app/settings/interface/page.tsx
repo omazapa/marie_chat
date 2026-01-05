@@ -2,42 +2,44 @@
 
 import { useState, useEffect } from "react";
 import { Form, Select, Switch, Card, Button, message, Radio } from "antd";
-import api from "@/lib/api";
+import { SaveOutlined } from "@ant-design/icons";
+import { useInterfaceStore } from "@/stores/interfaceStore";
 
 export default function InterfacePage() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const interfaceStore = useInterfaceStore();
 
   useEffect(() => {
-    loadPreferences();
-  }, []);
-
-  const loadPreferences = async () => {
-    try {
-      const { data } = await api.get("/user/preferences");
-      const interfacePrefs = data.interface_preferences || {};
-      form.setFieldsValue({
-        theme: interfacePrefs.theme || "dark",
-        language: interfacePrefs.language || "en",
-        tts_voice: interfacePrefs.tts_voice || "en-US-EmmaNeural",
-        stt_language: interfacePrefs.stt_language || "en-US",
-        message_density: interfacePrefs.message_density || "comfortable",
-        show_timestamps: interfacePrefs.show_timestamps ?? true,
-        enable_markdown: interfacePrefs.enable_markdown ?? true,
-        enable_code_highlighting: interfacePrefs.enable_code_highlighting ?? true,
-      });
-    } catch (error: any) {
-      message.error("Failed to load preferences");
-    }
-  };
+    // Load current preferences into form
+    form.setFieldsValue({
+      theme: interfaceStore.theme,
+      language: interfaceStore.language,
+      tts_voice: interfaceStore.ttsVoice,
+      stt_language: interfaceStore.sttLanguage,
+      message_density: interfaceStore.messageDensity,
+      show_timestamps: interfaceStore.showTimestamps,
+      enable_markdown: interfaceStore.enableMarkdown,
+      enable_code_highlighting: interfaceStore.enableCodeHighlighting,
+    });
+  }, [interfaceStore, form]);
 
   const handleSave = async (values: any) => {
     setLoading(true);
     try {
-      await api.put("/user/preferences/interface", values);
+      await interfaceStore.updateAllPreferences({
+        theme: values.theme,
+        language: values.language,
+        ttsVoice: values.tts_voice,
+        sttLanguage: values.stt_language,
+        messageDensity: values.message_density,
+        showTimestamps: values.show_timestamps,
+        enableMarkdown: values.enable_markdown,
+        enableCodeHighlighting: values.enable_code_highlighting,
+      });
       message.success("Interface preferences saved successfully");
     } catch (error: any) {
-      message.error(error.response?.data?.error || "Failed to save preferences");
+      // Error already handled in store
     } finally {
       setLoading(false);
     }

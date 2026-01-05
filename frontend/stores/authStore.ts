@@ -15,6 +15,7 @@ interface AuthState {
   logout: () => void;
   updateTokens: (accessToken: string, refreshToken?: string) => void;
   hydrateFromLegacyStorage: () => void;
+  loadUserPreferences: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -33,6 +34,16 @@ export const useAuthStore = create<AuthState>()(
           refreshToken: data.refresh_token,
           isAuthenticated: true,
         });
+        
+        // Load interface preferences after successful login
+        setTimeout(async () => {
+          try {
+            const { useInterfaceStore } = await import('./interfaceStore');
+            await useInterfaceStore.getState().loadPreferences();
+          } catch (error) {
+            console.error('Failed to load interface preferences:', error);
+          }
+        }, 100);
       },
 
       setUser: (user: User) => {
@@ -46,6 +57,16 @@ export const useAuthStore = create<AuthState>()(
           refreshToken: null,
           isAuthenticated: false,
         });
+        
+        // Reset interface preferences on logout
+        setTimeout(async () => {
+          try {
+            const { useInterfaceStore } = await import('./interfaceStore');
+            useInterfaceStore.getState().reset();
+          } catch (error) {
+            console.error('Failed to reset interface preferences:', error);
+          }
+        }, 0);
       },
 
       updateTokens: (accessToken: string, refreshToken?: string) => {
@@ -53,6 +74,15 @@ export const useAuthStore = create<AuthState>()(
           accessToken,
           refreshToken: refreshToken || state.refreshToken,
         }));
+      },
+
+      loadUserPreferences: async () => {
+        try {
+          const { useInterfaceStore } = await import('./interfaceStore');
+          await useInterfaceStore.getState().loadPreferences();
+        } catch (error) {
+          console.error('Failed to load user preferences:', error);
+        }
       },
 
       hydrateFromLegacyStorage: () => {
@@ -72,6 +102,16 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               legacyHydrated: true,
             });
+            
+            // Load preferences for legacy auth
+            setTimeout(async () => {
+              try {
+                const { useInterfaceStore } = await import('./interfaceStore');
+                await useInterfaceStore.getState().loadPreferences();
+              } catch (error) {
+                console.error('Failed to load interface preferences:', error);
+              }
+            }, 100);
             return;
           } catch (error) {
             console.warn('Failed to parse legacy auth_user', error);
