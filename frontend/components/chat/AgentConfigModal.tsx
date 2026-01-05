@@ -210,7 +210,7 @@ export default function AgentConfigModal({
       open={visible}
       onCancel={onClose}
       width={700}
-      destroyOnClose
+      destroyOnHidden
       footer={[
         <Button key="delete" danger icon={<DeleteOutlined />} onClick={handleDelete}>
           Delete Config

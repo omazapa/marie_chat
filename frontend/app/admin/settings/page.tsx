@@ -264,7 +264,7 @@ export default function SystemSettings() {
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <Spin spinning={loading} tip="Loading settings...">
+      <Spin spinning={loading}>
         <div
           style={{
             marginBottom: '24px',
