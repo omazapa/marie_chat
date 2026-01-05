@@ -27,6 +27,7 @@ import { ImageGenerationModal } from './modals/ImageGenerationModal';
 import { ReferenceModal } from './modals/ReferenceModal';
 import { ModelSettingsModal } from './modals/ModelSettingsModal';
 import { PromptOptimizer } from './PromptOptimizer';
+import AgentConfigModal from './AgentConfigModal';
 
 const { Text } = Typography;
 const { Content } = Layout;
@@ -53,6 +54,7 @@ export default function ChatContainer() {
   const [isUploading, setIsUploading] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState('es-CO-GonzaloNeural');
+  const [showAgentConfigModal, setShowAgentConfigModal] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { accessToken, user, logout: authLogout } = useAuthStore();
 
@@ -756,6 +758,19 @@ export default function ChatContainer() {
                         Change Model
                       </Button>
                     </Tooltip>
+                    {currentConversation.provider === 'agent' && (
+                      <Tooltip title="Configure Agent Parameters">
+                        <Button
+                          icon={<SettingOutlined />}
+                          onClick={() => setShowAgentConfigModal(true)}
+                          size="small"
+                          type="primary"
+                          ghost
+                        >
+                          Agent Config
+                        </Button>
+                      </Tooltip>
+                    )}
                   </Space>
                 </div>
 
@@ -955,6 +970,15 @@ export default function ChatContainer() {
         onClose={() => setShowPromptOptimizer(false)}
         onApply={(optimized) => setInputValue(optimized)}
         initialPrompt={inputValue}
+      />
+
+      {/* Agent Configuration Modal */}
+      <AgentConfigModal
+        visible={showAgentConfigModal}
+        onClose={() => setShowAgentConfigModal(false)}
+        provider={selectedProvider}
+        modelId={selectedModel}
+        conversationId={currentConversation?.id}
       />
     </Layout>
   );
