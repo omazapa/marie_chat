@@ -1,11 +1,12 @@
 """
 Agent Provider Implementation
-Proxy provider for external agentic systems (LangGraph, LangServe, etc.)
+Proxy provider for external agentic systems (LangGraph, LangServe, OpenAI-compatible)
+Supports both LangServe and OpenAI protocols automatically
 """
 
 import json
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 
@@ -14,11 +15,14 @@ from app.domain.entities.chat import ChatCompletionChunk, ChatMessage, ModelInfo
 
 from .llm_provider import LLMProvider
 
+AgentType = Literal["openai", "langserve", "unknown"]
+
 
 class AgentProvider(LLMProvider):
     """
     Provider for external agentic systems.
-    Acts as a proxy to systems like LangGraph Cloud or custom LangServe deployments.
+    Supports both OpenAI-compatible and LangServe protocols.
+    Automatically detects the agent type and uses the appropriate protocol.
     """
 
     def __init__(self, config: dict[str, Any] | None = None):
@@ -26,13 +30,16 @@ class AgentProvider(LLMProvider):
         self.base_url = self.config.get("base_url", "")
         self.api_key = self.config.get("api_key", "")
         self._schema_cache: dict[str, Any] = {}
+        self._agent_types: dict[str, AgentType] = {}  # Cache detected agent types
 
     def list_models(self) -> list[ModelInfo]:
         """
         List available agents from the external service.
-        Tries multiple strategies:
-        1. OpenAI-compatible /v1/models (Open WebUI, etc.)
-        2. LangServe OpenAPI /openapi.json
+        Auto-detects protocol type (OpenAI vs LangServe) and caches it.
+
+        Discovery strategies:
+        1. OpenAI-compatible /v1/models (Open WebUI, standard OpenAI servers)
+        2. LangServe /openapi.json (LangGraph Cloud, custom LangServe)
         3. Fallback to default agent
         """
         print(f"🔍 AgentProvider: Listing models from {self.base_url}")
@@ -46,13 +53,13 @@ class AgentProvider(LLMProvider):
             with httpx.Client(timeout=5.0) as client:
                 base = self.base_url.rstrip("/")
 
-                # Strategy 1: Try OpenAI-compatible /v1/models first (Open WebUI, etc.)
+                # Strategy 1: Try OpenAI-compatible /v1/models first
                 try:
                     headers = {}
                     if self.api_key:
                         headers["Authorization"] = f"Bearer {self.api_key}"
 
-                    print(f"🔍 AgentProvider: Trying {base}/v1/models")
+                    print(f"🔍 AgentProvider: Trying OpenAI format at {base}/v1/models")
                     response = client.get(f"{base}/v1/models", headers=headers)
 
                     if response.status_code == 200:
@@ -61,25 +68,30 @@ class AgentProvider(LLMProvider):
 
                         if models_data:
                             print(
-                                f"✅ AgentProvider: Discovered {len(models_data)} models via /v1/models"
+                                f"✅ AgentProvider: Discovered {len(models_data)} OpenAI-compatible models"
                             )
-                            return [
-                                ModelInfo(
-                                    id=model.get("id"),
-                                    name=model.get("name", model.get("id")),
-                                    description=f"Remote agent: {model.get('name', model.get('id'))}",
-                                    context_length=128000,
-                                    provider="agent",
-                                )
-                                for model in models_data
-                                if model.get("id")
-                            ]
+                            discovered_models = []
+                            for model in models_data:
+                                model_id = model.get("id")
+                                if model_id:
+                                    # Mark as OpenAI type
+                                    self._agent_types[model_id] = "openai"
+                                    discovered_models.append(
+                                        ModelInfo(
+                                            id=model_id,
+                                            name=model.get("name", model_id),
+                                            description=f"OpenAI-compatible agent: {model.get('name', model_id)}",
+                                            context_length=model.get("context_length", 128000),
+                                            provider="agent",
+                                        )
+                                    )
+                            return discovered_models
                 except Exception as e:
-                    print(f"⚠️ AgentProvider: /v1/models failed: {e}")
+                    print(f"⚠️ AgentProvider: OpenAI /v1/models failed: {e}")
 
                 # Strategy 2: Try LangServe openapi.json discovery
                 try:
-                    print(f"🔍 AgentProvider: Trying {base}/openapi.json")
+                    print(f"🔍 AgentProvider: Trying LangServe format at {base}/openapi.json")
                     response = client.get(f"{base}/openapi.json")
 
                     if response.status_code == 200:
@@ -96,22 +108,29 @@ class AgentProvider(LLMProvider):
                                     discovered_ids.add(model_id)
 
                         if discovered_ids:
-                            print(f"✅ AgentProvider: Discovered models: {discovered_ids}")
-                            return [
-                                ModelInfo(
-                                    id=mid,
-                                    name=mid.replace("_", " ").title(),
-                                    description=f"Remote agent at /{mid}",
-                                    context_length=128000,
-                                    provider="agent",
+                            print(
+                                f"✅ AgentProvider: Discovered {len(discovered_ids)} LangServe agents"
+                            )
+                            discovered_models = []
+                            for mid in sorted(discovered_ids):
+                                # Mark as LangServe type
+                                self._agent_types[mid] = "langserve"
+                                discovered_models.append(
+                                    ModelInfo(
+                                        id=mid,
+                                        name=mid.replace("_", " ").title(),
+                                        description=f"LangServe agent at /{mid}",
+                                        context_length=128000,
+                                        provider="agent",
+                                    )
                                 )
-                                for mid in sorted(discovered_ids)
-                            ]
+                            return discovered_models
                 except Exception as e:
-                    print(f"⚠️ AgentProvider: openapi.json failed: {e}")
+                    print(f"⚠️ AgentProvider: LangServe openapi.json failed: {e}")
 
             print("ℹ️ AgentProvider: Falling back to default model")
-            # Fallback to default agent model
+            # Fallback to default agent model (type unknown, will detect on first call)
+            self._agent_types["external-agent"] = "unknown"
             return [
                 ModelInfo(
                     id="external-agent",
@@ -129,6 +148,63 @@ class AgentProvider(LLMProvider):
     def get_model_info(self, model_id: str) -> ModelInfo | None:
         models = self.list_models()
         return next((m for m in models if m.id == model_id), None)
+
+    def _get_agent_type(self, model: str) -> AgentType:
+        """
+        Get the cached agent type or detect it.
+
+        Returns:
+            "openai" for OpenAI-compatible agents
+            "langserve" for LangServe/LangGraph agents
+            "unknown" if not yet detected
+        """
+        if model in self._agent_types:
+            return self._agent_types[model]
+
+        # If not cached, try to detect by checking available endpoints
+        print(f"🔍 Detecting agent type for {model}...")
+
+        base = self.base_url.rstrip("/")
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        try:
+            import httpx
+
+            with httpx.Client(timeout=3.0) as client:
+                # Check for OpenAI format
+                try:
+                    response = client.get(f"{base}/v1/models", headers=headers)
+                    if response.status_code == 200:
+                        data = response.json()
+                        model_ids = [m.get("id") for m in data.get("data", [])]
+                        if model in model_ids:
+                            print(f"✅ Detected {model} as OpenAI-compatible")
+                            self._agent_types[model] = "openai"
+                            return "openai"
+                except Exception:
+                    pass
+
+                # Check for LangServe format
+                invoke_url = (
+                    f"{base}/{model}/invoke" if model != "external-agent" else f"{base}/invoke"
+                )
+                try:
+                    response = client.options(invoke_url, headers=headers)
+                    if response.status_code in [200, 204, 405]:  # 405 means POST is expected
+                        print(f"✅ Detected {model} as LangServe")
+                        self._agent_types[model] = "langserve"
+                        return "langserve"
+                except Exception:
+                    pass
+
+        except Exception as e:
+            print(f"⚠️ Could not detect agent type for {model}: {e}")
+
+        # Default to unknown (will try both protocols)
+        self._agent_types[model] = "unknown"
+        return "unknown"
 
     async def _get_input_schema(self, model: str) -> dict[str, Any] | None:
         """Fetch and cache the input schema for a specific model"""
@@ -212,25 +288,43 @@ class AgentProvider(LLMProvider):
         **kwargs,
     ) -> AsyncGenerator[ChatCompletionChunk, None]:
         """
-        Proxy chat completion to external agent
+        Proxy chat completion to external agent.
+        Automatically uses the correct protocol (OpenAI or LangServe).
         """
         if not self.base_url:
             yield ChatCompletionChunk(content="Error: Agent Provider base URL not configured.")
             return
 
-        # Prepare payload dynamically based on schema
-        payload = await self._prepare_payload(model, messages, temperature, **kwargs)
+        # Detect agent type
+        agent_type = self._get_agent_type(model)
+        print(f"🤖 Using {agent_type} protocol for {model}")
 
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
-        if stream:
-            async for chunk in self._stream_remote(model, payload, headers):
-                yield chunk
+        # Use appropriate protocol
+        if agent_type == "openai":
+            # OpenAI protocol
+            if stream:
+                async for chunk in self._stream_openai(
+                    model, messages, temperature, max_tokens, headers, **kwargs
+                ):
+                    yield chunk
+            else:
+                result = await self._call_openai(
+                    model, messages, temperature, max_tokens, headers, **kwargs
+                )
+                yield result
         else:
-            result = await self._call_remote(model, payload, headers)
-            yield result
+            # LangServe protocol (or unknown - fallback to LangServe)
+            payload = await self._prepare_payload(model, messages, temperature, **kwargs)
+            if stream:
+                async for chunk in self._stream_langserve(model, payload, headers):
+                    yield chunk
+            else:
+                result = await self._call_langserve(model, payload, headers)
+                yield result
 
     def chat_completion_sync(
         self,
@@ -274,14 +368,19 @@ class AgentProvider(LLMProvider):
         return await self._call_remote(model, payload, headers)
 
     async def _call_remote(self, model: str, payload: dict, headers: dict) -> ChatCompletionChunk:
-        """Non-streaming call to external agent"""
+        """Non-streaming call to external agent (LangServe format) - DEPRECATED, use _call_langserve"""
+        return await self._call_langserve(model, payload, headers)
+
+    async def _call_langserve(
+        self, model: str, payload: dict, headers: dict
+    ) -> ChatCompletionChunk:
+        """Non-streaming call to LangServe agent"""
         async with httpx.AsyncClient(timeout=120.0) as client:
             try:
-                # Construct URL based on model ID
-                # If model is 'external-agent', we use the base URL directly
                 base = self.base_url.rstrip("/")
                 url = f"{base}/invoke" if model == "external-agent" else f"{base}/{model}/invoke"
 
+                print(f"[LANGSERVE] Calling {url}")
                 response = await client.post(url, json=payload, headers=headers)
                 response.raise_for_status()
                 result = response.json()
@@ -298,23 +397,70 @@ class AgentProvider(LLMProvider):
 
                 return ChatCompletionChunk(content=content)
             except Exception as e:
-                return ChatCompletionChunk(content=f"Error calling remote agent: {str(e)}")
+                print(f"❌ [LANGSERVE] Error: {e}")
+                return ChatCompletionChunk(content=f"Error calling LangServe agent: {str(e)}")
+
+    async def _call_openai(
+        self,
+        model: str,
+        messages: list[ChatMessage],
+        temperature: float,
+        max_tokens: int | None,
+        headers: dict,
+        **kwargs,
+    ) -> ChatCompletionChunk:
+        """Non-streaming call to OpenAI-compatible agent"""
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            try:
+                base = self.base_url.rstrip("/")
+                url = f"{base}/v1/chat/completions"
+
+                payload = {
+                    "model": model,
+                    "messages": [{"role": m.role, "content": m.content} for m in messages],
+                    "temperature": temperature,
+                    "stream": False,
+                }
+
+                if max_tokens:
+                    payload["max_tokens"] = max_tokens
+
+                # Add any extra parameters
+                payload.update(kwargs)
+
+                print(f"[OPENAI] Calling {url} with model {model}")
+                response = await client.post(url, json=payload, headers=headers)
+                response.raise_for_status()
+                result = response.json()
+
+                # Extract content from OpenAI response format
+                content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+                return ChatCompletionChunk(content=content)
+            except Exception as e:
+                print(f"❌ [OPENAI] Error: {e}")
+                return ChatCompletionChunk(content=f"Error calling OpenAI agent: {str(e)}")
 
     async def _stream_remote(
         self, model: str, payload: dict, headers: dict
     ) -> AsyncGenerator[ChatCompletionChunk, None]:
-        """Streaming call to external agent"""
+        """Streaming call to external agent (LangServe format) - DEPRECATED, use _stream_langserve"""
+        async for chunk in self._stream_langserve(model, payload, headers):
+            yield chunk
+
+    async def _stream_langserve(
+        self, model: str, payload: dict, headers: dict
+    ) -> AsyncGenerator[ChatCompletionChunk, None]:
+        """Streaming call to LangServe agent"""
         import asyncio
 
         async with httpx.AsyncClient(timeout=300.0) as client:
             try:
-                # Construct URL based on model ID
                 base = self.base_url.rstrip("/")
                 url = f"{base}/stream" if model == "external-agent" else f"{base}/{model}/stream"
 
-                print(f"[AGENT] Streaming from {url}")
+                print(f"[LANGSERVE] Streaming from {url}")
                 async with client.stream("POST", url, json=payload, headers=headers) as response:
-                    print(f"[AGENT] Got response status: {response.status_code}")
+                    print(f"[LANGSERVE] Got response status: {response.status_code}")
                     response.raise_for_status()
 
                     async for line in response.aiter_lines():
@@ -324,7 +470,7 @@ class AgentProvider(LLMProvider):
                         if line.startswith("data: "):
                             data_str = line[6:]
                             if data_str.strip() == "[DONE]":
-                                print("[AGENT] Stream completed")
+                                print("[LANGSERVE] Stream completed")
                                 yield ChatCompletionChunk(content="", done=True)
                                 break
 
@@ -332,22 +478,96 @@ class AgentProvider(LLMProvider):
                                 data = json.loads(data_str)
                                 content = self._extract_content_from_chunk(data)
                                 if content:
-                                    print(f"[AGENT] Chunk: {content[:50]}...")
+                                    print(f"[LANGSERVE] Chunk: {content[:50]}...")
                                     yield ChatCompletionChunk(content=content, done=False)
-                                    # Yield control to event loop
                                     await asyncio.sleep(0)
                             except json.JSONDecodeError as e:
-                                print(f"[AGENT] JSON decode error: {e}")
+                                print(f"[LANGSERVE] JSON decode error: {e}")
                                 continue
 
                     # Ensure final done signal
                     yield ChatCompletionChunk(content="", done=True)
 
             except Exception as e:
-                print(f"[AGENT] Error streaming: {e}")
+                print(f"❌ [LANGSERVE] Streaming error: {e}")
                 import traceback
 
                 traceback.print_exc()
+                yield ChatCompletionChunk(
+                    content=f"Error streaming from LangServe: {str(e)}", done=True
+                )
+
+    async def _stream_openai(
+        self,
+        model: str,
+        messages: list[ChatMessage],
+        temperature: float,
+        max_tokens: int | None,
+        headers: dict,
+        **kwargs,
+    ) -> AsyncGenerator[ChatCompletionChunk, None]:
+        """Streaming call to OpenAI-compatible agent"""
+        import asyncio
+
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            try:
+                base = self.base_url.rstrip("/")
+                url = f"{base}/v1/chat/completions"
+
+                payload = {
+                    "model": model,
+                    "messages": [{"role": m.role, "content": m.content} for m in messages],
+                    "temperature": temperature,
+                    "stream": True,
+                }
+
+                if max_tokens:
+                    payload["max_tokens"] = max_tokens
+
+                # Add any extra parameters
+                payload.update(kwargs)
+
+                print(f"[OPENAI] Streaming from {url} with model {model}")
+                async with client.stream("POST", url, json=payload, headers=headers) as response:
+                    print(f"[OPENAI] Got response status: {response.status_code}")
+                    response.raise_for_status()
+
+                    async for line in response.aiter_lines():
+                        if not line or line.startswith(":"):
+                            continue
+
+                        if line.startswith("data: "):
+                            data_str = line[6:]
+                            if data_str.strip() == "[DONE]":
+                                print("[OPENAI] Stream completed")
+                                yield ChatCompletionChunk(content="", done=True)
+                                break
+
+                            try:
+                                data = json.loads(data_str)
+                                # OpenAI format: choices[0].delta.content
+                                content = (
+                                    data.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                                )
+                                if content:
+                                    print(f"[OPENAI] Chunk: {content[:50]}...")
+                                    yield ChatCompletionChunk(content=content, done=False)
+                                    await asyncio.sleep(0)
+                            except json.JSONDecodeError as e:
+                                print(f"[OPENAI] JSON decode error: {e}")
+                                continue
+
+                    # Ensure final done signal
+                    yield ChatCompletionChunk(content="", done=True)
+
+            except Exception as e:
+                print(f"❌ [OPENAI] Streaming error: {e}")
+                import traceback
+
+                traceback.print_exc()
+                yield ChatCompletionChunk(
+                    content=f"Error streaming from OpenAI agent: {str(e)}", done=True
+                )
                 yield ChatCompletionChunk(content=f"\n\nError: {str(e)}", done=True)
 
     def _extract_content_from_chunk(self, chunk: Any) -> str:
