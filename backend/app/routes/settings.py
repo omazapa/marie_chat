@@ -1,6 +1,7 @@
 from typing import Any
 
 from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required
 
 from app.services.settings_service import settings_service
 from app.utils.auth import admin_required
@@ -17,7 +18,7 @@ def get_public_settings():
 
 
 @settings_bp.route("", methods=["GET"])
-@admin_required
+@jwt_required()
 def get_settings():
     """Get system settings"""
     config = settings_service.get_settings()
