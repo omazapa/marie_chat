@@ -3,6 +3,7 @@ import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { ClientProviders } from '@/components/ClientProviders';
+import { getLocale } from '@/lib/locale';
 import './globals.css';
 
 const inter = Inter({
@@ -45,16 +46,17 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Get messages for the current locale (will be determined by middleware)
+  // Get locale and messages for the current locale
+  const locale = await getLocale();
   const messages = await getMessages();
   
   return (
     <html
-      lang="en"
+      lang={locale}
       className={`${inter.variable} ${plusJakarta.variable} ${jetbrainsMono.variable}`}
     >
       <body suppressHydrationWarning>
-        <NextIntlClientProvider messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={messages}>
           <ClientProviders>{children}</ClientProviders>
         </NextIntlClientProvider>
       </body>
