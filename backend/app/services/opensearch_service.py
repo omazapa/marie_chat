@@ -71,14 +71,18 @@ class OpenSearchService:
         hits = result["hits"]["hits"]
 
         if hits:
-            return hits[0]["_source"]
+            user = hits[0]["_source"]
+            user["id"] = hits[0]["_id"]  # Add document ID
+            return user
         return None
 
     def get_user_by_id(self, user_id: str) -> dict | None:
         """Get user by ID"""
         try:
             result = self.client.get(index="marie_users", id=user_id)
-            return result["_source"]
+            user = result["_source"]
+            user["id"] = user_id  # Add document ID
+            return user
         except Exception:
             return None
 
