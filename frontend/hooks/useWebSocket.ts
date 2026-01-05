@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Message, StreamChunk, Attachment } from '@/types';
+import { useInterfaceStore } from '@/stores/interfaceStore';
 
 interface UseWebSocketProps {
   token: string | null;
@@ -304,11 +305,12 @@ export function useWebSocket({
 
   // Text to speech
   const textToSpeech = useCallback((text: string, messageId?: string, voice?: string) => {
+    const { ttsVoice } = useInterfaceStore.getState();
     if (socketRef.current && socketRef.current.connected) {
       socketRef.current.emit('text_to_speech', {
         text,
         message_id: messageId,
-        voice,
+        voice: voice || ttsVoice, // Use user's TTS voice preference if no override
       });
     }
   }, []);

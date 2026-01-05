@@ -19,6 +19,7 @@ import { ThinkingIndicator } from './ThinkingIndicator';
 import { API_URL } from '@/lib/api';
 import { MarkdownContent } from '../markdown/MarkdownContent';
 import { useSettings } from '@/hooks/useSettings';
+import { useInterfaceStore } from '@/stores/interfaceStore';
 import { Message, Attachment } from '@/types';
 
 const { Text } = Typography;
@@ -48,7 +49,41 @@ export const MessageItem = memo(
     isPlaying,
   }: MessageItemProps) => {
     const { whiteLabel } = useSettings();
+    const { messageDensity, showTimestamps } = useInterfaceStore();
     const [copied, setCopied] = React.useState(false);
+
+    // Density styles
+    const densityStyles = {
+      compact: {
+        padding: '8px 12px',
+        fontSize: '13px',
+        lineHeight: '1.4',
+        gap: '6px',
+        avatarSize: 32,
+      },
+      comfortable: {
+        padding: '12px 16px',
+        fontSize: '14px',
+        lineHeight: '1.6',
+        gap: '8px',
+        avatarSize: 40,
+      },
+      spacious: {
+        padding: '16px 20px',
+        fontSize: '15px',
+        lineHeight: '1.8',
+        gap: '12px',
+        avatarSize: 48,
+      },
+    };
+
+    const currentDensity = densityStyles[messageDensity] || densityStyles.comfortable;
+    
+    // Format timestamp
+    const formatTimestamp = (timestamp: string | number) => {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
 
     const handleCopyAll = () => {
       navigator.clipboard.writeText(msg.content);
@@ -59,7 +94,10 @@ export const MessageItem = memo(
     return (
       <div
         id={`message-${msg.id}`}
-        style={{ marginBottom: '24px', transition: 'background-color 0.5s' }}
+        style={{ 
+          marginBottom: currentDensity.gap === '6px' ? '16px' : currentDensity.gap === '8px' ? '24px' : '32px',
+          transition: 'background-color 0.5s' 
+        }}
       >
         {(msg.content || msg.role === 'assistant') && (
           <div
@@ -138,7 +176,7 @@ export const MessageItem = memo(
                         <UserOutlined />
                       )
                     }
-                    size={40}
+                    size={currentDensity.avatarSize}
                     style={{
                       backgroundColor: msg.role === 'user' ? whiteLabel.primary_color : '#ffffff',
                       border: msg.role === 'assistant' ? '1px solid #f0f0f0' : 'none',
@@ -147,6 +185,13 @@ export const MessageItem = memo(
                     }}
                   />
                 }
+                styles={{
+                  content: {
+                    padding: currentDensity.padding,
+                    fontSize: currentDensity.fontSize,
+                    lineHeight: currentDensity.lineHeight,
+                  },
+                }}
                 content={
                   <div
                     style={{
@@ -283,15 +328,14 @@ export const MessageItem = memo(
                       width: '100%',
                     }}
                   >
-                    <Text type="secondary" style={{ fontSize: '11px' }}>
-                      {msg.created_at
-                        ? new Date(msg.created_at).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
-                        : ''}
-                    </Text>
-                    <Space size={4}>
+                    {showTimestamps && (
+                      <Text type="secondary" style={{ fontSize: '11px' }}>
+                        {msg.created_at
+                          ? formatTimestamp(msg.created_at)
+                          : ''}
+                      </Text>
+                    )}
+                    <Space size={4} style={{ marginLeft: 'auto' }}>
                       <Tooltip title={copied ? 'Copied!' : 'Copy message'}>
                         <Button
                           type="text"

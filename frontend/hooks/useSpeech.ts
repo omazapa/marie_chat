@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import apiClient from '../lib/api';
+import { useInterfaceStore } from '@/stores/interfaceStore';
 
 interface UseSpeechProps {
   accessToken: string | null;
@@ -10,6 +11,7 @@ interface UseSpeechProps {
 export const useSpeech = ({ accessToken, onTranscription, onTranscribe }: UseSpeechProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const { sttLanguage } = useInterfaceStore();
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -20,9 +22,8 @@ export const useSpeech = ({ accessToken, onTranscription, onTranscribe }: UseSpe
       setIsTranscribing(true);
       const formData = new FormData();
       formData.append('file', audioBlob, 'recording.wav');
-      if (language) {
-        formData.append('language', language);
-      }
+      // Use user's STT language preference
+      formData.append('language', language || sttLanguage || 'en-US');
 
       try {
         const response = await apiClient.post('/speech/transcribe', formData, {
@@ -40,7 +41,7 @@ export const useSpeech = ({ accessToken, onTranscription, onTranscribe }: UseSpe
         setIsTranscribing(false);
       }
     },
-    [accessToken, onTranscription]
+    [accessToken, onTranscription, sttLanguage]
   );
 
   const startRecording = useCallback(async () => {

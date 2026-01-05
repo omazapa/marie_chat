@@ -14,6 +14,7 @@ import { CopyOutlined, CheckOutlined, DownloadOutlined } from '@ant-design/icons
 import 'katex/dist/katex.min.css';
 import { HTMLArtifact } from './HTMLArtifact';
 import { LatexArtifact } from './LatexArtifact';
+import { useInterfaceStore } from '@/stores/interfaceStore';
 
 const { Text } = Typography;
 
@@ -39,6 +40,7 @@ interface MarkdownContentProps {
 const CodeBlock = memo(({ language, value }: { language: string; value: string }) => {
   const [copied, setCopied] = useState(false);
   const [wrapLines, setWrapLines] = useState(false);
+  const { enableCodeHighlighting } = useInterfaceStore();
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(value);
@@ -165,27 +167,43 @@ const CodeBlock = memo(({ language, value }: { language: string; value: string }
           </Tooltip>
         </div>
       </div>
-      <SyntaxHighlighter
-        style={vscDarkPlus}
-        language={language}
-        PreTag="div"
-        wrapLines={wrapLines}
-        lineProps={{ style: { wordBreak: 'break-all', whiteSpace: 'pre-wrap' } }}
-        customStyle={{
-          margin: 0,
-          borderRadius: 0,
-          padding: '16px',
-          fontSize: '13px',
-          width: '100%',
-          maxWidth: '100%',
-          overflowX: wrapLines ? 'hidden' : 'auto',
-          overflowY: 'hidden',
-          whiteSpace: wrapLines ? 'pre-wrap' : 'pre',
-          background: 'transparent',
-        }}
-      >
-        {value}
-      </SyntaxHighlighter>
+      {enableCodeHighlighting ? (
+        <SyntaxHighlighter
+          style={vscDarkPlus}
+          language={language}
+          PreTag="div"
+          wrapLines={wrapLines}
+          lineProps={{ style: { wordBreak: 'break-all', whiteSpace: 'pre-wrap' } }}
+          customStyle={{
+            margin: 0,
+            borderRadius: 0,
+            padding: '16px',
+            fontSize: '13px',
+            width: '100%',
+            maxWidth: '100%',
+            overflowX: wrapLines ? 'hidden' : 'auto',
+            overflowY: 'hidden',
+            whiteSpace: wrapLines ? 'pre-wrap' : 'pre',
+            background: 'transparent',
+          }}
+        >
+          {value}
+        </SyntaxHighlighter>
+      ) : (
+        <pre
+          style={{
+            margin: 0,
+            padding: '16px',
+            fontSize: '13px',
+            overflow: 'auto',
+            background: '#1e1e1e',
+            color: '#d4d4d4',
+            whiteSpace: wrapLines ? 'pre-wrap' : 'pre',
+          }}
+        >
+          <code>{value}</code>
+        </pre>
+      )}
     </div>
   );
 });
@@ -452,6 +470,26 @@ export const MarkdownContent = memo(function MarkdownContent({
   className,
   isStreaming,
 }: MarkdownContentProps) {
+  const { enableMarkdown, enableCodeHighlighting } = useInterfaceStore();
+  
+  // If markdown is disabled, return plain text
+  if (!enableMarkdown) {
+    return (
+      <div
+        className={`markdown-content ${className || ''}`}
+        style={{ 
+          width: '100%', 
+          maxWidth: '100%', 
+          overflowWrap: 'break-word', 
+          minWidth: 0,
+          whiteSpace: 'pre-wrap',
+        }}
+      >
+        {content}
+      </div>
+    );
+  }
+  
   // Auto-wrap raw HTML blocks in code blocks if they are not already wrapped
   const processedContent = useMemo(() => {
     // Regex to find substantial HTML blocks
