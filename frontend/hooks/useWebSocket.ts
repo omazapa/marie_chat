@@ -219,13 +219,13 @@ export function useWebSocket({
     setCurrentConversation(conversationId);
     if (socketRef.current && socketRef.current.connected) {
       socketRef.current.emit('join_conversation', { conversation_id: conversationId });
-      console.log(`📥 Joined conversation: ${conversationId}`);
+      // Joined conversation
 
       // Wait a moment to ensure backend processes the join before allowing messages
       await new Promise((resolve) => setTimeout(resolve, 200));
-      console.log(`✓ Ready to send messages in: ${conversationId}`);
+      // Ready to send messages
     } else {
-      console.log(`⏳ Queued join for conversation: ${conversationId} (waiting for connection)`);
+      // Queued join for conversation (waiting for connection)
     }
   }, []);
 
@@ -237,7 +237,7 @@ export function useWebSocket({
         if (currentConversation === conversationId) {
           setCurrentConversation(null);
         }
-        console.log(`📤 Left conversation: ${conversationId}`);
+        // Left conversation
       }
     },
     [currentConversation]

@@ -15,6 +15,8 @@ import {
   FileOutlined,
   LinkOutlined,
   PlusOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from '@ant-design/icons';
 import type { Message as WebSocketMessage } from '@/types';
 import { useSpeech } from '@/hooks/useSpeech';
@@ -27,6 +29,8 @@ import { ImageGenerationModal } from './modals/ImageGenerationModal';
 import { ReferenceModal } from './modals/ReferenceModal';
 import { ModelSettingsModal } from './modals/ModelSettingsModal';
 import { PromptOptimizer } from './PromptOptimizer';
+import AgentConfigModal from './AgentConfigModal';
+import { AgentConfigPanel } from './AgentConfigPanel';
 
 const { Text } = Typography;
 const { Content } = Layout;
@@ -53,6 +57,9 @@ export default function ChatContainer() {
   const [isUploading, setIsUploading] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState('es-CO-GonzaloNeural');
+  const [showAgentConfigModal, setShowAgentConfigModal] = useState(false);
+  const [showAgentConfigPanel, setShowAgentConfigPanel] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { accessToken, user, logout: authLogout } = useAuthStore();
 
@@ -430,7 +437,7 @@ export default function ChatContainer() {
     });
 
     if (result && result.conversation_id) {
-      console.log('✅ Image generation started:', result);
+      // Image generation started
 
       // Only update progress for the current conversation
       if (convId === result.conversation_id) {
@@ -620,6 +627,7 @@ export default function ChatContainer() {
         handleLogout={handleLogout}
         user={user}
         isConnected={isConnected}
+        collapsed={sidebarCollapsed}
       />
 
       <Layout style={{ height: '100vh' }}>
@@ -635,7 +643,7 @@ export default function ChatContainer() {
           {error && (
             <div style={{ padding: '16px 16px 0 16px' }}>
               <Alert
-                message="Error"
+                title="Error"
                 description={error}
                 type="error"
                 showIcon
@@ -656,7 +664,28 @@ export default function ChatContainer() {
             }}
           >
             {!currentConversation ? (
-              <WelcomeScreen onSend={handleSend} onNewConversation={handleNewConversation} />
+              <>
+                {/* Header for Welcome Screen */}
+                <div
+                  style={{
+                    padding: '16px 24px',
+                    borderBottom: '1px solid #E2E8F0',
+                    background: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Tooltip title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}>
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                      onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                    />
+                  </Tooltip>
+                </div>
+                <WelcomeScreen onSend={handleSend} onNewConversation={handleNewConversation} />
+              </>
             ) : (
               <div
                 key={currentConversation.id}
@@ -681,6 +710,14 @@ export default function ChatContainer() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <Tooltip title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                      />
+                    </Tooltip>
                     <RobotOutlined style={{ fontSize: '20px', color: '#1B4B73' }} />
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -756,6 +793,18 @@ export default function ChatContainer() {
                         Change Model
                       </Button>
                     </Tooltip>
+                    {currentConversation.provider === 'agent' && (
+                      <Tooltip title="Configure Agent Parameters">
+                        <Button
+                          icon={<SettingOutlined />}
+                          onClick={() => setShowAgentConfigPanel(!showAgentConfigPanel)}
+                          size="small"
+                          type={showAgentConfigPanel ? 'primary' : 'default'}
+                        >
+                          Agent Config
+                        </Button>
+                      </Tooltip>
+                    )}
                   </Space>
                 </div>
 
@@ -893,6 +942,18 @@ export default function ChatContainer() {
             </div>
           </div>
         </Content>
+
+        {/* Agent Configuration Panel */}
+        {currentConversation && currentConversation.provider === 'agent' && (
+          <AgentConfigPanel
+            visible={showAgentConfigPanel}
+            onClose={() => setShowAgentConfigPanel(false)}
+            provider={currentConversation.provider}
+            modelId={currentConversation.model}
+            modelName={currentConversation.model}
+            conversationId={currentConversation.id}
+          />
+        )}
       </Layout>
 
       {/* Reference Conversations Modal */}
@@ -955,6 +1016,15 @@ export default function ChatContainer() {
         onClose={() => setShowPromptOptimizer(false)}
         onApply={(optimized) => setInputValue(optimized)}
         initialPrompt={inputValue}
+      />
+
+      {/* Agent Configuration Modal */}
+      <AgentConfigModal
+        visible={showAgentConfigModal}
+        onClose={() => setShowAgentConfigModal(false)}
+        provider={selectedProvider}
+        modelId={selectedModel}
+        conversationId={currentConversation?.id}
       />
     </Layout>
   );

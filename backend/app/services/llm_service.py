@@ -13,6 +13,7 @@ from sentence_transformers import SentenceTransformer
 
 from app.db import opensearch_client
 from app.domain.entities.chat import ChatMessage
+from app.services.agent_config_service import AgentConfigService
 from app.services.memory_service import memory_service
 from app.services.opensearch_service import OpenSearchService
 from app.services.provider_factory import provider_factory
@@ -30,6 +31,7 @@ class LLMService:
         self.reference_service = ReferenceService(self.opensearch_service)
         self.memory_service = memory_service
         self.settings_service = settings_service
+        self.agent_config_service = AgentConfigService()
         # Lazy-initialize embedding model for semantic search
         self._embedding_model = None
 
@@ -753,12 +755,33 @@ class LLMService:
 
         # Get model settings
         model = conversation.get("model", "llama3.2")
+        provider_name = conversation.get("provider", "ollama")
         settings = conversation.get("settings", {})
         temperature = settings.get("temperature", 0.7)
         max_tokens = settings.get("max_tokens", 2048)
 
+        # Load agent configuration if provider is 'agent'
+        agent_config = {}
+        if provider_name == "agent":
+            print(
+                f"[SERVICE] Loading agent configuration for model={model}, conv={conversation_id}"
+            )
+            agent_config = await self.agent_config_service.load_config(
+                user_id=user_id,
+                provider=provider_name,
+                model_id=model,
+                conversation_id=conversation_id,
+            )
+            print(f"[SERVICE] Agent config loaded: {agent_config}")
+
+            # Override settings with agent config if present
+            if agent_config:
+                temperature = agent_config.get("temperature", temperature)
+                if "max_tokens" in agent_config:
+                    max_tokens = agent_config["max_tokens"]
+
         print(
-            f"[SERVICE] chat_completion called: model={model}, stream={stream}, temp={temperature}"
+            f"[SERVICE] chat_completion called: model={model}, provider={provider_name}, stream={stream}, temp={temperature}, agent_config={bool(agent_config)}"
         )
 
         # Call LLM
@@ -772,6 +795,7 @@ class LLMService:
                 temperature=temperature,
                 max_tokens=max_tokens,
                 references_metadata=references_metadata,
+                agent_config=agent_config,
             )
 
         # Streaming: return the generator
@@ -784,6 +808,7 @@ class LLMService:
             temperature=temperature,
             max_tokens=max_tokens,
             references_metadata=references_metadata,
+            agent_config=agent_config,
         )
 
     async def _non_stream_completion(
@@ -795,6 +820,7 @@ class LLMService:
         temperature: float,
         max_tokens: int,
         references_metadata: list[dict[str, Any]] | None = None,
+        agent_config: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Non-streaming chat completion"""
         # Get conversation to determine provider
@@ -809,16 +835,24 @@ class LLMService:
         # Convert messages to ChatMessage objects
         chat_messages = [ChatMessage(role=m["role"], content=m["content"]) for m in messages]
 
-        # Get completion directly from provider
+        # Prepare kwargs with agent config if available
+        kwargs = {
+            "model": model,
+            "messages": chat_messages,
+            "stream": False,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "user_id": user_id,
+        }
 
-        response = provider.chat_completion(
-            model=model,
-            messages=chat_messages,
-            stream=False,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            user_id=user_id,
-        )
+        # Add agent config parameters (excluding temperature/max_tokens already set)
+        if agent_config:
+            for key, value in agent_config.items():
+                if key not in ["temperature", "max_tokens"]:
+                    kwargs[key] = value
+
+        # Get completion directly from provider
+        response = provider.chat_completion(**kwargs)  # type: ignore[arg-type]
 
         # Handle both generator and direct response
         result: Any = None
@@ -878,13 +912,14 @@ class LLMService:
         temperature: float,
         max_tokens: int,
         references_metadata: list[dict[str, Any]] | None = None,
+        agent_config: dict[str, Any] | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """Streaming chat completion"""
         print(f"[SERVICE] _stream_completion called for conversation {conversation_id}")
         # Get conversation to determine provider
         conversation = self.get_conversation(conversation_id, user_id)
         provider_name = conversation.get("provider", "ollama") if conversation else "ollama"
-        print(f"[SERVICE] Using provider: {provider_name}")
+        print(f"[SERVICE] Using provider: {provider_name}, agent_config: {bool(agent_config)}")
 
         # Get provider
         provider = self.provider_factory.get_provider(provider_name)
@@ -896,19 +931,29 @@ class LLMService:
         chat_messages = [ChatMessage(role=m["role"], content=m["content"]) for m in messages]
         print(f"[SERVICE] Converted {len(chat_messages)} messages")
 
+        # Prepare kwargs with agent config if available
+        kwargs = {
+            "model": model,
+            "messages": chat_messages,
+            "stream": True,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "user_id": user_id,
+        }
+
+        # Add agent config parameters (excluding temperature/max_tokens already set)
+        if agent_config:
+            print(f"[SERVICE] Applying agent config: {agent_config}")
+            for key, value in agent_config.items():
+                if key not in ["temperature", "max_tokens"]:
+                    kwargs[key] = value
+
         full_content = ""
         total_tokens = 0
         saved = False
 
-        # Execute provider directly
-        response = provider.chat_completion(
-            model=model,
-            messages=chat_messages,
-            stream=True,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            user_id=user_id,
-        )
+        # Execute provider with kwargs
+        response = provider.chat_completion(**kwargs)  # type: ignore[arg-type]
 
         print("[SERVICE] Starting provider response iteration")
         async for chunk in response:

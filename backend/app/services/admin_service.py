@@ -1,5 +1,7 @@
 from datetime import datetime
 from typing import Any
+import bcrypt
+import uuid
 
 from app.services.opensearch_service import OpenSearchService
 
@@ -8,6 +10,22 @@ class AdminService:
     def __init__(self):
         self.opensearch = OpenSearchService()
         self.client = self.opensearch.client
+
+    def _get_default_permissions(self, role: str) -> dict[str, bool]:
+        """Get default permissions for a role"""
+        if role == "admin":
+            return {
+                "can_create_users": True,
+                "can_manage_system": True,
+                "can_view_logs": True,
+                "can_manage_models": True,
+            }
+        return {
+            "can_create_users": False,
+            "can_manage_system": False,
+            "can_view_logs": False,
+            "can_manage_models": False,
+        }
 
     def get_system_stats(self) -> dict[str, Any]:
         """Get system-wide statistics from OpenSearch"""
@@ -54,7 +72,9 @@ class AdminService:
             users = []
             for hit in res["hits"]["hits"]:
                 user = hit["_source"]
+                user["id"] = hit["_id"]  # Add the document ID
                 user.pop("password_hash", None)
+                user.pop("hashed_password", None)  # Remove both variants
                 users.append(user)
             return users
         except Exception as e:
@@ -79,7 +99,7 @@ class AdminService:
         """Change user role (admin/user)"""
         try:
             # Get default permissions for the new role
-            permissions = self.opensearch._get_default_permissions(role)
+            permissions = self._get_default_permissions(role)
 
             self.client.update(
                 index="marie_users",
@@ -97,6 +117,57 @@ class AdminService:
         except Exception as e:
             print(f"Error updating user role: {e}")
             return False
+
+    def create_user(
+        self, email: str, full_name: str, password: str, role: str = "user"
+    ) -> dict[str, Any] | None:
+        """Create a new user"""
+        try:
+            # Check if user already exists
+            existing = self.client.search(
+                index="marie_users", body={"query": {"term": {"email.keyword": email}}}, size=1
+            )
+            if existing["hits"]["total"]["value"] > 0:
+                return None
+
+            # Hash password
+            hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode(
+                "utf-8"
+            )
+
+            # Get default permissions
+            permissions = self._get_default_permissions(role)
+
+            # Create user document
+            user_id = str(uuid.uuid4())
+            now = datetime.utcnow().isoformat()
+
+            user_doc = {
+                "email": email,
+                "full_name": full_name,
+                "password_hash": hashed_password,  # Changed from hashed_password
+                "role": role,
+                "permissions": permissions,
+                "is_active": True,
+                "created_at": now,
+                "updated_at": now,
+            }
+
+            self.client.index(index="marie_users", id=user_id, body=user_doc, refresh=True)
+
+            # Return user without password
+            return {
+                "id": user_id,
+                "email": email,
+                "full_name": full_name,
+                "role": role,
+                "is_active": True,
+                "created_at": now,
+                "updated_at": now,
+            }
+        except Exception as e:
+            print(f"Error creating user: {e}")
+            return None
 
     def delete_user(self, user_id: str) -> bool:
         """Delete a user and all their associated data"""

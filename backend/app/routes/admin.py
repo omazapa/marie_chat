@@ -24,6 +24,28 @@ def list_users():
     return jsonify({"users": users}), 200
 
 
+@admin_bp.route("/users", methods=["POST"])
+@admin_required
+def create_user():
+    """Create a new user"""
+    data = request.get_json()
+    email = data.get("email")
+    full_name = data.get("full_name")
+    password = data.get("password")
+    role = data.get("role", "user")
+
+    if not email or not password or not full_name:
+        return jsonify({"error": "email, full_name, and password are required"}), 400
+
+    if role not in ["admin", "user"]:
+        return jsonify({"error": "Invalid role. Must be admin or user"}), 400
+
+    user = admin_service.create_user(email, full_name, password, role)
+    if user:
+        return jsonify({"user": user, "message": "User created successfully"}), 201
+    return jsonify({"error": "Failed to create user. User may already exist."}), 400
+
+
 @admin_bp.route("/users/<user_id>/status", methods=["PUT"])
 @admin_required
 def update_user_status(user_id):

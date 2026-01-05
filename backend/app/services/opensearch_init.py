@@ -117,6 +117,35 @@ INDICES = {
         },
         "settings": {"number_of_shards": 1, "number_of_replicas": 1, "index.knn": True},
     },
+    "marie_agent_configs": {
+        "mappings": {
+            "properties": {
+                "id": {"type": "keyword"},
+                "user_id": {"type": "keyword"},
+                "provider": {"type": "keyword"},
+                "model_id": {"type": "keyword"},
+                "scope": {"type": "keyword"},
+                "conversation_id": {"type": "keyword"},
+                "config_values": {"type": "object", "enabled": True},
+                "created_at": {"type": "date"},
+                "updated_at": {"type": "date"},
+            }
+        },
+        "settings": {"number_of_shards": 1, "number_of_replicas": 1},
+    },
+    "marie_user_preferences": {
+        "mappings": {
+            "properties": {
+                "user_id": {"type": "keyword"},
+                "agent_preferences": {"type": "object", "enabled": True},
+                "interface_preferences": {"type": "object", "enabled": True},
+                "privacy_preferences": {"type": "object", "enabled": True},
+                "created_at": {"type": "date"},
+                "updated_at": {"type": "date"},
+            }
+        },
+        "settings": {"number_of_shards": 1, "number_of_replicas": 1},
+    },
 }
 
 

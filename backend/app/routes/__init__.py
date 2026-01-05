@@ -1,4 +1,5 @@
 from app.routes.admin import admin_bp
+from app.routes.agent_config import agent_config_bp
 from app.routes.api_keys import api_keys_bp
 from app.routes.auth import auth_bp
 from app.routes.conversations import conversations_bp
@@ -8,6 +9,7 @@ from app.routes.models import models_bp
 from app.routes.prompts import prompts_bp
 from app.routes.settings import settings_bp
 from app.routes.speech import speech_bp
+from app.routes.user_settings import user_settings_bp
 
 __all__ = [
     "auth_bp",
@@ -20,4 +22,6 @@ __all__ = [
     "prompts_bp",
     "admin_bp",
     "settings_bp",
+    "agent_config_bp",
+    "user_settings_bp",
 ]

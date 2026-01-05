@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Tag, Space, Button, Typography, Card, App, Switch, Select, Tooltip } from 'antd';
-import { UserOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { Table, Tag, Space, Button, Typography, Card, App, Switch, Select, Tooltip, Modal, Form, Input } from 'antd';
+import { UserOutlined, DeleteOutlined, ExclamationCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import apiClient, { getErrorMessage } from '@/lib/api';
 import type { User } from '@/types';
 
@@ -11,7 +11,10 @@ const { Title, Text } = Typography;
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [creatingUser, setCreatingUser] = useState(false);
   const { message, modal } = App.useApp();
+  const [form] = Form.useForm();
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -67,6 +70,21 @@ export default function UserManagement() {
         }
       },
     });
+  };
+
+  const handleCreateUser = async (values: any) => {
+    setCreatingUser(true);
+    try {
+      const response = await apiClient.post('/admin/users', values);
+      message.success('User created successfully');
+      setUsers((prev) => [...prev, response.data.user]);
+      setCreateModalVisible(false);
+      form.resetFields();
+    } catch (err: unknown) {
+      message.error(getErrorMessage(err, 'Failed to create user'));
+    } finally {
+      setCreatingUser(false);
+    }
   };
 
   const columns = [
@@ -165,9 +183,14 @@ export default function UserManagement() {
         <Title level={4} style={{ margin: 0 }}>
           User Management
         </Title>
-        <Button type="primary" onClick={fetchUsers} loading={loading}>
-          Refresh
-        </Button>
+        <Space>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalVisible(true)}>
+            Create User
+          </Button>
+          <Button onClick={fetchUsers} loading={loading}>
+            Refresh
+          </Button>
+        </Space>
       </div>
       <Table
         columns={columns}
@@ -176,6 +199,68 @@ export default function UserManagement() {
         loading={loading}
         pagination={{ pageSize: 10 }}
       />
+
+      {/* Create User Modal */}
+      <Modal
+        title="Create New User"
+        open={createModalVisible}
+        onCancel={() => {
+          setCreateModalVisible(false);
+          form.resetFields();
+        }}
+        onOk={() => form.submit()}
+        confirmLoading={creatingUser}
+        okText="Create User"
+        width={600}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleCreateUser}
+          initialValues={{ role: 'user' }}
+        >
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: 'Please enter email' },
+              { type: 'email', message: 'Please enter a valid email' },
+            ]}
+          >
+            <Input placeholder="user@example.com" />
+          </Form.Item>
+
+          <Form.Item
+            name="full_name"
+            label="Full Name"
+            rules={[{ required: true, message: 'Please enter full name' }]}
+          >
+            <Input placeholder="John Doe" />
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            label="Password"
+            rules={[
+              { required: true, message: 'Please enter password' },
+              { min: 6, message: 'Password must be at least 6 characters' },
+            ]}
+          >
+            <Input.Password placeholder="Enter password" />
+          </Form.Item>
+
+          <Form.Item
+            name="role"
+            label="Role"
+            rules={[{ required: true, message: 'Please select role' }]}
+          >
+            <Select>
+              <Select.Option value="user">User</Select.Option>
+              <Select.Option value="admin">Admin</Select.Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
     </Card>
   );
 }
