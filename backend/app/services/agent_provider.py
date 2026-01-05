@@ -624,12 +624,6 @@ class AgentProvider(LLMProvider):
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         async with httpx.AsyncClient(timeout=5.0) as client:
-            # Strategy 0: Check for known Open WebUI pipeline schemas
-            known_schema = self._get_known_open_webui_schema(model)
-            if known_schema:
-                print(f"✅ AgentProvider: Using known schema for Open WebUI pipeline {model}")
-                return known_schema
-
             # Strategy 1: LangServe config_schema
             try:
                 url = (
@@ -645,12 +639,15 @@ class AgentProvider(LLMProvider):
             except Exception as e:
                 print(f"⚠️ Strategy 1 (config_schema) failed: {e}")
 
-            # Strategy 2: Open WebUI valves (try multiple URL patterns)
-            for valves_url_pattern in [
-                f"{base}/api/pipelines/{model}/valves",  # Open WebUI with /api
-                f"{base}/pipelines/{model}/valves",  # Direct path
-                f"{base}/api/v1/pipelines/{model}/valves",  # Alternative API version
-            ]:
+            # Strategy 2: Open WebUI Pipelines valves endpoint
+            valves_url_patterns = [
+                f"{base}/{model}/valves",  # Open WebUI Pipelines standard format
+                f"{base}/api/pipelines/{model}/valves",  # Alternative with /api prefix
+                f"{base}/pipelines/{model}/valves",  # Alternative path
+                f"{base}/api/v1/pipelines/{model}/valves",  # API versioned
+            ]
+
+            for valves_url_pattern in valves_url_patterns:
                 try:
                     print(f"🔍 Trying valves at: {valves_url_pattern}")
                     response = await client.get(valves_url_pattern, headers=headers)
@@ -680,95 +677,6 @@ class AgentProvider(LLMProvider):
 
         print(f"ℹ️ AgentProvider: No configuration schema found for {model}")
         return None
-
-    def _get_known_open_webui_schema(self, model: str) -> dict[str, Any] | None:
-        """
-        Return known schemas for Open WebUI pipelines.
-
-        Open WebUI does not expose valves via API, so we maintain
-        a registry of known pipeline configurations here.
-        """
-        known_schemas = {
-            "marie_reasoning_agent": {
-                "type": "object",
-                "properties": {
-                    "ollama_base_url": {
-                        "type": "string",
-                        "title": "Ollama Base URL",
-                        "default": "http://ollama:11434",
-                        "description": "Base URL for Ollama service",
-                    },
-                    "reasoning_model": {
-                        "type": "string",
-                        "title": "Reasoning Model",
-                        "default": "qwen2.5:latest",
-                        "description": "Model to use for reasoning tasks",
-                    },
-                    "rag_model": {
-                        "type": "string",
-                        "title": "RAG Model",
-                        "default": "llama3.2:latest",
-                        "description": "Model to use for RAG tasks",
-                    },
-                    "elasticsearch_url": {
-                        "type": "string",
-                        "title": "Elasticsearch URL",
-                        "default": "http://elasticsearch:9200",
-                        "description": "Elasticsearch service URL",
-                    },
-                    "index_name": {
-                        "type": "string",
-                        "title": "Index Name",
-                        "default": "kahi_works",
-                        "description": "Elasticsearch index name",
-                    },
-                    "top_k": {
-                        "type": "integer",
-                        "title": "Top K",
-                        "default": 5,
-                        "minimum": 1,
-                        "maximum": 20,
-                        "description": "Number of top results to retrieve",
-                    },
-                    "enable_reasoning": {
-                        "type": "boolean",
-                        "title": "Enable Reasoning",
-                        "default": True,
-                        "description": "Enable reasoning capabilities",
-                    },
-                    "enable_rag": {
-                        "type": "boolean",
-                        "title": "Enable RAG",
-                        "default": True,
-                        "description": "Enable RAG capabilities",
-                    },
-                    "enable_query_reformulation": {
-                        "type": "boolean",
-                        "title": "Enable Query Reformulation",
-                        "default": True,
-                        "description": "Enable query reformulation",
-                    },
-                    "reasoning_max_tokens": {
-                        "type": "integer",
-                        "title": "Reasoning Max Tokens",
-                        "default": 1000,
-                        "minimum": 100,
-                        "maximum": 4000,
-                        "description": "Maximum tokens for reasoning",
-                    },
-                    "reasoning_temperature": {
-                        "type": "number",
-                        "title": "Reasoning Temperature",
-                        "default": 0.7,
-                        "minimum": 0.0,
-                        "maximum": 2.0,
-                        "description": "Temperature for reasoning model",
-                    },
-                },
-            }
-        }
-
-        return known_schemas.get(model)
 
     def parse_schema_to_fields(self, schema: dict[str, Any]) -> list[ConfigField]:
         """
