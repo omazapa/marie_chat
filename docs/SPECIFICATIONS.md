@@ -21,8 +21,9 @@
 8. [Database](#-database)
 9. [Authentication](#-authentication)
 10. [API Endpoints](#-api-endpoints)
-11. [Development Plan](#-development-plan)
-12. [Deployment](#-deployment)
+11. [MCP Integration (Model Context Protocol)](#-mcp-integration-model-context-protocol)
+12. [Development Plan](#-development-plan)
+13. [Deployment](#-deployment)
 
 ---
 
@@ -133,7 +134,7 @@
 | **python-pptx** | latest | PowerPoint text extraction |
 | **langchain** | 0.3.x | Document loaders for various formats |
 
-### LLM & AI
+#### LLM & AI
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
@@ -143,6 +144,15 @@
 | **langchain-huggingface** | latest | HuggingFace integration |
 | **ollama** | latest | Ollama Python client |
 | **huggingface-hub** | latest | Model hub |
+
+#### Model Context Protocol (MCP)
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **mcp** | latest | MCP SDK for Python |
+| **mcp-server-\*** | latest | MCP server implementations |
+| **httpx** | latest | HTTP client for MCP server communication |
+| **sse-starlette** | latest | Server-Sent Events for MCP streaming |
 
 ### Infrastructure
 
@@ -4292,7 +4302,396 @@ for await (const chunk of client.chatStream("Explica Python")) {
 
 ---
 
-## 📅 Development Plan
+## � MCP Integration (Model Context Protocol)
+
+### Overview
+
+MARIE integrates **Model Context Protocol (MCP)** servers to extend AI capabilities with external tools, data sources, and services. MCP provides a standardized way for LLMs to interact with:
+
+- 📁 **File systems** (local and cloud storage)
+- 🗄️ **Databases** (PostgreSQL, MySQL, SQLite, etc.)
+- 🌐 **Web services** (REST APIs, GraphQL, etc.)
+- 🔧 **Development tools** (Git, GitHub, Docker, etc.)
+- 📊 **Data sources** (Google Drive, Notion, Slack, etc.)
+- 🤖 **Custom tools** (domain-specific services)
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         MARIE Backend                                │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                      MCP Client Layer                         │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐   │  │
+│  │  │ MCP Manager │  │ Tool Router │  │  Protocol Handler   │   │  │
+│  │  └─────────────┘  └─────────────┘  └─────────────────────┘   │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                │                                     │
+│                                ▼                                     │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                    LLM Service Layer                          │  │
+│  │         (Integrates MCP tools with LLM providers)             │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   │ MCP Protocol (stdio/HTTP/SSE)
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         MCP Servers                                  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐         │
+│  │   Filesystem│  │   Database  │  │    Web Services     │         │
+│  │   Server    │  │   Server    │  │       Server        │         │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘         │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐         │
+│  │   GitHub    │  │   Google    │  │      Custom         │         │
+│  │   Server    │  │   Drive     │  │      Servers        │         │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘         │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### MCP Server Configuration
+
+MCP servers are configured in the admin settings panel under "Tools & Extensions" section.
+
+#### Configuration Structure
+
+```python
+{
+    "mcp_servers": [
+        {
+            "id": "filesystem-local",
+            "name": "Local Filesystem",
+            "type": "filesystem",
+            "enabled": True,
+            "transport": "stdio",
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed/directory"],
+            "env": {},
+            "capabilities": ["read_file", "write_file", "list_directory", "search_files"],
+            "description": "Access to local filesystem with read/write permissions"
+        },
+        {
+            "id": "postgres-main",
+            "name": "PostgreSQL Database",
+            "type": "database",
+            "enabled": True,
+            "transport": "stdio",
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-postgres"],
+            "env": {
+                "POSTGRES_CONNECTION_STRING": "postgresql://user:pass@localhost:5432/dbname"
+            },
+            "capabilities": ["query", "schema_info", "list_tables"],
+            "description": "PostgreSQL database access for queries and schema inspection"
+        },
+        {
+            "id": "github-integration",
+            "name": "GitHub Integration",
+            "type": "git",
+            "enabled": True,
+            "transport": "stdio",
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-github"],
+            "env": {
+                "GITHUB_TOKEN": "ghp_xxxxxxxxxxxxx"
+            },
+            "capabilities": ["search_repos", "list_issues", "create_pr", "read_file"],
+            "description": "GitHub API integration for repository management"
+        },
+        {
+            "id": "web-search",
+            "name": "Web Search",
+            "type": "web",
+            "enabled": True,
+            "transport": "http",
+            "url": "http://localhost:3000/mcp",
+            "api_key": "your-api-key",
+            "capabilities": ["web_search", "fetch_url", "extract_content"],
+            "description": "Web search and content extraction capabilities"
+        }
+    ]
+}
+```
+
+### Available MCP Servers
+
+#### 1. Filesystem Server
+```bash
+npx -y @modelcontextprotocol/server-filesystem /allowed/path
+```
+
+**Capabilities:**
+- `read_file` - Read file contents
+- `write_file` - Write to files
+- `list_directory` - List directory contents
+- `search_files` - Search files by pattern
+- `get_file_info` - Get file metadata
+
+#### 2. Database Servers
+
+**PostgreSQL:**
+```bash
+npx -y @modelcontextprotocol/server-postgres
+# Requires: POSTGRES_CONNECTION_STRING env var
+```
+
+**SQLite:**
+```bash
+npx -y @modelcontextprotocol/server-sqlite /path/to/database.db
+```
+
+**Capabilities:**
+- `execute_query` - Run SQL queries
+- `list_tables` - Get database schema
+- `describe_table` - Get table structure
+- `get_schema` - Full database schema
+
+#### 3. GitHub Server
+```bash
+npx -y @modelcontextprotocol/server-github
+# Requires: GITHUB_TOKEN env var
+```
+
+**Capabilities:**
+- `search_repositories` - Search GitHub repos
+- `get_repository` - Get repo details
+- `list_issues` - List repository issues
+- `create_issue` - Create new issue
+- `create_pull_request` - Create PR
+- `read_file` - Read file from repo
+
+#### 4. Google Drive Server
+```bash
+npx -y @modelcontextprotocol/server-gdrive
+# Requires: GOOGLE_CREDENTIALS env var
+```
+
+**Capabilities:**
+- `list_files` - List Drive files
+- `read_file` - Read file content
+- `search` - Search files
+- `get_metadata` - File metadata
+
+#### 5. Slack Server
+```bash
+npx -y @modelcontextprotocol/server-slack
+# Requires: SLACK_BOT_TOKEN, SLACK_TEAM_ID env vars
+```
+
+**Capabilities:**
+- `list_channels` - List Slack channels
+- `send_message` - Send messages
+- `get_channel_history` - Read messages
+- `search` - Search messages
+
+#### 6. Custom HTTP Server
+
+For custom MCP servers over HTTP:
+
+```python
+{
+    "id": "custom-api",
+    "name": "Custom API",
+    "type": "custom",
+    "enabled": True,
+    "transport": "http",
+    "url": "http://your-mcp-server.com/mcp",
+    "api_key": "your-api-key",
+    "headers": {
+        "X-Custom-Header": "value"
+    },
+    "capabilities": ["custom_tool_1", "custom_tool_2"]
+}
+```
+
+### MCP Tool Discovery
+
+When an MCP server is enabled, MARIE automatically:
+
+1. **Connects** to the MCP server
+2. **Discovers** available tools via MCP protocol
+3. **Registers** tools in the LLM context
+4. **Validates** tool schemas
+5. **Exposes** tools to the AI for use
+
+### Usage in Conversations
+
+Users can explicitly request MCP tools:
+
+```
+User: "Read the contents of /docs/README.md"
+→ Uses filesystem MCP server
+
+User: "Search for Python repositories on GitHub with more than 1000 stars"
+→ Uses GitHub MCP server
+
+User: "Query the users table in the database"
+→ Uses database MCP server
+
+User: "Send a message to #general on Slack: 'Meeting at 3pm'"
+→ Uses Slack MCP server
+```
+
+### Security & Permissions
+
+#### Access Control
+- **Admin-only configuration**: Only admins can add/edit/remove MCP servers
+- **Server-level permissions**: Each server has its own capability restrictions
+- **Tool-level authorization**: Individual tools can require additional permissions
+- **Environment isolation**: Servers run in isolated processes
+
+#### Best Practices
+1. **Principle of least privilege**: Grant minimal required permissions
+2. **Path restrictions**: Limit filesystem access to specific directories
+3. **Credential management**: Store sensitive data in environment variables
+4. **Audit logging**: Log all MCP tool invocations
+5. **Rate limiting**: Implement rate limits for external API calls
+
+### Implementation Details
+
+#### Backend Components
+
+**1. MCP Client Manager** (`app/services/mcp_client.py`)
+```python
+class MCPClientManager:
+    def __init__(self):
+        self.clients = {}  # server_id -> MCP client
+
+    async def connect_server(self, server_config):
+        """Connect to an MCP server"""
+
+    async def disconnect_server(self, server_id):
+        """Disconnect from an MCP server"""
+
+    async def discover_tools(self, server_id):
+        """Discover available tools from server"""
+
+    async def call_tool(self, server_id, tool_name, arguments):
+        """Execute a tool on the server"""
+```
+
+**2. MCP Tool Router** (`app/services/mcp_router.py`)
+```python
+class MCPToolRouter:
+    def route_to_llm(self, tools):
+        """Convert MCP tools to LLM-compatible format"""
+
+    def execute_tool_call(self, tool_call):
+        """Execute tool call from LLM"""
+```
+
+**3. MCP Configuration Service** (`app/services/mcp_config.py`)
+```python
+class MCPConfigService:
+    def get_enabled_servers(self):
+        """Get all enabled MCP servers"""
+
+    def validate_config(self, config):
+        """Validate MCP server configuration"""
+```
+
+#### API Endpoints
+
+```python
+# Admin MCP Management
+GET    /api/admin/mcp/servers           # List all MCP servers
+POST   /api/admin/mcp/servers           # Add new MCP server
+PUT    /api/admin/mcp/servers/:id       # Update server config
+DELETE /api/admin/mcp/servers/:id       # Remove server
+POST   /api/admin/mcp/servers/:id/test  # Test server connection
+
+# MCP Tools
+GET    /api/mcp/tools                   # List available tools from all servers
+POST   /api/mcp/tools/:id/invoke        # Invoke a specific tool
+```
+
+### Frontend Integration
+
+#### Admin Panel - MCP Configuration
+Location: `/app/admin/settings` → "Tools & Extensions" tab
+
+Features:
+- View all configured MCP servers
+- Add new servers with form wizard
+- Test server connections
+- Enable/disable servers
+- View available tools per server
+- Monitor tool usage statistics
+
+#### Chat Interface - Tool Usage
+- Automatic tool suggestion based on context
+- Visual indicator when tools are being used
+- Tool execution results displayed in chat
+- Error handling with user-friendly messages
+
+### Monitoring & Debugging
+
+#### Logs
+```python
+# MCP connection logs
+logger.info(f"Connected to MCP server: {server_id}")
+logger.info(f"Discovered {len(tools)} tools from {server_id}")
+
+# Tool invocation logs
+logger.info(f"Invoking tool: {tool_name} with args: {args}")
+logger.info(f"Tool result: {result}")
+```
+
+#### Metrics
+- Total MCP servers configured
+- Active connections
+- Tool invocation count
+- Success/failure rate
+- Average execution time per tool
+
+### Example: Complete Flow
+
+1. **Admin configures GitHub MCP server**
+   ```
+   Admin → Settings → Tools → Add Server → GitHub
+   ```
+
+2. **User asks about repositories**
+   ```
+   User: "Find all React projects in our organization"
+   ```
+
+3. **LLM decides to use tool**
+   ```
+   LLM → Identifies need for GitHub search tool
+   ```
+
+4. **MARIE invokes MCP tool**
+   ```python
+   result = await mcp_manager.call_tool(
+       server_id="github-integration",
+       tool_name="search_repositories",
+       arguments={"query": "org:myorg language:javascript topic:react"}
+   )
+   ```
+
+5. **Result returned to LLM**
+   ```
+   Found 15 repositories matching criteria...
+   ```
+
+6. **LLM formats response**
+   ```
+   Assistant: "I found 15 React projects in your organization:
+   1. myorg/react-dashboard - Dashboard application
+   2. myorg/react-components - Shared component library
+   ..."
+   ```
+
+### Migration & Compatibility
+
+- **Backward compatible**: Existing chats work without MCP
+- **Progressive enhancement**: Tools only used when available
+- **Graceful degradation**: Fallback to standard LLM responses if tools fail
+
+---
+
+## �📅 Development Plan
 
 ### Phase 1: Fundamentals (Days 1-2)
 - [x] **Project Setup**
