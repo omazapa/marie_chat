@@ -75,16 +75,19 @@ export default function SystemSettings() {
   useEffect(() => {
     const loadAgentSchema = async () => {
       if (selectedProviderType === 'agent' && selectedModel) {
+        console.log('[Admin Settings] Loading agent schema for:', selectedModel);
         setLoadingAgentSchema(true);
         try {
           const schema = await fetchSchema('agent', selectedModel);
+          console.log('[Admin Settings] Agent schema loaded:', schema);
           if (schema) {
             setAgentConfigFields(schema.fields || []);
+            console.log('[Admin Settings] Agent config fields:', schema.fields?.length || 0);
           } else {
             setAgentConfigFields([]);
           }
         } catch (error) {
-          console.error('Failed to load agent schema:', error);
+          console.error('[Admin Settings] Failed to load agent schema:', error);
           setAgentConfigFields([]);
         } finally {
           setLoadingAgentSchema(false);
@@ -172,8 +175,41 @@ export default function SystemSettings() {
 
   // Render dynamic agent configuration fields
   const renderAgentConfigFields = () => {
-    if (selectedProviderType !== 'agent' || agentConfigFields.length === 0) {
+    console.log('[Admin Settings] Rendering agent fields:', {
+      providerType: selectedProviderType,
+      model: selectedModel,
+      fieldsCount: agentConfigFields.length,
+    });
+
+    if (selectedProviderType !== 'agent') {
       return null;
+    }
+
+    if (!selectedModel) {
+      return (
+        <Card style={{ marginTop: 16, background: '#fff8e6' }} size="small">
+          <Text type="secondary">Select an agent model to configure default parameters</Text>
+        </Card>
+      );
+    }
+
+    if (loadingAgentSchema) {
+      return (
+        <Card style={{ marginTop: 16 }} size="small">
+          <Spin tip="Loading agent configuration schema..." />
+        </Card>
+      );
+    }
+
+    if (agentConfigFields.length === 0) {
+      return (
+        <Card style={{ marginTop: 16, background: '#f0f0f0' }} size="small">
+          <Text type="secondary">
+            This agent does not expose any configurable parameters, or the schema could not be
+            loaded.
+          </Text>
+        </Card>
+      );
     }
 
     return (
@@ -183,47 +219,45 @@ export default function SystemSettings() {
           These parameters will be applied by default to all users. Users can override them in their
           chat settings.
         </Paragraph>
-        <Spin spinning={loadingAgentSchema}>
-          <Row gutter={[16, 16]}>
-            {agentConfigFields.map((field) => (
-              <Col span={field.type === 'array' ? 24 : 12} key={field.key}>
-                <Form.Item
-                  name={['llm', 'agent_config', field.key]}
-                  label={field.label || field.key}
-                  tooltip={field.description}
-                  initialValue={field.default}
-                >
-                  {field.type === 'string' && field.enumValues ? (
-                    <Select placeholder={`Select ${field.label || field.key}`} allowClear>
-                      {field.enumValues.map((opt: string) => (
-                        <Select.Option key={opt} value={opt}>
-                          {opt}
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  ) : field.type === 'number' || field.type === 'integer' ? (
-                    <Input
-                      type="number"
-                      placeholder={field.description}
-                      min={field.min}
-                      max={field.max}
-                    />
-                  ) : field.type === 'boolean' ? (
-                    <Switch />
-                  ) : field.type === 'array' ? (
-                    <Select
-                      mode="tags"
-                      placeholder={`Enter ${field.label || field.key}`}
-                      style={{ width: '100%' }}
-                    />
-                  ) : (
-                    <Input placeholder={field.description} />
-                  )}
-                </Form.Item>
-              </Col>
-            ))}
-          </Row>
-        </Spin>
+        <Row gutter={[16, 16]}>
+          {agentConfigFields.map((field) => (
+            <Col span={field.type === 'array' ? 24 : 12} key={field.key}>
+              <Form.Item
+                name={['llm', 'agent_config', field.key]}
+                label={field.label || field.key}
+                tooltip={field.description}
+                initialValue={field.default}
+              >
+                {field.type === 'string' && field.enumValues ? (
+                  <Select placeholder={`Select ${field.label || field.key}`} allowClear>
+                    {field.enumValues.map((opt: string) => (
+                      <Select.Option key={opt} value={opt}>
+                        {opt}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                ) : field.type === 'number' || field.type === 'integer' ? (
+                  <Input
+                    type="number"
+                    placeholder={field.description}
+                    min={field.min}
+                    max={field.max}
+                  />
+                ) : field.type === 'boolean' ? (
+                  <Switch />
+                ) : field.type === 'array' ? (
+                  <Select
+                    mode="tags"
+                    placeholder={`Enter ${field.label || field.key}`}
+                    style={{ width: '100%' }}
+                  />
+                ) : (
+                  <Input placeholder={field.description} />
+                )}
+              </Form.Item>
+            </Col>
+          ))}
+        </Row>
       </Card>
     );
   };
