@@ -432,7 +432,7 @@ export default function ChatContainer() {
     });
 
     if (result && result.conversation_id) {
-      console.log('✅ Image generation started:', result);
+      // Image generation started
 
       // Only update progress for the current conversation
       if (convId === result.conversation_id) {

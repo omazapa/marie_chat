@@ -75,14 +75,14 @@ export default function SystemSettings() {
   useEffect(() => {
     const loadAgentSchema = async () => {
       if (selectedProviderType === 'agent' && selectedModel) {
-        console.log('[Admin Settings] Loading agent schema for:', selectedModel);
+        // Loading agent schema
         setLoadingAgentSchema(true);
         try {
           const schema = await fetchSchema('agent', selectedModel);
-          console.log('[Admin Settings] Agent schema loaded:', schema);
+          // Agent schema loaded
           if (schema) {
             setAgentConfigFields(schema.fields || []);
-            console.log('[Admin Settings] Agent config fields:', schema.fields?.length || 0);
+            // Agent config fields available
           } else {
             setAgentConfigFields([]);
           }
@@ -175,11 +175,7 @@ export default function SystemSettings() {
 
   // Render dynamic agent configuration fields
   const renderAgentConfigFields = () => {
-    console.log('[Admin Settings] Rendering agent fields:', {
-      providerType: selectedProviderType,
-      model: selectedModel,
-      fieldsCount: agentConfigFields.length,
-    });
+    // Rendering agent fields
 
     if (selectedProviderType !== 'agent') {
       return null;
