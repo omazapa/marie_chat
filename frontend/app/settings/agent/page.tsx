@@ -14,6 +14,9 @@ export default function AgentPage() {
   const [providers, setProviders] = useState<any[]>([]);
   const [models, setModels] = useState<any[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [modelSchema, setModelSchema] = useState<any>(null);
+  const [dynamicParams, setDynamicParams] = useState<any>({});
 
   useEffect(() => {
     loadPreferences();
@@ -59,6 +62,10 @@ export default function AgentPage() {
       if (agentPrefs.default_provider_id) {
         setSelectedProvider(agentPrefs.default_provider_id);
         loadModels(agentPrefs.default_provider_id);
+        if (agentPrefs.default_model) {
+          setSelectedModel(agentPrefs.default_model);
+          loadModelSchema(agentPrefs.default_provider_id, agentPrefs.default_model);
+        }
       }
     } catch (error: any) {
       message.error("Failed to load preferences");
@@ -67,13 +74,43 @@ export default function AgentPage() {
 
   const handleProviderChange = (providerId: string) => {
     setSelectedProvider(providerId);
+    setSelectedModel(null);
+    setModelSchema(null);
     form.setFieldValue("default_model", null);
     loadModels(providerId);
+  };
+
+  const handleModelChange = async (modelId: string) => {
+    setSelectedModel(modelId);
+    if (selectedProvider) {
+      await loadModelSchema(selectedProvider, modelId);
+    }
+  };
+
+  const loadModelSchema = async (provider: string, modelId: string) => {
+    try {
+      const { data } = await api.get(`/agent-config/models/${provider}/${modelId}/config/schema`);
+      setModelSchema(data.schema || null);
+      
+      // Load saved values for this model
+      const { data: valuesData } = await api.get(`/agent-config/models/${provider}/${modelId}/config/values`);
+      if (valuesData.parameters) {
+        setDynamicParams(valuesData.parameters);
+        // Update form with dynamic parameters
+        Object.keys(valuesData.parameters).forEach(key => {
+          form.setFieldValue(key, valuesData.parameters[key]);
+        });
+      }
+    } catch (error) {
+      console.error("Failed to load model schema", error);
+      setModelSchema(null);
+    }
   };
 
   const handleSave = async (values: any) => {
     setLoading(true);
     try {
+      // Save agent preferences
       const payload = {
         default_provider_id: values.default_provider_id,
         default_model: values.default_model,
@@ -88,12 +125,105 @@ export default function AgentPage() {
         },
       };
       await api.put("/user/preferences/agent", payload);
+
+      // Save dynamic model parameters if we have a schema
+      if (selectedProvider && selectedModel && modelSchema) {
+        const dynamicParamsPayload: any = {};
+        Object.keys(modelSchema.properties || {}).forEach(key => {
+          if (values[key] !== undefined) {
+            dynamicParamsPayload[key] = values[key];
+          }
+        });
+        
+        if (Object.keys(dynamicParamsPayload).length > 0) {
+          await api.post(
+            `/agent-config/models/${selectedProvider}/${selectedModel}/config/values`,
+            { parameters: dynamicParamsPayload }
+          );
+        }
+      }
+
       message.success("Agent preferences saved successfully");
     } catch (error: any) {
       message.error(error.response?.data?.error || "Failed to save preferences");
     } finally {
       setLoading(false);
     }
+  };
+
+  const renderDynamicField = (key: string, property: any) => {
+    const { type, description, default: defaultValue, minimum, maximum, enum: enumValues } = property;
+    
+    if (type === 'boolean') {
+      return (
+        <Form.Item
+          key={key}
+          label={key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+          name={key}
+          help={description}
+          valuePropName="checked"
+        >
+          <Radio.Group>
+            <Radio.Button value={true}>Enabled</Radio.Button>
+            <Radio.Button value={false}>Disabled</Radio.Button>
+          </Radio.Group>
+        </Form.Item>
+      );
+    }
+    
+    if (enumValues && Array.isArray(enumValues)) {
+      return (
+        <Form.Item
+          key={key}
+          label={key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+          name={key}
+          help={description}
+        >
+          <Select options={enumValues.map((v: any) => ({ label: v, value: v }))} />
+        </Form.Item>
+      );
+    }
+    
+    if (type === 'number' || type === 'integer') {
+      const min = minimum ?? 0;
+      const max = maximum ?? 100;
+      const step = type === 'integer' ? 1 : 0.1;
+      
+      return (
+        <Form.Item
+          key={key}
+          label={key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+          name={key}
+          help={description}
+        >
+          <Slider
+            min={min}
+            max={max}
+            step={step}
+            marks={{
+              [min]: String(min),
+              [Math.floor((min + max) / 2)]: String(Math.floor((min + max) / 2)),
+              [max]: String(max)
+            }}
+          />
+        </Form.Item>
+      );
+    }
+    
+    if (type === 'string') {
+      return (
+        <Form.Item
+          key={key}
+          label={key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+          name={key}
+          help={description}
+        >
+          <Input placeholder={description} />
+        </Form.Item>
+      );
+    }
+    
+    return null;
   };
 
   return (
@@ -116,6 +246,7 @@ export default function AgentPage() {
               placeholder="Select a model"
               size="large"
               disabled={!selectedProvider}
+              onChange={handleModelChange}
               options={models.map((m) => ({ label: m.id, value: m.id }))}
             />
           </Form.Item>
@@ -144,6 +275,18 @@ export default function AgentPage() {
             />
           </Form.Item>
         </Card>
+
+        {modelSchema && modelSchema.properties && Object.keys(modelSchema.properties).length > 0 && (
+          <Card 
+            title={`${selectedModel} - Dynamic Parameters`}
+            style={{ marginBottom: 24 }}
+            extra={<span style={{ fontSize: 12, color: '#999' }}>Model-specific settings</span>}
+          >
+            {Object.keys(modelSchema.properties).map(key => 
+              renderDynamicField(key, modelSchema.properties[key])
+            )}
+          </Card>
+        )}
 
         <Card title="Model Parameters" style={{ marginBottom: 24 }}>
           <Form.Item label="Temperature" name="temperature">
