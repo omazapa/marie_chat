@@ -32,7 +32,7 @@ interface InterfaceStore extends InterfacePreferences {
 }
 
 const DEFAULT_PREFERENCES: InterfacePreferences = {
-  theme: 'dark',
+  theme: 'light',
   language: 'en',
   ttsVoice: 'en-US-EmmaNeural',
   sttLanguage: 'en-US',
