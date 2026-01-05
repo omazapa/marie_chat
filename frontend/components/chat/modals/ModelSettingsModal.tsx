@@ -41,7 +41,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
   const [model, setModel] = useState<string>(selectedModel);
   const [loading, setLoading] = useState(false);
 
-  const { models, loading: loadingModels, fetchModels } = useModels(accessToken || '');
+  const { models, loading: loadingModels } = useModels(accessToken || '');
 
   // Load providers
   useEffect(() => {
