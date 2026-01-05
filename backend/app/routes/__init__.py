@@ -9,6 +9,7 @@ from app.routes.models import models_bp
 from app.routes.prompts import prompts_bp
 from app.routes.settings import settings_bp
 from app.routes.speech import speech_bp
+from app.routes.user_settings import user_settings_bp
 
 __all__ = [
     "auth_bp",
@@ -22,4 +23,5 @@ __all__ = [
     "admin_bp",
     "settings_bp",
     "agent_config_bp",
+    "user_settings_bp",
 ]

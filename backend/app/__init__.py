@@ -66,6 +66,7 @@ def create_app():
         prompts_bp,
         settings_bp,
         speech_bp,
+        user_settings_bp,
     )
     from app.routes.health import health_bp
     from app.routes.v1.chat import v1_chat_bp
@@ -88,6 +89,7 @@ def create_app():
     app.register_blueprint(prompts_bp, url_prefix="/api/prompts")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
     app.register_blueprint(settings_bp, url_prefix="/api/settings")
+    app.register_blueprint(user_settings_bp, url_prefix="/api/user")
     app.register_blueprint(v1_chat_bp, url_prefix="/api/v1/chat")
     app.register_blueprint(v1_conversations_bp, url_prefix="/api/v1/conversations")
     app.register_blueprint(v1_search_bp, url_prefix="/api/v1/search")

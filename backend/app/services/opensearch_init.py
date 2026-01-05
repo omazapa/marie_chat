@@ -133,6 +133,19 @@ INDICES = {
         },
         "settings": {"number_of_shards": 1, "number_of_replicas": 1},
     },
+    "marie_user_preferences": {
+        "mappings": {
+            "properties": {
+                "user_id": {"type": "keyword"},
+                "agent_preferences": {"type": "object", "enabled": True},
+                "interface_preferences": {"type": "object", "enabled": True},
+                "privacy_preferences": {"type": "object", "enabled": True},
+                "created_at": {"type": "date"},
+                "updated_at": {"type": "date"},
+            }
+        },
+        "settings": {"number_of_shards": 1, "number_of_replicas": 1},
+    },
 }
 
 
