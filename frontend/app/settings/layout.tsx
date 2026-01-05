@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { Layout, Menu, Typography, Space, Spin } from 'antd';
-import { KeyOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { KeyOutlined, ArrowLeftOutlined, UserOutlined, RobotOutlined, SettingOutlined, LockOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSettings } from '@/hooks/useSettings';
@@ -35,6 +35,26 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   }
 
   const menuItems = [
+    {
+      key: '/settings/profile',
+      icon: <UserOutlined />,
+      label: <Link href="/settings/profile">Profile</Link>,
+    },
+    {
+      key: '/settings/agent',
+      icon: <RobotOutlined />,
+      label: <Link href="/settings/agent">Agent Preferences</Link>,
+    },
+    {
+      key: '/settings/interface',
+      icon: <SettingOutlined />,
+      label: <Link href="/settings/interface">Interface</Link>,
+    },
+    {
+      key: '/settings/privacy',
+      icon: <LockOutlined />,
+      label: <Link href="/settings/privacy">Privacy & Security</Link>,
+    },
     {
       key: '/settings/keys',
       icon: <KeyOutlined />,

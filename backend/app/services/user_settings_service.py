@@ -5,14 +5,14 @@ from datetime import datetime
 from typing import Any
 from opensearchpy import OpenSearch
 
-from app.db import get_opensearch_client
+from app.db import opensearch_client
 
 
 class UserSettingsService:
     """Service for managing user settings and preferences."""
 
     def __init__(self):
-        self.client: OpenSearch = get_opensearch_client()
+        self.client: OpenSearch = opensearch_client.client
 
     # ==================== PROFILE MANAGEMENT ====================
 
