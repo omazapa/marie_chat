@@ -53,7 +53,9 @@ export default function AgentConfigModal({
   conversationId,
 }: AgentConfigModalProps) {
   const [form] = Form.useForm();
-  const [scope, setScope] = useState<'global' | 'conversation'>('global');
+  const [scope, setScope] = useState<'global' | 'conversation'>(
+    conversationId ? 'conversation' : 'global'
+  );
   const [hasChanges, setHasChanges] = useState(false);
 
   const {
@@ -95,17 +97,13 @@ export default function AgentConfigModal({
       };
 
       initialize();
-
-      // Default to conversation scope if conversationId provided
-      if (conversationId) {
-        setScope('conversation');
-      }
     } else {
       // Reset on close
       form.resetFields();
       setHasChanges(false);
       clearError();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, provider, modelId, conversationId]);
 
   const handleSave = async () => {
@@ -212,6 +210,7 @@ export default function AgentConfigModal({
       open={visible}
       onCancel={onClose}
       width={700}
+      destroyOnClose
       footer={[
         <Button key="delete" danger icon={<DeleteOutlined />} onClick={handleDelete}>
           Delete Config
