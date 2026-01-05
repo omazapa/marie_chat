@@ -30,6 +30,7 @@ import { ReferenceModal } from './modals/ReferenceModal';
 import { ModelSettingsModal } from './modals/ModelSettingsModal';
 import { PromptOptimizer } from './PromptOptimizer';
 import AgentConfigModal from './AgentConfigModal';
+import { AgentConfigPanel } from './AgentConfigPanel';
 
 const { Text } = Typography;
 const { Content } = Layout;
@@ -57,6 +58,7 @@ export default function ChatContainer() {
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState('es-CO-GonzaloNeural');
   const [showAgentConfigModal, setShowAgentConfigModal] = useState(false);
+  const [showAgentConfigPanel, setShowAgentConfigPanel] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { accessToken, user, logout: authLogout } = useAuthStore();
@@ -795,10 +797,9 @@ export default function ChatContainer() {
                       <Tooltip title="Configure Agent Parameters">
                         <Button
                           icon={<SettingOutlined />}
-                          onClick={() => setShowAgentConfigModal(true)}
+                          onClick={() => setShowAgentConfigPanel(!showAgentConfigPanel)}
                           size="small"
-                          type="primary"
-                          ghost
+                          type={showAgentConfigPanel ? 'primary' : 'default'}
                         >
                           Agent Config
                         </Button>
@@ -941,6 +942,18 @@ export default function ChatContainer() {
             </div>
           </div>
         </Content>
+
+        {/* Agent Configuration Panel */}
+        {currentConversation && currentConversation.provider === 'agent' && (
+          <AgentConfigPanel
+            visible={showAgentConfigPanel}
+            onClose={() => setShowAgentConfigPanel(false)}
+            provider={currentConversation.provider}
+            modelId={currentConversation.model}
+            modelName={currentConversation.model}
+            conversationId={currentConversation.id}
+          />
+        )}
       </Layout>
 
       {/* Reference Conversations Modal */}
