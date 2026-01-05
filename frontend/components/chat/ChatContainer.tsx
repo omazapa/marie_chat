@@ -641,7 +641,7 @@ export default function ChatContainer() {
           {error && (
             <div style={{ padding: '16px 16px 0 16px' }}>
               <Alert
-                message="Error"
+                title="Error"
                 description={error}
                 type="error"
                 showIcon

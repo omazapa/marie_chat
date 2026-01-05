@@ -250,7 +250,7 @@ export default function AgentConfigModal({
 
       {error && (
         <Alert
-          message="Error"
+          title="Error"
           description={error}
           type="error"
           showIcon
@@ -262,7 +262,7 @@ export default function AgentConfigModal({
 
       {!loading && fields.length === 0 && (
         <Alert
-          message="No Configuration Available"
+          title="No Configuration Available"
           description="This agent does not expose any configurable parameters."
           type="info"
           showIcon
@@ -331,7 +331,7 @@ export default function AgentConfigModal({
 
             {hasChanges && (
               <Alert
-                message="Unsaved Changes"
+                title="Unsaved Changes"
                 description="You have unsaved changes. Click 'Save Configuration' to apply them."
                 type="warning"
                 showIcon
