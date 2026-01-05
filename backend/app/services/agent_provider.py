@@ -639,17 +639,24 @@ class AgentProvider(LLMProvider):
             except Exception as e:
                 print(f"⚠️ Strategy 1 (config_schema) failed: {e}")
 
-            # Strategy 2: Open WebUI valves
-            try:
-                url = f"{base}/pipelines/{model}/valves"
-                response = await client.get(url, headers=headers)
-                if response.status_code == 200:
-                    valves = response.json()
-                    print(f"✅ AgentProvider: Found valves for {model}")
-                    # Convert valves format to JSON schema-like format
-                    return self._convert_valves_to_schema(valves)
-            except Exception as e:
-                print(f"⚠️ Strategy 2 (valves) failed: {e}")
+            # Strategy 2: Open WebUI valves (try multiple URL patterns)
+            for valves_url_pattern in [
+                f"{base}/api/pipelines/{model}/valves",  # Open WebUI with /api
+                f"{base}/pipelines/{model}/valves",  # Direct path
+                f"{base}/api/v1/pipelines/{model}/valves",  # Alternative API version
+            ]:
+                try:
+                    print(f"🔍 Trying valves at: {valves_url_pattern}")
+                    response = await client.get(valves_url_pattern, headers=headers)
+                    if response.status_code == 200:
+                        valves = response.json()
+                        print(f"✅ AgentProvider: Found valves for {model} at {valves_url_pattern}")
+                        print(f"📋 Valves content: {valves}")
+                        # Convert valves format to JSON schema-like format
+                        return self._convert_valves_to_schema(valves)
+                except Exception as e:
+                    print(f"⚠️ Valves attempt {valves_url_pattern} failed: {e}")
+                    continue
 
             # Strategy 3: Check OpenAPI for configurable hints
             try:
@@ -726,44 +733,82 @@ class AgentProvider(LLMProvider):
         """
         Convert Open WebUI valves format to JSON Schema format.
 
-        Valves format:
+        Valves format (Open WebUI):
         {
           "field_name": {
-            "type": "str",
-            "default": "value",
+            "type": "str" | "int" | "float" | "bool",
+            "default": value,
             "description": "...",
-            "enum": ["a", "b"]
+            "enum": ["a", "b"],  # optional
+            "range": [min, max]  # optional for numbers
           }
         }
+
+        Also handles simplified format:
+        {
+          "field_name": default_value
+        }
         """
+        print(f"🔄 Converting valves to schema. Input: {valves}")
         properties = {}
+
         for key, valve_def in valves.items():
-            valve_type = valve_def.get("type", "str")
+            # Handle simplified format (just value, not object)
+            if not isinstance(valve_def, dict):
+                # Infer type from value
+                valve_type: str
+                default_val: Any
+
+                if isinstance(valve_def, bool):
+                    valve_type = "bool"
+                    default_val = valve_def
+                elif isinstance(valve_def, int):
+                    valve_type = "int"
+                    default_val = valve_def
+                elif isinstance(valve_def, float):
+                    valve_type = "float"
+                    default_val = valve_def
+                else:
+                    valve_type = "str"
+                    default_val = str(valve_def)
+
+                valve_def = {
+                    "type": valve_type,
+                    "default": default_val,
+                }
+
+            valve_type_str = valve_def.get("type", "str")
 
             # Map valve types to JSON Schema types
-            if valve_type in ["float", "int"]:
-                prop_type = "number" if valve_type == "float" else "integer"
-            elif valve_type == "bool":
+            if valve_type_str in ["float", "int", "number"]:
+                prop_type = "number" if valve_type_str == "float" else "integer"
+            elif valve_type_str in ["bool", "boolean"]:
                 prop_type = "boolean"
             else:
                 prop_type = "string"
 
             prop: dict[str, Any] = {
                 "type": prop_type,
-                "title": key.replace("_", " ").title(),
+                "title": valve_def.get("title", key.replace("_", " ").title()),
                 "default": valve_def.get("default"),
-                "description": valve_def.get("description"),
+                "description": valve_def.get("description", ""),
             }
 
             if "enum" in valve_def:
                 prop["enum"] = valve_def["enum"]
-            if "range" in valve_def and len(valve_def["range"]) == 2:
+            if (
+                "range" in valve_def
+                and isinstance(valve_def["range"], list)
+                and len(valve_def["range"]) == 2
+            ):
                 prop["minimum"] = valve_def["range"][0]
                 prop["maximum"] = valve_def["range"][1]
 
             properties[key] = prop
 
-        return {"type": "object", "properties": properties}
+        schema = {"type": "object", "properties": properties}
+        print(f"✅ Converted schema: {schema}")
+        return schema
 
     def _extract_schema_from_openapi(
         self, openapi: dict[str, Any], model: str
