@@ -80,8 +80,7 @@ export default function AgentConfigModal({
       fetchSchema(provider, modelId);
       loadConfig(provider, modelId, conversationId);
     } else {
-      // Reset on close
-      form.resetFields();
+      // Clear state on close
       setHasChanges(false);
       clearError();
     }
@@ -204,7 +203,7 @@ export default function AgentConfigModal({
   };
 
   const modalTitle = (
-    <Space direction="vertical" size={0}>
+    <Space orientation="vertical" size={0}>
       <Title level={4} style={{ margin: 0 }}>
         Configure Agent Parameters
       </Title>
