@@ -410,6 +410,19 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             </Link>
           )}
 
+          <Link href="/settings" style={{ width: '100%', display: 'block', marginBottom: '8px' }}>
+            <Button
+              icon={<SettingOutlined />}
+              block
+              size="small"
+              style={{
+                fontSize: '12px',
+              }}
+            >
+              User Settings
+            </Button>
+          </Link>
+
           <Link
             href="/settings/keys"
             style={{ width: '100%', display: 'block', marginBottom: '8px' }}
