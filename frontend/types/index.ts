@@ -25,6 +25,7 @@ export interface Conversation {
   title: string;
   model: string;
   provider: string;
+  provider_name?: string;
   system_prompt?: string;
   settings?: Record<string, unknown>;
   message_count: number;
