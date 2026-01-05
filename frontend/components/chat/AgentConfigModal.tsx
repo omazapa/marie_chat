@@ -74,34 +74,11 @@ export default function AgentConfigModal({
   const schema = schemas[schemaKey];
   const fields = schema?.fields || [];
 
+  // Load schema and config when modal opens
   useEffect(() => {
     if (visible) {
-      // Load schema and config when modal opens
-      const initialize = async () => {
-        await fetchSchema(provider, modelId);
-        const currentConfig = await loadConfig(provider, modelId, conversationId);
-
-        // Wait for next tick to ensure Form is rendered
-        setTimeout(() => {
-          // Set form initial values only if form is connected (fields available)
-          if (fields.length > 0) {
-            if (currentConfig && Object.keys(currentConfig).length > 0) {
-              form.setFieldsValue(currentConfig);
-            } else {
-              // Set default values from schema
-              const defaults: Record<string, any> = {};
-              fields.forEach((field) => {
-                if (field.default !== undefined && field.default !== null) {
-                  defaults[field.key] = field.default;
-                }
-              });
-              form.setFieldsValue(defaults);
-            }
-          }
-        }, 0);
-      };
-
-      initialize();
+      fetchSchema(provider, modelId);
+      loadConfig(provider, modelId, conversationId);
     } else {
       // Reset on close
       form.resetFields();
@@ -109,7 +86,33 @@ export default function AgentConfigModal({
       clearError();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, provider, modelId, conversationId, fields.length]);
+  }, [visible, provider, modelId, conversationId]);
+
+  // Set form values only when fields are available (Form is rendered)
+  useEffect(() => {
+    if (visible && fields.length > 0) {
+      const configKey = conversationId
+        ? `${provider}:${modelId}:${conversationId}`
+        : `${provider}:${modelId}`;
+      const currentConfig = configs[configKey];
+
+      if (currentConfig && Object.keys(currentConfig).length > 0) {
+        form.setFieldsValue(currentConfig);
+      } else {
+        // Set default values from schema
+        const defaults: Record<string, any> = {};
+        fields.forEach((field) => {
+          if (field.default !== undefined && field.default !== null) {
+            defaults[field.key] = field.default;
+          }
+        });
+        if (Object.keys(defaults).length > 0) {
+          form.setFieldsValue(defaults);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, fields.length]);
 
   const handleSave = async () => {
     try {
@@ -267,37 +270,38 @@ export default function AgentConfigModal({
         />
       )}
 
-      {fields.length > 0 && (
-        <>
-          {/* Scope Selection */}
-          <div style={{ marginBottom: 24 }}>
-            <Text strong>Configuration Scope:</Text>
-            <Radio.Group
-              value={scope}
-              onChange={(e) => setScope(e.target.value)}
-              style={{ marginLeft: 16 }}
-            >
-              <Radio value="global">
-                All Conversations
-                <Tooltip title="Apply this configuration to all conversations using this agent">
-                  <InfoCircleOutlined style={{ marginLeft: 4, color: '#8c8c8c' }} />
-                </Tooltip>
-              </Radio>
-              <Radio value="conversation" disabled={!conversationId}>
-                This Conversation Only
-                {!conversationId && (
-                  <Tooltip title="Start a conversation to enable conversation-specific configuration">
+      {/* Always render Form to keep form instance connected */}
+      <Form form={form} layout="vertical" onValuesChange={() => setHasChanges(true)}>
+        {fields.length > 0 && (
+          <>
+            {/* Scope Selection */}
+            <div style={{ marginBottom: 24 }}>
+              <Text strong>Configuration Scope:</Text>
+              <Radio.Group
+                value={scope}
+                onChange={(e) => setScope(e.target.value)}
+                style={{ marginLeft: 16 }}
+              >
+                <Radio value="global">
+                  All Conversations
+                  <Tooltip title="Apply this configuration to all conversations using this agent">
                     <InfoCircleOutlined style={{ marginLeft: 4, color: '#8c8c8c' }} />
                   </Tooltip>
-                )}
-              </Radio>
-            </Radio.Group>
-          </div>
+                </Radio>
+                <Radio value="conversation" disabled={!conversationId}>
+                  This Conversation Only
+                  {!conversationId && (
+                    <Tooltip title="Start a conversation to enable conversation-specific configuration">
+                      <InfoCircleOutlined style={{ marginLeft: 4, color: '#8c8c8c' }} />
+                    </Tooltip>
+                  )}
+                </Radio>
+              </Radio.Group>
+            </div>
 
-          <Divider />
+            <Divider />
 
-          {/* Dynamic Form */}
-          <Form form={form} layout="vertical" onValuesChange={() => setHasChanges(true)}>
+            {/* Dynamic Form Fields */}
             {fields.map((field) => (
               <Form.Item
                 key={field.key}
@@ -325,19 +329,19 @@ export default function AgentConfigModal({
                 {renderField(field)}
               </Form.Item>
             ))}
-          </Form>
 
-          {hasChanges && (
-            <Alert
-              message="Unsaved Changes"
-              description="You have unsaved changes. Click 'Save Configuration' to apply them."
-              type="warning"
-              showIcon
-              style={{ marginTop: 16 }}
-            />
-          )}
-        </>
-      )}
+            {hasChanges && (
+              <Alert
+                message="Unsaved Changes"
+                description="You have unsaved changes. Click 'Save Configuration' to apply them."
+                type="warning"
+                showIcon
+                style={{ marginTop: 16 }}
+              />
+            )}
+          </>
+        )}
+      </Form>
     </Modal>
   );
 }
