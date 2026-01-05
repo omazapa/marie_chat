@@ -78,7 +78,7 @@ export const MessageItem = memo(
     };
 
     const currentDensity = densityStyles[messageDensity] || densityStyles.comfortable;
-    
+
     // Format timestamp
     const formatTimestamp = (timestamp: string | number) => {
       const date = new Date(timestamp);
@@ -94,9 +94,10 @@ export const MessageItem = memo(
     return (
       <div
         id={`message-${msg.id}`}
-        style={{ 
-          marginBottom: currentDensity.gap === '6px' ? '16px' : currentDensity.gap === '8px' ? '24px' : '32px',
-          transition: 'background-color 0.5s' 
+        style={{
+          marginBottom:
+            currentDensity.gap === '6px' ? '16px' : currentDensity.gap === '8px' ? '24px' : '32px',
+          transition: 'background-color 0.5s',
         }}
       >
         {(msg.content || msg.role === 'assistant') && (
@@ -185,13 +186,6 @@ export const MessageItem = memo(
                     }}
                   />
                 }
-                styles={{
-                  content: {
-                    padding: currentDensity.padding,
-                    fontSize: currentDensity.fontSize,
-                    lineHeight: currentDensity.lineHeight,
-                  },
-                }}
                 content={
                   <div
                     style={{
@@ -330,9 +324,7 @@ export const MessageItem = memo(
                   >
                     {showTimestamps && (
                       <Text type="secondary" style={{ fontSize: '11px' }}>
-                        {msg.created_at
-                          ? formatTimestamp(msg.created_at)
-                          : ''}
+                        {msg.created_at ? formatTimestamp(msg.created_at) : ''}
                       </Text>
                     )}
                     <Space size={4} style={{ marginLeft: 'auto' }}>

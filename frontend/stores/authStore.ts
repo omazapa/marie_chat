@@ -34,7 +34,7 @@ export const useAuthStore = create<AuthState>()(
           refreshToken: data.refresh_token,
           isAuthenticated: true,
         });
-        
+
         // Load interface preferences after successful login
         setTimeout(async () => {
           try {
@@ -57,7 +57,7 @@ export const useAuthStore = create<AuthState>()(
           refreshToken: null,
           isAuthenticated: false,
         });
-        
+
         // Reset interface preferences on logout
         setTimeout(async () => {
           try {
@@ -102,7 +102,7 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               legacyHydrated: true,
             });
-            
+
             // Load preferences for legacy auth
             setTimeout(async () => {
               try {

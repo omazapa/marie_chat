@@ -11,7 +11,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Detectar preferencia del sistema
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
+
     const updateTheme = () => {
       if (userTheme === 'auto') {
         setEffectiveTheme(mediaQuery.matches ? 'dark' : 'light');
@@ -33,10 +33,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Aplicar clase al body para CSS variables
   useEffect(() => {
     document.body.setAttribute('data-theme', effectiveTheme);
-    
+
     // Transición suave
     document.body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
-    
+
     return () => {
       document.body.style.transition = '';
     };
@@ -49,7 +49,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         token: {
           colorPrimary: '#1B4B73',
           borderRadius: 8,
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+          fontFamily:
+            '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         },
         components: {
           Layout: {

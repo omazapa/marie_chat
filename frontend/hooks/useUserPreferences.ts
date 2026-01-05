@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import api from "@/lib/api";
+import { useState, useEffect } from 'react';
+import api from '@/lib/api';
 
 interface AgentPreferences {
   default_provider?: string;
@@ -48,11 +48,11 @@ export function useUserPreferences() {
     try {
       setLoading(true);
       setError(null);
-      const { data } = await api.get("/user/preferences");
+      const { data } = await api.get('/user/preferences');
       setPreferences(data);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to load preferences");
-      console.error("Failed to load user preferences:", err);
+      setError(err.response?.data?.error || 'Failed to load preferences');
+      console.error('Failed to load user preferences:', err);
     } finally {
       setLoading(false);
     }

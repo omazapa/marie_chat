@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 import {
   Card,
   Button,
@@ -13,9 +13,9 @@ import {
   Typography,
   Divider,
   App,
-} from "antd";
-import { DeleteOutlined, ExclamationCircleOutlined, SaveOutlined } from "@ant-design/icons";
-import api from "@/lib/api";
+} from 'antd';
+import { DeleteOutlined, ExclamationCircleOutlined, SaveOutlined } from '@ant-design/icons';
+import api from '@/lib/api';
 
 const { confirm } = Modal;
 const { Text, Paragraph } = Typography;
@@ -32,7 +32,7 @@ export default function PrivacyPage() {
 
   const loadPrivacyPreferences = async () => {
     try {
-      const { data } = await api.get("/user/preferences");
+      const { data } = await api.get('/user/preferences');
       const privacyPrefs = data.privacy_preferences || {};
       form.setFieldsValue({
         conversation_retention_days: privacyPrefs.conversation_retention_days ?? -1,
@@ -40,17 +40,17 @@ export default function PrivacyPage() {
         share_usage_data: privacyPrefs.share_usage_data ?? false,
       });
     } catch (error: any) {
-      message.error("Failed to load privacy preferences");
+      message.error('Failed to load privacy preferences');
     }
   };
 
   const handleSavePrivacyPreferences = async (values: any) => {
     setSaveLoading(true);
     try {
-      await api.put("/user/preferences/privacy", values);
-      message.success("Privacy preferences saved successfully");
+      await api.put('/user/preferences/privacy', values);
+      message.success('Privacy preferences saved successfully');
     } catch (error: any) {
-      message.error(error.response?.data?.error || "Failed to save preferences");
+      message.error(error.response?.data?.error || 'Failed to save preferences');
     } finally {
       setSaveLoading(false);
     }
@@ -58,7 +58,7 @@ export default function PrivacyPage() {
 
   const handleDeleteAllConversations = () => {
     confirm({
-      title: "Delete All Conversations?",
+      title: 'Delete All Conversations?',
       icon: <ExclamationCircleOutlined />,
       content: (
         <div>
@@ -68,20 +68,20 @@ export default function PrivacyPage() {
           <p>This action cannot be undone.</p>
         </div>
       ),
-      okText: "Yes, Delete All",
-      okType: "danger",
-      cancelText: "Cancel",
+      okText: 'Yes, Delete All',
+      okType: 'danger',
+      cancelText: 'Cancel',
       onOk: async () => {
         setDeleteLoading(true);
         try {
-          const { data } = await api.delete("/user/conversations");
+          const { data } = await api.delete('/user/conversations');
           message.success(
             `Successfully deleted ${data.deleted_count} conversation${
-              data.deleted_count !== 1 ? "s" : ""
+              data.deleted_count !== 1 ? 's' : ''
             }`
           );
         } catch (error: any) {
-          message.error(error.response?.data?.error || "Failed to delete conversations");
+          message.error(error.response?.data?.error || 'Failed to delete conversations');
         } finally {
           setDeleteLoading(false);
         }
@@ -100,11 +100,11 @@ export default function PrivacyPage() {
             name="conversation_retention_days"
             help="Number of days to keep conversations. Use -1 for unlimited retention."
           >
-            <Space.Compact style={{ width: "100%" }}>
+            <Space.Compact style={{ width: '100%' }}>
               <InputNumber
                 min={-1}
                 max={3650}
-                style={{ width: "100%" }}
+                style={{ width: '100%' }}
                 placeholder="-1 (forever)"
               />
               <Button disabled>days</Button>
@@ -176,7 +176,7 @@ export default function PrivacyPage() {
           type="info"
           showIcon
         />
-        <Space orientation="vertical" style={{ width: "100%", marginTop: 16 }}>
+        <Space orientation="vertical" style={{ width: '100%', marginTop: 16 }}>
           <Text strong>Planned Features:</Text>
           <ul style={{ paddingLeft: 20, marginTop: 8 }}>
             <li>View all active sessions</li>

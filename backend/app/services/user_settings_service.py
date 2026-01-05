@@ -1,8 +1,9 @@
 """User settings service for managing user preferences and profile."""
 
-import bcrypt
 from datetime import datetime
 from typing import Any
+
+import bcrypt
 from opensearchpy import OpenSearch
 
 from app.db import opensearch_client
@@ -66,9 +67,7 @@ class UserSettingsService:
             print(f"Error updating user profile: {e}")
             return None
 
-    def change_user_password(
-        self, user_id: str, current_password: str, new_password: str
-    ) -> bool:
+    def change_user_password(self, user_id: str, current_password: str, new_password: str) -> bool:
         """Change user password after verifying current password."""
         try:
             # Get user
@@ -80,15 +79,11 @@ class UserSettingsService:
                 return False
 
             # Verify current password
-            if not bcrypt.checkpw(
-                current_password.encode("utf-8"), password_hash.encode("utf-8")
-            ):
+            if not bcrypt.checkpw(current_password.encode("utf-8"), password_hash.encode("utf-8")):
                 return False
 
             # Hash new password
-            new_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode(
-                "utf-8"
-            )
+            new_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
             # Update password
             self.client.update(
@@ -154,9 +149,7 @@ class UserSettingsService:
                 "updated_at": datetime.utcnow().isoformat(),
             }
 
-    def update_agent_preferences(
-        self, user_id: str, preferences: dict[str, Any]
-    ) -> dict[str, Any]:
+    def update_agent_preferences(self, user_id: str, preferences: dict[str, Any]) -> dict[str, Any]:
         """Update agent/LLM preferences."""
         try:
             # Get current preferences
@@ -167,9 +160,7 @@ class UserSettingsService:
             current_prefs["updated_at"] = datetime.utcnow().isoformat()
 
             # Upsert to OpenSearch
-            self.client.index(
-                index="marie_user_preferences", id=user_id, body=current_prefs
-            )
+            self.client.index(index="marie_user_preferences", id=user_id, body=current_prefs)
 
             return current_prefs
         except Exception as e:
@@ -185,9 +176,7 @@ class UserSettingsService:
             current_prefs["interface_preferences"].update(preferences)
             current_prefs["updated_at"] = datetime.utcnow().isoformat()
 
-            self.client.index(
-                index="marie_user_preferences", id=user_id, body=current_prefs
-            )
+            self.client.index(index="marie_user_preferences", id=user_id, body=current_prefs)
 
             return current_prefs
         except Exception as e:
@@ -203,9 +192,7 @@ class UserSettingsService:
             current_prefs["privacy_preferences"].update(preferences)
             current_prefs["updated_at"] = datetime.utcnow().isoformat()
 
-            self.client.index(
-                index="marie_user_preferences", id=user_id, body=current_prefs
-            )
+            self.client.index(index="marie_user_preferences", id=user_id, body=current_prefs)
 
             return current_prefs
         except Exception as e:

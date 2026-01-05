@@ -79,7 +79,7 @@ interface InterfaceStore {
   showTimestamps: boolean;
   enableMarkdown: boolean;
   enableCodeHighlighting: boolean;
-  
+
   // Actions
   loadPreferences: () => Promise<void>;
   updateTheme: (theme: string) => Promise<void>;
@@ -117,7 +117,7 @@ interface InterfaceStore {
 **Implementation:**
 ```typescript
 // Detectar preferencia del sistema
-const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches 
+const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
   ? 'dark' : 'light';
 
 // Aplicar tema efectivo
@@ -328,7 +328,7 @@ recognition.lang = sttLanguage; // 'en-US' or 'es-LA'
 const login = async (credentials) => {
   const { token, user } = await authAPI.login(credentials);
   // ... set token & user
-  
+
   // Cargar preferencias automáticamente
   await interfaceStore.getState().loadPreferences();
 };
@@ -521,7 +521,7 @@ docker compose up -d
 
 ---
 
-**Versión:** 1.0.0  
-**Fecha:** Enero 5, 2026  
-**Branch:** `feature/interface-preferences-integration`  
+**Versión:** 1.0.0
+**Fecha:** Enero 5, 2026
+**Branch:** `feature/interface-preferences-integration`
 **Autor:** GitHub Copilot

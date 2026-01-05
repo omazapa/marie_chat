@@ -1,17 +1,17 @@
 """User settings routes."""
 
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from pydantic import ValidationError
 
-from app.services.user_settings_service import user_settings_service
 from app.schemas.user_settings import (
-    UpdateProfileRequest,
-    ChangePasswordRequest,
     AgentPreferencesRequest,
+    ChangePasswordRequest,
     InterfacePreferencesRequest,
     PrivacyPreferencesRequest,
+    UpdateProfileRequest,
 )
+from app.services.user_settings_service import user_settings_service
 
 user_settings_bp = Blueprint("user_settings", __name__)
 

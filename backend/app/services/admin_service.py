@@ -1,7 +1,8 @@
+import uuid
 from datetime import datetime
 from typing import Any
+
 import bcrypt
-import uuid
 
 from app.services.opensearch_service import OpenSearchService
 

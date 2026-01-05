@@ -1,8 +1,27 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Tag, Space, Button, Typography, Card, App, Switch, Select, Tooltip, Modal, Form, Input } from 'antd';
-import { UserOutlined, DeleteOutlined, ExclamationCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  Table,
+  Tag,
+  Space,
+  Button,
+  Typography,
+  Card,
+  App,
+  Switch,
+  Select,
+  Tooltip,
+  Modal,
+  Form,
+  Input,
+} from 'antd';
+import {
+  UserOutlined,
+  DeleteOutlined,
+  ExclamationCircleOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
 import apiClient, { getErrorMessage } from '@/lib/api';
 import type { User } from '@/types';
 
@@ -184,7 +203,11 @@ export default function UserManagement() {
           User Management
         </Title>
         <Space>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalVisible(true)}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setCreateModalVisible(true)}
+          >
             Create User
           </Button>
           <Button onClick={fetchUsers} loading={loading}>

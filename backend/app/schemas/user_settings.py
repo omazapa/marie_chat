@@ -1,8 +1,6 @@
 """Pydantic models for user settings validation."""
 
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional
-
 
 # ==================== PROFILE MODELS ====================
 
@@ -10,8 +8,8 @@ from typing import Optional
 class UpdateProfileRequest(BaseModel):
     """Request model for updating user profile."""
 
-    full_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    email: Optional[str] = Field(None, pattern=r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+    full_name: str | None = Field(None, min_length=1, max_length=100)
+    email: str | None = Field(None, pattern=r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 
 
 class ChangePasswordRequest(BaseModel):
@@ -36,24 +34,22 @@ class ChangePasswordRequest(BaseModel):
 class ModelParameters(BaseModel):
     """Model parameters for LLM generation."""
 
-    temperature: Optional[float] = Field(None, ge=0.0, le=2.0)
-    max_tokens: Optional[int] = Field(None, ge=1, le=8192)
-    top_p: Optional[float] = Field(None, ge=0.0, le=1.0)
-    frequency_penalty: Optional[float] = Field(None, ge=0.0, le=2.0)
-    presence_penalty: Optional[float] = Field(None, ge=0.0, le=2.0)
+    temperature: float | None = Field(None, ge=0.0, le=2.0)
+    max_tokens: int | None = Field(None, ge=1, le=8192)
+    top_p: float | None = Field(None, ge=0.0, le=1.0)
+    frequency_penalty: float | None = Field(None, ge=0.0, le=2.0)
+    presence_penalty: float | None = Field(None, ge=0.0, le=2.0)
 
 
 class AgentPreferencesRequest(BaseModel):
     """Request model for updating agent preferences."""
 
-    default_provider: Optional[str] = None
-    default_provider_id: Optional[str] = None
-    default_model: Optional[str] = None
-    system_prompt: Optional[str] = Field(None, max_length=5000)
-    parameters: Optional[ModelParameters] = None
-    response_mode: Optional[str] = Field(
-        None, pattern="^(concise|detailed|academic|casual)$"
-    )
+    default_provider: str | None = None
+    default_provider_id: str | None = None
+    default_model: str | None = None
+    system_prompt: str | None = Field(None, max_length=5000)
+    parameters: ModelParameters | None = None
+    response_mode: str | None = Field(None, pattern="^(concise|detailed|academic|casual)$")
 
 
 # ==================== INTERFACE PREFERENCES MODELS ====================
@@ -62,16 +58,14 @@ class AgentPreferencesRequest(BaseModel):
 class InterfacePreferencesRequest(BaseModel):
     """Request model for updating interface preferences."""
 
-    theme: Optional[str] = Field(None, pattern="^(light|dark|auto)$")
-    language: Optional[str] = Field(None, pattern="^(en|es)$")
-    tts_voice: Optional[str] = None
-    stt_language: Optional[str] = None
-    message_density: Optional[str] = Field(
-        None, pattern="^(compact|comfortable|spacious)$"
-    )
-    show_timestamps: Optional[bool] = None
-    enable_markdown: Optional[bool] = None
-    enable_code_highlighting: Optional[bool] = None
+    theme: str | None = Field(None, pattern="^(light|dark|auto)$")
+    language: str | None = Field(None, pattern="^(en|es)$")
+    tts_voice: str | None = None
+    stt_language: str | None = None
+    message_density: str | None = Field(None, pattern="^(compact|comfortable|spacious)$")
+    show_timestamps: bool | None = None
+    enable_markdown: bool | None = None
+    enable_code_highlighting: bool | None = None
 
 
 # ==================== PRIVACY PREFERENCES MODELS ====================
@@ -80,6 +74,6 @@ class InterfacePreferencesRequest(BaseModel):
 class PrivacyPreferencesRequest(BaseModel):
     """Request model for updating privacy preferences."""
 
-    conversation_retention_days: Optional[int] = Field(None, ge=-1)  # -1 = forever
-    auto_delete_enabled: Optional[bool] = None
-    share_usage_data: Optional[bool] = None
+    conversation_retention_days: int | None = Field(None, ge=-1)  # -1 = forever
+    auto_delete_enabled: bool | None = None
+    share_usage_data: bool | None = None

@@ -3,6 +3,8 @@ Agent Configuration Routes
 API endpoints for managing agent runtime configurations
 """
 
+import asyncio
+
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
@@ -15,9 +17,9 @@ config_service = AgentConfigService()
 llm_service = LLMService()
 
 
-@agent_config_bp.route("/models/<provider>/<model_id>/config/schema", methods=["GET"])
+@agent_config_bp.route("/models/<provider>/<path:model_id>/config/schema", methods=["GET"])
 @jwt_required()
-async def get_config_schema(provider: str, model_id: str):
+def get_config_schema(provider: str, model_id: str):
     """
     Get configuration schema for an agent.
 
@@ -50,7 +52,7 @@ async def get_config_schema(provider: str, model_id: str):
         from app.services.agent_provider import AgentProvider
 
         if isinstance(provider_instance, AgentProvider):
-            schema = await provider_instance.get_config_schema(model_id)
+            schema = asyncio.run(provider_instance.get_config_schema(model_id))
         else:
             return jsonify({"error": "Provider does not support configuration"}), 400
 
@@ -81,9 +83,9 @@ async def get_config_schema(provider: str, model_id: str):
         return jsonify({"error": str(e)}), 500
 
 
-@agent_config_bp.route("/models/<provider>/<model_id>/config/values", methods=["GET"])
+@agent_config_bp.route("/models/<provider>/<path:model_id>/config/values", methods=["GET"])
 @jwt_required()
-async def get_config_values(provider: str, model_id: str):
+def get_config_values(provider: str, model_id: str):
     """
     Get current configuration values for an agent.
 
@@ -105,8 +107,13 @@ async def get_config_values(provider: str, model_id: str):
         user_id = get_jwt_identity()
         conversation_id = request.args.get("conversation_id")
 
-        config_values = await config_service.load_config(
-            user_id=user_id, provider=provider, model_id=model_id, conversation_id=conversation_id
+        config_values = asyncio.run(
+            config_service.load_config(
+                user_id=user_id,
+                provider=provider,
+                model_id=model_id,
+                conversation_id=conversation_id,
+            )
         )
 
         return jsonify(config_values), 200
@@ -116,9 +123,9 @@ async def get_config_values(provider: str, model_id: str):
         return jsonify({"error": str(e)}), 500
 
 
-@agent_config_bp.route("/models/<provider>/<model_id>/config/values", methods=["POST"])
+@agent_config_bp.route("/models/<provider>/<path:model_id>/config/values", methods=["POST"])
 @jwt_required()
-async def set_config_values(provider: str, model_id: str):
+def set_config_values(provider: str, model_id: str):
     """
     Save configuration values for an agent.
 
@@ -155,13 +162,15 @@ async def set_config_values(provider: str, model_id: str):
         if scope == "conversation" and not conversation_id:
             return jsonify({"error": "conversation_id required when scope is 'conversation'"}), 400
 
-        saved_config = await config_service.save_config(
-            user_id=user_id,
-            provider=provider,
-            model_id=model_id,
-            config_values=config_values,
-            scope=scope,  # type: ignore
-            conversation_id=conversation_id,
+        saved_config = asyncio.run(
+            config_service.save_config(
+                user_id=user_id,
+                provider=provider,
+                model_id=model_id,
+                config_values=config_values,
+                scope=scope,  # type: ignore
+                conversation_id=conversation_id,
+            )
         )
 
         return jsonify(saved_config.model_dump()), 200
@@ -176,9 +185,9 @@ async def set_config_values(provider: str, model_id: str):
         return jsonify({"error": str(e)}), 500
 
 
-@agent_config_bp.route("/models/<provider>/<model_id>/config", methods=["DELETE"])
+@agent_config_bp.route("/models/<provider>/<path:model_id>/config", methods=["DELETE"])
 @jwt_required()
-async def delete_config(provider: str, model_id: str):
+def delete_config(provider: str, model_id: str):
     """
     Delete a configuration.
 
@@ -203,12 +212,14 @@ async def delete_config(provider: str, model_id: str):
         if scope not in ["global", "conversation"]:
             return jsonify({"error": "scope must be 'global' or 'conversation'"}), 400
 
-        deleted = await config_service.delete_config(
-            user_id=user_id,
-            provider=provider,
-            model_id=model_id,
-            scope=scope,  # type: ignore
-            conversation_id=conversation_id,
+        deleted = asyncio.run(
+            config_service.delete_config(
+                user_id=user_id,
+                provider=provider,
+                model_id=model_id,
+                scope=scope,  # type: ignore
+                conversation_id=conversation_id,
+            )
         )
 
         if deleted:
@@ -223,7 +234,7 @@ async def delete_config(provider: str, model_id: str):
 
 @agent_config_bp.route("/models/configs", methods=["GET"])
 @jwt_required()
-async def list_user_configs():
+def list_user_configs():
     """
     List all configurations for the current user.
 
@@ -238,7 +249,7 @@ async def list_user_configs():
         user_id = get_jwt_identity()
         provider = request.args.get("provider")
 
-        configs = await config_service.list_user_configs(user_id=user_id, provider=provider)
+        configs = asyncio.run(config_service.list_user_configs(user_id=user_id, provider=provider))
 
         return jsonify([config.model_dump() for config in configs]), 200
 

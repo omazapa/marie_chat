@@ -471,26 +471,8 @@ export const MarkdownContent = memo(function MarkdownContent({
   isStreaming,
 }: MarkdownContentProps) {
   const { enableMarkdown, enableCodeHighlighting } = useInterfaceStore();
-  
-  // If markdown is disabled, return plain text
-  if (!enableMarkdown) {
-    return (
-      <div
-        className={`markdown-content ${className || ''}`}
-        style={{ 
-          width: '100%', 
-          maxWidth: '100%', 
-          overflowWrap: 'break-word', 
-          minWidth: 0,
-          whiteSpace: 'pre-wrap',
-        }}
-      >
-        {content}
-      </div>
-    );
-  }
-  
-  // Auto-wrap raw HTML blocks in code blocks if they are not already wrapped
+
+  // Auto-wrap raw HTML blocks in code blocks if they are not already wrapped - MUST be before any conditional returns
   const processedContent = useMemo(() => {
     // Regex to find substantial HTML blocks
     const htmlBlockRegex =
@@ -669,6 +651,24 @@ export const MarkdownContent = memo(function MarkdownContent({
     }),
     [isStreaming]
   );
+
+  // If markdown is disabled, return plain text (after all hooks)
+  if (!enableMarkdown) {
+    return (
+      <div
+        className={`markdown-content ${className || ''}`}
+        style={{
+          width: '100%',
+          maxWidth: '100%',
+          overflowWrap: 'break-word',
+          minWidth: 0,
+          whiteSpace: 'pre-wrap',
+        }}
+      >
+        {content}
+      </div>
+    );
+  }
 
   if (isRawHTML) {
     return <HTMLArtifact html={content} isStreaming={isStreaming} />;

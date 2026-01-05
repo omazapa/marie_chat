@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Form, Select, Switch, Card, Button, Radio, App } from "antd";
-import { SaveOutlined } from "@ant-design/icons";
-import { useInterfaceStore } from "@/stores/interfaceStore";
-import { useTranslations } from "@/hooks/useLanguage";
+import { useState, useEffect } from 'react';
+import { Form, Select, Switch, Card, Button, Radio, App } from 'antd';
+import { SaveOutlined } from '@ant-design/icons';
+import { useInterfaceStore } from '@/stores/interfaceStore';
+import { useTranslations } from '@/hooks/useLanguage';
 
 export default function InterfacePage() {
   const { message } = App.useApp();
@@ -32,7 +32,7 @@ export default function InterfacePage() {
     try {
       // Check if language changed
       const languageChanged = values.language !== interfaceStore.language;
-      
+
       await interfaceStore.updateAllPreferences({
         theme: values.theme,
         language: values.language,
@@ -44,7 +44,7 @@ export default function InterfacePage() {
         enableCodeHighlighting: values.enable_code_highlighting,
       });
       message.success(t('preferencesUpdated'));
-      
+
       // Reload page if language changed to apply new locale
       if (languageChanged) {
         setTimeout(() => window.location.reload(), 500);
@@ -84,8 +84,8 @@ export default function InterfacePage() {
             <Select
               size="large"
               options={[
-                { label: "English", value: "en" },
-                { label: "Español", value: "es" },
+                { label: 'English', value: 'en' },
+                { label: 'Español', value: 'es' },
               ]}
             />
           </Form.Item>
@@ -94,10 +94,10 @@ export default function InterfacePage() {
             <Select
               size="large"
               options={[
-                { label: "Emma (US English)", value: "en-US-EmmaNeural" },
-                { label: "Andrew (US English)", value: "en-US-AndrewNeural" },
-                { label: "Salome (Colombian Spanish)", value: "es-CO-SalomeNeural" },
-                { label: "Gonzalo (Colombian Spanish)", value: "es-CO-GonzaloNeural" },
+                { label: 'Emma (US English)', value: 'en-US-EmmaNeural' },
+                { label: 'Andrew (US English)', value: 'en-US-AndrewNeural' },
+                { label: 'Salome (Colombian Spanish)', value: 'es-CO-SalomeNeural' },
+                { label: 'Gonzalo (Colombian Spanish)', value: 'es-CO-GonzaloNeural' },
               ]}
             />
           </Form.Item>
@@ -106,8 +106,8 @@ export default function InterfacePage() {
             <Select
               size="large"
               options={[
-                { label: "English (US)", value: "en-US" },
-                { label: "Spanish (Latin America)", value: "es-LA" },
+                { label: 'English (US)', value: 'en-US' },
+                { label: 'Spanish (Latin America)', value: 'es-LA' },
               ]}
             />
           </Form.Item>
@@ -132,7 +132,13 @@ export default function InterfacePage() {
         </Card>
 
         <Form.Item>
-          <Button type="primary" htmlType="submit" loading={loading} size="large" icon={<SaveOutlined />}>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loading}
+            size="large"
+            icon={<SaveOutlined />}
+          >
             {t('savePreferences')}
           </Button>
         </Form.Item>

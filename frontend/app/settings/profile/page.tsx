@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Form, Input, Button, Card, Space, Divider, App } from "antd";
-import { UserOutlined, MailOutlined, LockOutlined } from "@ant-design/icons";
-import api from "@/lib/api";
+import { useState, useEffect } from 'react';
+import { Form, Input, Button, Card, App } from 'antd';
+import { UserOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
+import api from '@/lib/api';
 
 export default function ProfilePage() {
   const { message } = App.useApp();
@@ -18,23 +18,23 @@ export default function ProfilePage() {
 
   const loadProfile = async () => {
     try {
-      const { data } = await api.get("/user/profile");
+      const { data } = await api.get('/user/profile');
       profileForm.setFieldsValue({
         full_name: data.full_name,
         email: data.email,
       });
     } catch (error: any) {
-      message.error(error.response?.data?.error || "Failed to load profile");
+      message.error(error.response?.data?.error || 'Failed to load profile');
     }
   };
 
   const handleProfileUpdate = async (values: any) => {
     setLoading(true);
     try {
-      await api.put("/user/profile", values);
-      message.success("Profile updated successfully");
+      await api.put('/user/profile', values);
+      message.success('Profile updated successfully');
     } catch (error: any) {
-      message.error(error.response?.data?.error || "Failed to update profile");
+      message.error(error.response?.data?.error || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -43,11 +43,11 @@ export default function ProfilePage() {
   const handlePasswordChange = async (values: any) => {
     setPasswordLoading(true);
     try {
-      await api.put("/user/password", values);
-      message.success("Password changed successfully");
+      await api.put('/user/password', values);
+      message.success('Password changed successfully');
       passwordForm.resetFields();
     } catch (error: any) {
-      message.error(error.response?.data?.error || "Failed to change password");
+      message.error(error.response?.data?.error || 'Failed to change password');
     } finally {
       setPasswordLoading(false);
     }
@@ -67,7 +67,7 @@ export default function ProfilePage() {
           <Form.Item
             label="Full Name"
             name="full_name"
-            rules={[{ required: true, message: "Please enter your full name" }]}
+            rules={[{ required: true, message: 'Please enter your full name' }]}
           >
             <Input prefix={<UserOutlined />} placeholder="John Doe" size="large" />
           </Form.Item>
@@ -76,8 +76,8 @@ export default function ProfilePage() {
             label="Email"
             name="email"
             rules={[
-              { required: true, message: "Please enter your email" },
-              { type: "email", message: "Please enter a valid email" },
+              { required: true, message: 'Please enter your email' },
+              { type: 'email', message: 'Please enter a valid email' },
             ]}
           >
             <Input prefix={<MailOutlined />} placeholder="john@example.com" size="large" />
@@ -101,7 +101,7 @@ export default function ProfilePage() {
           <Form.Item
             label="Current Password"
             name="current_password"
-            rules={[{ required: true, message: "Please enter your current password" }]}
+            rules={[{ required: true, message: 'Please enter your current password' }]}
           >
             <Input.Password
               prefix={<LockOutlined />}
@@ -114,8 +114,8 @@ export default function ProfilePage() {
             label="New Password"
             name="new_password"
             rules={[
-              { required: true, message: "Please enter a new password" },
-              { min: 8, message: "Password must be at least 8 characters" },
+              { required: true, message: 'Please enter a new password' },
+              { min: 8, message: 'Password must be at least 8 characters' },
             ]}
           >
             <Input.Password
@@ -128,15 +128,15 @@ export default function ProfilePage() {
           <Form.Item
             label="Confirm New Password"
             name="confirm_password"
-            dependencies={["new_password"]}
+            dependencies={['new_password']}
             rules={[
-              { required: true, message: "Please confirm your new password" },
+              { required: true, message: 'Please confirm your new password' },
               ({ getFieldValue }) => ({
                 validator(_, value) {
-                  if (!value || getFieldValue("new_password") === value) {
+                  if (!value || getFieldValue('new_password') === value) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error("Passwords do not match"));
+                  return Promise.reject(new Error('Passwords do not match'));
                 },
               }),
             ]}

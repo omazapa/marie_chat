@@ -4,7 +4,14 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { Layout, Menu, Typography, Space, Spin } from 'antd';
-import { KeyOutlined, ArrowLeftOutlined, UserOutlined, RobotOutlined, SettingOutlined, LockOutlined } from '@ant-design/icons';
+import {
+  KeyOutlined,
+  ArrowLeftOutlined,
+  UserOutlined,
+  RobotOutlined,
+  SettingOutlined,
+  LockOutlined,
+} from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSettings } from '@/hooks/useSettings';

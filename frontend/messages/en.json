@@ -46,7 +46,7 @@
     "interface": "Interface",
     "privacy": "Privacy & Security",
     "apiKeys": "API Keys",
-    
+
     "profileSection": {
       "personalInfo": "Personal Information",
       "fullName": "Full Name",
@@ -59,7 +59,7 @@
       "profileUpdated": "Profile updated successfully",
       "passwordChanged": "Password changed successfully"
     },
-    
+
     "agentSection": {
       "modelSelection": "Model Selection",
       "defaultProvider": "Default Provider",
@@ -74,7 +74,7 @@
       "modelParameters": "Model Parameters",
       "savePreferences": "Save Preferences"
     },
-    
+
     "interfaceSection": {
       "appearance": "Appearance",
       "theme": "Theme",
@@ -95,7 +95,7 @@
       "enableCodeHighlighting": "Enable Code Syntax Highlighting",
       "preferencesUpdated": "Interface preferences saved successfully"
     },
-    
+
     "privacySection": {
       "privacyPreferences": "Privacy Preferences",
       "conversationRetention": "Conversation Retention",

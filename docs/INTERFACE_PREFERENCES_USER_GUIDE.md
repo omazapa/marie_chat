@@ -188,7 +188,7 @@ import { useTranslations } from '@/hooks/useLanguage';
 
 function Component() {
   const t = useTranslations('settings.interfaceSection');
-  
+
   return <h1>{t('appearance')}</h1>;
 }
 ```
@@ -332,6 +332,6 @@ const t = useTranslations('chat');
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: January 5, 2026  
+**Version**: 1.0.0
+**Last Updated**: January 5, 2026
 **Maintainer**: GitHub Copilot

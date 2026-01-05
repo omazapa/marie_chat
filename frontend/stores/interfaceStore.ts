@@ -16,7 +16,7 @@ interface InterfacePreferences {
 interface InterfaceStore extends InterfacePreferences {
   loading: boolean;
   initialized: boolean;
-  
+
   // Actions
   loadPreferences: () => Promise<void>;
   updateTheme: (theme: 'light' | 'dark' | 'auto') => Promise<void>;
@@ -74,7 +74,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
     try {
       const { data } = await api.get('/user/preferences');
       const interfacePrefs = data.interface_preferences || {};
-      
+
       const newPrefs: InterfacePreferences = {
         theme: interfacePrefs.theme || DEFAULT_PREFERENCES.theme,
         language: interfacePrefs.language || DEFAULT_PREFERENCES.language,
@@ -83,7 +83,8 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
         messageDensity: interfacePrefs.message_density || DEFAULT_PREFERENCES.messageDensity,
         showTimestamps: interfacePrefs.show_timestamps ?? DEFAULT_PREFERENCES.showTimestamps,
         enableMarkdown: interfacePrefs.enable_markdown ?? DEFAULT_PREFERENCES.enableMarkdown,
-        enableCodeHighlighting: interfacePrefs.enable_code_highlighting ?? DEFAULT_PREFERENCES.enableCodeHighlighting,
+        enableCodeHighlighting:
+          interfacePrefs.enable_code_highlighting ?? DEFAULT_PREFERENCES.enableCodeHighlighting,
       };
 
       set({ ...newPrefs, initialized: true });
@@ -102,7 +103,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
     const prevTheme = get().theme;
     set({ theme });
     saveToLocalStorage(get() as InterfacePreferences);
-    
+
     try {
       await api.put('/user/preferences/interface', { theme });
     } catch (error: any) {
@@ -115,7 +116,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
     const prevLanguage = get().language;
     set({ language });
     saveToLocalStorage(get() as InterfacePreferences);
-    
+
     try {
       await api.put('/user/preferences/interface', { language });
     } catch (error: any) {
@@ -128,7 +129,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
     const prevVoice = get().ttsVoice;
     set({ ttsVoice });
     saveToLocalStorage(get() as InterfacePreferences);
-    
+
     try {
       await api.put('/user/preferences/interface', { tts_voice: ttsVoice });
     } catch (error: any) {
@@ -141,7 +142,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
     const prevLang = get().sttLanguage;
     set({ sttLanguage });
     saveToLocalStorage(get() as InterfacePreferences);
-    
+
     try {
       await api.put('/user/preferences/interface', { stt_language: sttLanguage });
     } catch (error: any) {
@@ -154,7 +155,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
     const prevDensity = get().messageDensity;
     set({ messageDensity });
     saveToLocalStorage(get() as InterfacePreferences);
-    
+
     try {
       await api.put('/user/preferences/interface', { message_density: messageDensity });
     } catch (error: any) {
@@ -167,7 +168,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
     const prevShow = get().showTimestamps;
     set({ showTimestamps });
     saveToLocalStorage(get() as InterfacePreferences);
-    
+
     try {
       await api.put('/user/preferences/interface', { show_timestamps: showTimestamps });
     } catch (error: any) {
@@ -180,7 +181,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
     const prevEnable = get().enableMarkdown;
     set({ enableMarkdown });
     saveToLocalStorage(get() as InterfacePreferences);
-    
+
     try {
       await api.put('/user/preferences/interface', { enable_markdown: enableMarkdown });
     } catch (error: any) {
@@ -193,9 +194,11 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
     const prevEnable = get().enableCodeHighlighting;
     set({ enableCodeHighlighting });
     saveToLocalStorage(get() as InterfacePreferences);
-    
+
     try {
-      await api.put('/user/preferences/interface', { enable_code_highlighting: enableCodeHighlighting });
+      await api.put('/user/preferences/interface', {
+        enable_code_highlighting: enableCodeHighlighting,
+      });
     } catch (error: any) {
       set({ enableCodeHighlighting: prevEnable });
       message.error('Failed to save code highlighting preference');
@@ -207,7 +210,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
     const newState = { ...currentState, ...prefs };
     set(newState);
     saveToLocalStorage(newState as InterfacePreferences);
-    
+
     try {
       // Convert to snake_case for backend
       const backendPrefs: any = {};
@@ -218,8 +221,9 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
       if (prefs.messageDensity !== undefined) backendPrefs.message_density = prefs.messageDensity;
       if (prefs.showTimestamps !== undefined) backendPrefs.show_timestamps = prefs.showTimestamps;
       if (prefs.enableMarkdown !== undefined) backendPrefs.enable_markdown = prefs.enableMarkdown;
-      if (prefs.enableCodeHighlighting !== undefined) backendPrefs.enable_code_highlighting = prefs.enableCodeHighlighting;
-      
+      if (prefs.enableCodeHighlighting !== undefined)
+        backendPrefs.enable_code_highlighting = prefs.enableCodeHighlighting;
+
       await api.put('/user/preferences/interface', backendPrefs);
       message.success('Preferences saved successfully');
     } catch (error: any) {

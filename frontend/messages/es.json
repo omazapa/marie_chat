@@ -46,7 +46,7 @@
     "interface": "Interfaz",
     "privacy": "Privacidad y Seguridad",
     "apiKeys": "Claves API",
-    
+
     "profileSection": {
       "personalInfo": "Información Personal",
       "fullName": "Nombre Completo",
@@ -59,7 +59,7 @@
       "profileUpdated": "Perfil actualizado exitosamente",
       "passwordChanged": "Contraseña cambiada exitosamente"
     },
-    
+
     "agentSection": {
       "modelSelection": "Selección de Modelo",
       "defaultProvider": "Proveedor Predeterminado",
@@ -74,7 +74,7 @@
       "modelParameters": "Parámetros del Modelo",
       "savePreferences": "Guardar Preferencias"
     },
-    
+
     "interfaceSection": {
       "appearance": "Apariencia",
       "theme": "Tema",
@@ -96,7 +96,7 @@
       "preferencesUpdated": "Preferencias de interfaz guardadas exitosamente",
       "savePreferences": "Guardar Preferencias"
     },
-    
+
     "privacySection": {
       "privacyPreferences": "Preferencias de Privacidad",
       "conversationRetention": "Retención de Conversaciones",
