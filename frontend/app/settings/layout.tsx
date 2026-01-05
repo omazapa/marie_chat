@@ -62,19 +62,6 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       icon: <KeyOutlined />,
       label: <Link href="/settings/keys">{t('apiKeys')}</Link>,
     },
-  ];
-      label: <Link href="/settings/interface">Interface</Link>,
-    },
-    {
-      key: '/settings/privacy',
-      icon: <LockOutlined />,
-      label: <Link href="/settings/privacy">Privacy & Security</Link>,
-    },
-    {
-      key: '/settings/keys',
-      icon: <KeyOutlined />,
-      label: <Link href="/settings/keys">API Keys</Link>,
-    },
     {
       key: 'back',
       icon: <ArrowLeftOutlined />,
