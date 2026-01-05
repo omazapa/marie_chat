@@ -25,6 +25,7 @@ export interface Conversation {
   title: string;
   model: string;
   provider: string;
+  provider_name?: string;
   system_prompt?: string;
   settings?: Record<string, unknown>;
   message_count: number;
@@ -100,6 +101,23 @@ export interface ApiError {
   details?: unknown;
 }
 
+export interface Provider {
+  id: string;
+  name: string;
+  type: 'ollama' | 'openai' | 'huggingface' | 'agent';
+  enabled: boolean;
+  config: {
+    base_url?: string;
+    api_key?: string;
+    [key: string]: any;
+  };
+  status?: {
+    available: boolean;
+    models_count?: number;
+    error?: string;
+  };
+}
+
 export interface ProviderConfig {
   api_key?: string;
   base_url?: string;
@@ -108,6 +126,8 @@ export interface ProviderConfig {
 export interface SystemSettings {
   llm: {
     default_provider: string;
+    default_provider_type?: string;
+    default_provider_id?: string;
     default_model: string;
     default_system_prompt?: string;
   };
@@ -131,7 +151,7 @@ export interface SystemSettings {
     welcome_subtitle: string;
     suggested_prompts: string[];
   };
-  providers: Record<string, ProviderConfig>;
+  providers: Provider[];
 }
 
 export interface ProviderStatus {

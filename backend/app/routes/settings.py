@@ -77,3 +77,60 @@ def test_provider():
         return jsonify(health), 200
     except Exception as e:
         return jsonify({"error": str(e), "available": False}), 500
+
+
+@settings_bp.route("/providers", methods=["POST"])
+@admin_required
+def add_provider():
+    """Add a new provider"""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    try:
+        provider_id = settings_service.add_provider(data)
+        # Re-initialize providers to include the new one
+        from app.services.provider_factory import initialize_providers
+
+        initialize_providers()
+        return jsonify({"id": provider_id, "message": "Provider added successfully"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@settings_bp.route("/providers/<provider_id>", methods=["PUT"])
+@admin_required
+def update_provider(provider_id: str):
+    """Update an existing provider"""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    try:
+        success = settings_service.update_provider(provider_id, data)
+        if success:
+            # Re-initialize providers to apply changes
+            from app.services.provider_factory import initialize_providers
+
+            initialize_providers()
+            return jsonify({"message": "Provider updated successfully"}), 200
+        return jsonify({"error": "Provider not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@settings_bp.route("/providers/<provider_id>", methods=["DELETE"])
+@admin_required
+def delete_provider(provider_id: str):
+    """Delete a provider"""
+    try:
+        success = settings_service.delete_provider(provider_id)
+        if success:
+            # Re-initialize providers to remove the deleted one
+            from app.services.provider_factory import initialize_providers
+
+            initialize_providers()
+            return jsonify({"message": "Provider deleted successfully"}), 200
+        return jsonify({"error": "Provider not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

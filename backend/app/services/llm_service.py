@@ -60,10 +60,33 @@ class LLMService:
         settings: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Create a new conversation"""
+        config = self.settings_service.get_settings()
+
         if not model or not provider:
-            config = self.settings_service.get_settings()
             model = model or config.get("llm", {}).get("default_model", "llama3.2")
             provider = provider or config.get("llm", {}).get("default_provider", "ollama")
+
+        # Get provider name from settings
+        provider_name = None
+        providers_list = config.get("providers", [])
+        if isinstance(providers_list, list):
+            # Try to find by provider_id first (from default_provider_id)
+            provider_id = config.get("llm", {}).get("default_provider_id")
+            if provider_id:
+                matching_provider = next(
+                    (p for p in providers_list if p.get("id") == provider_id), None
+                )
+                if matching_provider:
+                    provider_name = matching_provider.get("name")
+
+            # Fallback: find first enabled provider matching type
+            if not provider_name:
+                matching_provider = next(
+                    (p for p in providers_list if p.get("type") == provider and p.get("enabled")),
+                    None,
+                )
+                if matching_provider:
+                    provider_name = matching_provider.get("name")
 
         conversation_id = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
@@ -74,6 +97,7 @@ class LLMService:
             "title": title,
             "model": model,
             "provider": provider,
+            "provider_name": provider_name,
             "system_prompt": system_prompt,
             "settings": settings or {},
             "message_count": 0,

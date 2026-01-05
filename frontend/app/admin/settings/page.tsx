@@ -28,17 +28,14 @@ import {
   ReloadOutlined,
   DeleteOutlined,
   PlusOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  ApiOutlined,
-  RobotOutlined,
 } from '@ant-design/icons';
 import { Tag } from 'antd';
-import apiClient, { getErrorMessage } from '@/lib/api';
+import apiClient from '@/lib/api';
 import { useModels } from '@/hooks/useModels';
 import { useAuthStore } from '@/stores/authStore';
 import { useSettings } from '@/hooks/useSettings';
-import { SystemSettings as SystemSettingsType, ProviderStatus } from '@/types';
+import { SystemSettings as SystemSettingsType, ProviderStatus, Provider } from '@/types';
+import { ProviderManager } from '@/components/admin/ProviderManager';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -46,8 +43,7 @@ export default function SystemSettings() {
   const [form] = Form.useForm<SystemSettingsType>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [testingProvider, setTestingProvider] = useState<string | null>(null);
-  const [providerStatus, setProviderStatus] = useState<Record<string, ProviderStatus>>({});
+  const [providers, setProviders] = useState<Provider[]>([]);
   const { message } = App.useApp();
   const { refetch: refetchPublicSettings } = useSettings();
 
@@ -55,11 +51,17 @@ export default function SystemSettings() {
   const { models, loading: loadingModels, fetchModels } = useModels(accessToken || '');
 
   // Watch provider to update model list
-  const selectedProvider = Form.useWatch(['llm', 'default_provider'], form);
+  const selectedProviderType = Form.useWatch(['llm', 'default_provider_type'], form);
+  const selectedProviderId = Form.useWatch(['llm', 'default_provider_id'], form);
+
+  // Get provider instance to fetch models
+  const selectedProvider = selectedProviderId
+    ? providers.find((p) => p.id === selectedProviderId)
+    : undefined;
 
   // Auto-refresh models when provider changes to Ollama
   useEffect(() => {
-    if (selectedProvider === 'ollama') {
+    if (selectedProvider?.type === 'ollama') {
       fetchModels(true);
     }
   }, [selectedProvider, fetchModels]);
@@ -68,7 +70,25 @@ export default function SystemSettings() {
     const fetchSettings = async () => {
       try {
         const response = await apiClient.get<SystemSettingsType>('/settings');
-        form.setFieldsValue(response.data);
+        const settings = response.data;
+
+        // Initialize provider_type from provider for backward compatibility
+        if (settings.llm.default_provider && !settings.llm.default_provider_type) {
+          settings.llm.default_provider_type = settings.llm.default_provider;
+        }
+
+        // Try to find matching provider ID
+        if (!settings.llm.default_provider_id && settings.llm.default_provider) {
+          const matchingProvider = settings.providers?.find(
+            (p) => p.type === settings.llm.default_provider && p.enabled
+          );
+          if (matchingProvider) {
+            settings.llm.default_provider_id = matchingProvider.id;
+          }
+        }
+
+        form.setFieldsValue(settings);
+        setProviders(settings.providers || []);
       } catch {
         message.error('Failed to fetch system settings');
       } finally {
@@ -79,43 +99,28 @@ export default function SystemSettings() {
     fetchSettings();
   }, [form, message]);
 
-  const testProvider = async (provider: string) => {
-    setTestingProvider(provider);
+  const refetchProviders = async () => {
     try {
-      const config = form.getFieldValue(['providers', provider]);
-      const response = await apiClient.post<ProviderStatus>('/settings/test-provider', {
-        provider,
-        config,
-      });
-
-      setProviderStatus((prev) => ({
-        ...prev,
-        [provider]: response.data,
-      }));
-
-      if (response.data.available) {
-        message.success(
-          `${provider} connection successful! Found ${response.data.models_count} models.`
-        );
-      } else {
-        message.error(`${provider} connection failed: ${response.data.error || 'Unknown error'}`);
-      }
-    } catch (err: unknown) {
-      const errorMsg = getErrorMessage(err);
-      message.error(`Failed to test ${provider}: ${errorMsg}`);
-      setProviderStatus((prev) => ({
-        ...prev,
-        [provider]: { available: false, error: errorMsg },
-      }));
-    } finally {
-      setTestingProvider(null);
+      const response = await apiClient.get<SystemSettingsType>('/settings');
+      setProviders(response.data.providers || []);
+    } catch {
+      message.error('Failed to refresh providers');
     }
   };
 
   const onFinish = async (values: SystemSettingsType) => {
     setSaving(true);
     try {
-      await apiClient.put('/settings', values);
+      // Sync default_provider from default_provider_type for backend compatibility
+      const updatedValues = {
+        ...values,
+        llm: {
+          ...values.llm,
+          default_provider: values.llm.default_provider_type || values.llm.default_provider,
+        },
+      };
+
+      await apiClient.put('/settings', updatedValues);
       message.success('Settings updated successfully');
 
       // Refetch settings to ensure state is synced
@@ -180,12 +185,12 @@ export default function SystemSettings() {
                       conversations.
                     </Paragraph>
                     <Row gutter={24}>
-                      <Col span={12}>
+                      <Col span={8}>
                         <Form.Item
-                          name={['llm', 'default_provider']}
+                          name={['llm', 'default_provider_type']}
                           label={
                             <Space>
-                              Default Provider
+                              Provider Type
                               <Button
                                 type="link"
                                 size="small"
@@ -198,19 +203,52 @@ export default function SystemSettings() {
                           rules={[{ required: true }]}
                         >
                           <Select
-                            options={[
-                              { value: 'ollama', label: 'Ollama (Local)' },
-                              { value: 'huggingface', label: 'HuggingFace (Cloud)' },
-                              { value: 'openai', label: 'OpenAI / Compatible' },
-                              { value: 'agent', label: 'External Agent (Remote)' },
-                            ]}
-                          />
+                            placeholder="Select provider type"
+                            onChange={() => {
+                              form.setFieldValue(['llm', 'default_provider_id'], undefined);
+                              form.setFieldValue(['llm', 'default_model'], undefined);
+                            }}
+                          >
+                            {['ollama', 'openai', 'huggingface', 'agent']
+                              .filter((type) => providers.some((p) => p.type === type && p.enabled))
+                              .map((type) => (
+                                <Select.Option key={type} value={type}>
+                                  {type === 'ollama' && 'Ollama (Local)'}
+                                  {type === 'openai' && 'OpenAI / Compatible'}
+                                  {type === 'huggingface' && 'HuggingFace'}
+                                  {type === 'agent' && 'External Agent'}
+                                </Select.Option>
+                              ))}
+                          </Select>
                         </Form.Item>
                       </Col>
-                      <Col span={12}>
+                      <Col span={8}>
+                        <Form.Item
+                          name={['llm', 'default_provider_id']}
+                          label="Account/Instance"
+                          rules={[{ required: true }]}
+                        >
+                          <Select
+                            placeholder="Select instance"
+                            disabled={!selectedProviderType}
+                            onChange={() => {
+                              form.setFieldValue(['llm', 'default_model'], undefined);
+                            }}
+                          >
+                            {providers
+                              .filter((p) => p.enabled && p.type === selectedProviderType)
+                              .map((p) => (
+                                <Select.Option key={p.id} value={p.id}>
+                                  {p.name}
+                                </Select.Option>
+                              ))}
+                          </Select>
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
                         <Form.Item
                           name={['llm', 'default_model']}
-                          label="Default Model"
+                          label="Model"
                           rules={[{ required: true }]}
                         >
                           <Select
@@ -219,9 +257,10 @@ export default function SystemSettings() {
                             placeholder="Select a model"
                             loading={loadingModels}
                             optionLabelProp="label"
+                            disabled={!selectedProviderId}
                           >
-                            {selectedProvider && models[selectedProvider]
-                              ? models[selectedProvider].map((m) => (
+                            {selectedProvider?.type && models[selectedProvider.type]
+                              ? models[selectedProvider.type].map((m) => (
                                   <Select.Option key={m.id} value={m.id} label={m.name || m.id}>
                                     <Space orientation="vertical" size={0}>
                                       <Text strong>{m.name || m.id}</Text>
@@ -523,176 +562,41 @@ export default function SystemSettings() {
                   </span>
                 ),
                 children: (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    <Card
-                      title={
-                        <Space>
-                          <ApiOutlined /> OpenAI / Compatible
-                          {providerStatus['openai']?.available ? (
-                            <Tag color="success" icon={<CheckCircleOutlined />}>
-                              Connected
-                            </Tag>
-                          ) : providerStatus['openai']?.error ? (
-                            <Tag color="error" icon={<CloseCircleOutlined />}>
-                              Error
-                            </Tag>
-                          ) : null}
-                        </Space>
-                      }
-                      extra={
-                        <Button
-                          type="primary"
-                          ghost
-                          size="small"
-                          loading={testingProvider === 'openai'}
-                          onClick={() => testProvider('openai')}
-                        >
-                          Test Connection
-                        </Button>
-                      }
-                    >
-                      <Paragraph type="secondary">
-                        Configure OpenAI or any OpenAI-compatible API (like Azure OpenAI, LocalAI,
-                        etc.)
-                      </Paragraph>
-                      <Row gutter={24}>
-                        <Col span={12}>
-                          <Form.Item name={['providers', 'openai', 'api_key']} label="API Key">
-                            <Input.Password placeholder="sk-..." />
-                          </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                          <Form.Item
-                            name={['providers', 'openai', 'base_url']}
-                            label="Base URL (Optional)"
-                          >
-                            <Input placeholder="https://api.openai.com/v1" />
-                          </Form.Item>
-                        </Col>
-                      </Row>
-                    </Card>
-
-                    <Card
-                      title={
-                        <Space>
-                          <ApiOutlined /> HuggingFace
-                          {providerStatus['huggingface']?.available ? (
-                            <Tag color="success" icon={<CheckCircleOutlined />}>
-                              Connected
-                            </Tag>
-                          ) : providerStatus['huggingface']?.error ? (
-                            <Tag color="error" icon={<CloseCircleOutlined />}>
-                              Error
-                            </Tag>
-                          ) : null}
-                        </Space>
-                      }
-                      extra={
-                        <Button
-                          type="primary"
-                          ghost
-                          size="small"
-                          loading={testingProvider === 'huggingface'}
-                          onClick={() => testProvider('huggingface')}
-                        >
-                          Test Connection
-                        </Button>
-                      }
-                    >
-                      <Paragraph type="secondary">
-                        Access thousands of open-source models via HuggingFace Inference API.
-                      </Paragraph>
-                      <Form.Item name={['providers', 'huggingface', 'api_key']} label="API Token">
-                        <Input.Password placeholder="hf_..." />
-                      </Form.Item>
-                    </Card>
-
-                    <Card
-                      title={
-                        <Space>
-                          <ApiOutlined /> Ollama (Local)
-                          {providerStatus['ollama']?.available ? (
-                            <Tag color="success" icon={<CheckCircleOutlined />}>
-                              Connected
-                            </Tag>
-                          ) : providerStatus['ollama']?.error ? (
-                            <Tag color="error" icon={<CloseCircleOutlined />}>
-                              Error
-                            </Tag>
-                          ) : null}
-                        </Space>
-                      }
-                      extra={
-                        <Button
-                          type="primary"
-                          ghost
-                          size="small"
-                          loading={testingProvider === 'ollama'}
-                          onClick={() => testProvider('ollama')}
-                        >
-                          Test Connection
-                        </Button>
-                      }
-                    >
-                      <Paragraph type="secondary">
-                        Run models locally on your own hardware using Ollama.
-                      </Paragraph>
-                      <Form.Item name={['providers', 'ollama', 'base_url']} label="Base URL">
-                        <Input placeholder="http://localhost:11434" />
-                      </Form.Item>
-                    </Card>
-
-                    <Card
-                      title={
-                        <Space>
-                          <RobotOutlined /> External Agent (Remote)
-                          {providerStatus['agent']?.available ? (
-                            <Tag color="success" icon={<CheckCircleOutlined />}>
-                              Connected
-                            </Tag>
-                          ) : providerStatus['agent']?.error ? (
-                            <Tag color="error" icon={<CloseCircleOutlined />}>
-                              Error
-                            </Tag>
-                          ) : null}
-                        </Space>
-                      }
-                      extra={
-                        <Button
-                          type="primary"
-                          ghost
-                          size="small"
-                          loading={testingProvider === 'agent'}
-                          onClick={() => testProvider('agent')}
-                        >
-                          Test Connection
-                        </Button>
-                      }
-                    >
-                      <Paragraph type="secondary">
-                        Connect to external agentic systems (LangGraph, LangServe, or custom APIs).
-                      </Paragraph>
-                      <Row gutter={16}>
-                        <Col span={12}>
-                          <Form.Item
-                            name={['providers', 'agent', 'base_url']}
-                            label="Service URL"
-                            rules={[{ required: true }]}
-                          >
-                            <Input placeholder="https://my-agent-service.com" />
-                          </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                          <Form.Item
-                            name={['providers', 'agent', 'api_key']}
-                            label="API Key (Optional)"
-                          >
-                            <Input.Password placeholder="Secret key" />
-                          </Form.Item>
-                        </Col>
-                      </Row>
-                    </Card>
-                  </div>
+                  <ProviderManager
+                    providers={providers}
+                    onAdd={async (provider) => {
+                      await apiClient.post('/settings/providers', provider);
+                      await refetchProviders();
+                      fetchModels(true);
+                    }}
+                    onUpdate={async (id, updates) => {
+                      await apiClient.put(`/settings/providers/${id}`, updates);
+                      await refetchProviders();
+                      fetchModels(true);
+                    }}
+                    onDelete={async (id) => {
+                      await apiClient.delete(`/settings/providers/${id}`);
+                      await refetchProviders();
+                      fetchModels(true);
+                    }}
+                    onTest={async (id) => {
+                      const provider = providers.find((p) => p.id === id);
+                      if (!provider) throw new Error('Provider not found');
+                      const response = await apiClient.post<ProviderStatus>(
+                        '/settings/test-provider',
+                        {
+                          provider: provider.type,
+                          config: provider.config,
+                        }
+                      );
+                      const updated = providers.map((p) =>
+                        p.id === id ? { ...p, status: response.data } : p
+                      );
+                      setProviders(updated);
+                      return response.data;
+                    }}
+                    loading={loading}
+                  />
                 ),
               },
             ]}

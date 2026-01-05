@@ -221,55 +221,52 @@ model_registry = ModelRegistry(provider_factory)
 
 
 def initialize_providers():
-    """Initialize default providers with settings from database or config"""
+    """Initialize providers dynamically from database settings"""
     from app.services.settings_service import settings_service
 
     try:
         db_settings = settings_service.get_settings()
-        provider_configs = db_settings.get("providers", {})
+        providers_list = db_settings.get("providers", [])
 
-        # Register Ollama provider
-        ollama_config = provider_configs.get("ollama", {})
-        provider_factory.register_provider(
-            "ollama",
-            OllamaProvider,
-            {"base_url": ollama_config.get("base_url") or settings.OLLAMA_BASE_URL},
-        )
+        # Clear existing providers
+        provider_factory._providers.clear()
+        provider_factory._configs.clear()
 
-        # Register HuggingFace provider
-        hf_config = provider_configs.get("huggingface", {})
-        provider_factory.register_provider(
-            "huggingface",
-            HuggingFaceProvider,
-            {"api_key": hf_config.get("api_key") or settings.HUGGINGFACE_API_KEY},
-        )
+        # Provider class mapping
+        provider_classes = {
+            "ollama": OllamaProvider,
+            "huggingface": HuggingFaceProvider,
+            "openai": OpenAIProvider,
+            "agent": AgentProvider,
+        }
 
-        # Register OpenAI provider
-        openai_config = provider_configs.get("openai", {})
-        provider_factory.register_provider(
-            "openai",
-            OpenAIProvider,
-            {
-                "api_key": openai_config.get("api_key") or settings.OPENAI_API_KEY,
-                "base_url": openai_config.get("base_url") or settings.OPENAI_BASE_URL,
-            },
-        )
+        # Register each enabled provider from settings
+        registered_count = 0
+        for provider_data in providers_list:
+            if not provider_data.get("enabled", True):
+                continue  # Skip disabled providers
 
-        # Register Agent provider
-        agent_config = provider_configs.get("agent", {})
-        provider_factory.register_provider(
-            "agent",
-            AgentProvider,
-            {
-                "api_key": agent_config.get("api_key") or settings.REMOTE_AGENT_KEY,
-                "base_url": agent_config.get("base_url") or settings.REMOTE_AGENT_URL,
-            },
-        )
+            provider_type = provider_data.get("type")
+            provider_config = provider_data.get("config", {})
+
+            if provider_type not in provider_classes:
+                print(f"⚠️ Unknown provider type: {provider_type}")
+                continue
+
+            # Register provider using type as key (for backward compatibility)
+            # Multiple providers of same type will overwrite (last one wins)
+            # In the future, could use unique keys like "ollama-1", "ollama-2"
+            provider_factory.register_provider(
+                provider_type,
+                provider_classes[provider_type],
+                provider_config,
+            )
+            registered_count += 1
 
         # Clear model cache to force refresh with new configs
         model_registry.clear_cache()
 
-        print("✅ LLM Providers initialized from database/config")
+        print(f"✅ {registered_count} LLM Provider(s) initialized from database")
     except Exception as e:
         print(f"⚠️ Error initializing providers from database: {e}. Using defaults.")
         # Fallback to defaults

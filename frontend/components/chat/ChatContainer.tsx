@@ -728,6 +728,9 @@ export default function ChatContainer() {
                         <Tag icon={<ThunderboltOutlined />} color="blue">
                           {currentConversation.provider}
                         </Tag>
+                        {currentConversation.provider_name && (
+                          <Tag color="purple">{currentConversation.provider_name}</Tag>
+                        )}
                         <Tag color="cyan">{currentConversation.model}</Tag>
                       </div>
                     </div>
