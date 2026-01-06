@@ -43,18 +43,15 @@ def get_config_schema(provider: str, model_id: str):
             return jsonify({"error": f"Provider '{provider}' not found"}), 404
 
         # Only agent providers support configuration discovery
-        if provider != "agent":
+        from app.services.agent_provider import AgentProvider
+
+        if not isinstance(provider_instance, AgentProvider):
             return jsonify(
                 {"error": f"Provider '{provider}' does not support dynamic configuration"}
             ), 400
 
         # Fetch schema from remote service (AgentProvider has this method)
-        from app.services.agent_provider import AgentProvider
-
-        if isinstance(provider_instance, AgentProvider):
-            schema = asyncio.run(provider_instance.get_config_schema(model_id))
-        else:
-            return jsonify({"error": "Provider does not support configuration"}), 400
+        schema = asyncio.run(provider_instance.get_config_schema(model_id))
 
         if not schema:
             return jsonify(

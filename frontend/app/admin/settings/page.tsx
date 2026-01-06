@@ -74,11 +74,11 @@ export default function SystemSettings() {
   // Load agent configuration schema when agent is selected
   useEffect(() => {
     const loadAgentSchema = async () => {
-      if (selectedProviderType === 'agent' && selectedModel) {
+      if (selectedProviderType === 'agent' && selectedModel && selectedProviderId) {
         // Loading agent schema
         setLoadingAgentSchema(true);
         try {
-          const schema = await fetchSchema('agent', selectedModel);
+          const schema = await fetchSchema(selectedProviderId, selectedModel);
           // Agent schema loaded
           if (schema) {
             setAgentConfigFields(schema.fields || []);
@@ -98,7 +98,7 @@ export default function SystemSettings() {
     };
 
     loadAgentSchema();
-  }, [selectedProviderType, selectedModel, fetchSchema]);
+  }, [selectedProviderType, selectedModel, selectedProviderId, fetchSchema]);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -392,8 +392,8 @@ export default function SystemSettings() {
                             optionLabelProp="label"
                             disabled={!selectedProviderId}
                           >
-                            {selectedProvider?.type && models[selectedProvider.type]
-                              ? models[selectedProvider.type].map((m) => (
+                            {selectedProviderId && models[selectedProviderId]
+                              ? models[selectedProviderId].map((m) => (
                                   <Select.Option key={m.id} value={m.id} label={m.name || m.id}>
                                     <Space orientation="vertical" size={0}>
                                       <Text strong>{m.name || m.id}</Text>
