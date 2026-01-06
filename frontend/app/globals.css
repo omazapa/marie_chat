@@ -38,6 +38,21 @@ body {
   background: #f5f7f9;
 }
 
+/* Dark theme support */
+body[data-theme='dark'] {
+  color: rgba(255, 255, 255, 0.85);
+  background: #141414;
+}
+
+body[data-theme='dark'] .markdown-content {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+body[data-theme='dark'] mark {
+  background-color: #7c4a00;
+  color: #fff566;
+}
+
 a {
   color: inherit;
   text-decoration: none;

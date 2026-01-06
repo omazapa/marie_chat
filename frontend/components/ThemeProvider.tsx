@@ -51,6 +51,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           borderRadius: 8,
           fontFamily:
             '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+          colorBgBase: effectiveTheme === 'dark' ? '#141414' : '#ffffff',
+          colorTextBase:
+            effectiveTheme === 'dark' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.88)',
         },
         components: {
           Layout: {
@@ -60,10 +63,48 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           },
           Card: {
             colorBgContainer: effectiveTheme === 'dark' ? '#1f1f1f' : '#ffffff',
+            colorBorderSecondary: effectiveTheme === 'dark' ? '#303030' : '#f0f0f0',
           },
           Modal: {
             contentBg: effectiveTheme === 'dark' ? '#1f1f1f' : '#ffffff',
             headerBg: effectiveTheme === 'dark' ? '#1f1f1f' : '#ffffff',
+          },
+          Input: {
+            colorBgContainer: effectiveTheme === 'dark' ? '#1f1f1f' : '#ffffff',
+            colorBorder: effectiveTheme === 'dark' ? '#424242' : '#d9d9d9',
+          },
+          InputNumber: {
+            colorBgContainer: effectiveTheme === 'dark' ? '#1f1f1f' : '#ffffff',
+            colorBorder: effectiveTheme === 'dark' ? '#424242' : '#d9d9d9',
+          },
+          Select: {
+            colorBgContainer: effectiveTheme === 'dark' ? '#1f1f1f' : '#ffffff',
+            colorBgElevated: effectiveTheme === 'dark' ? '#1f1f1f' : '#ffffff',
+            colorBorder: effectiveTheme === 'dark' ? '#424242' : '#d9d9d9',
+          },
+          Form: {
+            labelColor:
+              effectiveTheme === 'dark' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.88)',
+          },
+          Table: {
+            colorBgContainer: effectiveTheme === 'dark' ? '#1f1f1f' : '#ffffff',
+            colorBorderSecondary: effectiveTheme === 'dark' ? '#303030' : '#f0f0f0',
+          },
+          Collapse: {
+            colorBgContainer: effectiveTheme === 'dark' ? '#1f1f1f' : '#ffffff',
+            colorBorder: effectiveTheme === 'dark' ? '#424242' : '#d9d9d9',
+          },
+          Slider: {
+            colorBgElevated: effectiveTheme === 'dark' ? '#1f1f1f' : '#ffffff',
+          },
+          Radio: {
+            colorBgContainer: effectiveTheme === 'dark' ? '#1f1f1f' : '#ffffff',
+          },
+          Checkbox: {
+            colorBgContainer: effectiveTheme === 'dark' ? '#1f1f1f' : '#ffffff',
+          },
+          Drawer: {
+            colorBgElevated: effectiveTheme === 'dark' ? '#1f1f1f' : '#ffffff',
           },
         },
       }}
