@@ -11,7 +11,6 @@ import {
   DeleteOutlined,
   LogoutOutlined,
   SafetyCertificateOutlined,
-  KeyOutlined,
   CheckSquareOutlined,
   CloseOutlined,
 } from '@ant-design/icons';
