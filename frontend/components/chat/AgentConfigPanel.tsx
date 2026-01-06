@@ -13,6 +13,7 @@ import {
   Space,
   Spin,
   Alert,
+  App,
 } from 'antd';
 import { SettingOutlined, SaveOutlined, ReloadOutlined, CloseOutlined } from '@ant-design/icons';
 import { useAgentConfig, type ConfigField } from '@/stores/agentConfigStore';
@@ -38,6 +39,7 @@ export const AgentConfigPanel: React.FC<AgentConfigPanelProps> = ({
   onClose,
 }) => {
   const [form] = Form.useForm();
+  const { message } = App.useApp();
 
   const { schemas, configs, loading, error, fetchSchema, loadConfig, saveConfig, clearError } =
     useAgentConfig();
@@ -83,8 +85,11 @@ export const AgentConfigPanel: React.FC<AgentConfigPanelProps> = ({
     try {
       const values = await form.validateFields();
       await saveConfig(provider, modelId, values, 'conversation', conversationId);
-    } catch {
-      // Validation errors are shown by form
+      message.success('Agent configuration saved successfully');
+      console.log('✅ Agent configuration saved successfully');
+    } catch (error) {
+      console.error('❌ Failed to save agent configuration:', error);
+      // Validation errors are shown by form, other errors are shown by the store
     }
   };
 
