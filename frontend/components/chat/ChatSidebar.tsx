@@ -423,22 +423,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             </Button>
           </Link>
 
-          <Link
-            href="/settings/keys"
-            style={{ width: '100%', display: 'block', marginBottom: '8px' }}
-          >
-            <Button
-              icon={<KeyOutlined />}
-              block
-              size="small"
-              style={{
-                fontSize: '12px',
-              }}
-            >
-              Developer API Keys
-            </Button>
-          </Link>
-
           <Space orientation="vertical" size={4} style={{ width: '100%' }}>
             <Text type="secondary" style={{ fontSize: '10px' }}>
               © 2026 ImpactU
