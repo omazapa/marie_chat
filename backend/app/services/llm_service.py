@@ -760,6 +760,7 @@ class LLMService:
         # Get model settings
         model = conversation.get("model", "llama3.2")
         provider_name = conversation.get("provider", "ollama")
+        provider_id = conversation.get("provider_id", provider_name)  # Fallback to provider_name
         settings = conversation.get("settings", {})
         temperature = settings.get("temperature", 0.7)
         max_tokens = settings.get("max_tokens", 2048)
@@ -768,11 +769,11 @@ class LLMService:
         agent_config = {}
         if provider_name == "agent":
             print(
-                f"[SERVICE] Loading agent configuration for model={model}, conv={conversation_id}"
+                f"[SERVICE] Loading agent configuration for model={model}, provider_id={provider_id}, conv={conversation_id}"
             )
             agent_config = await self.agent_config_service.load_config(
                 user_id=user_id,
-                provider=provider_name,
+                provider=provider_id,  # Use provider_id instead of provider_name
                 model_id=model,
                 conversation_id=conversation_id,
             )
