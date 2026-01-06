@@ -143,7 +143,7 @@ export default function InterfacePage() {
             size="large"
             icon={<SaveOutlined />}
           >
-            {t('savePreferences')}
+            {t('settings.interfaceSection.savePreferences')}
           </Button>
         </Form.Item>
       </Form>
