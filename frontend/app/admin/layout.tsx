@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
+import { useInterfaceStore } from '@/stores/interfaceStore';
 import { Layout, Menu, Typography, Space, Spin } from 'antd';
 import {
   DashboardOutlined,
@@ -20,6 +21,7 @@ const { Title, Text } = Typography;
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated } = useAuthStore();
+  const { loadPreferences } = useInterfaceStore();
   const router = useRouter();
   const pathname = usePathname();
   const { whiteLabel } = useSettings();
@@ -29,8 +31,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.push('/login');
     } else if (user?.role !== 'admin') {
       router.push('/chat');
+    } else {
+      // Load user preferences when admin section is accessed
+      loadPreferences();
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, router, loadPreferences]);
 
   if (!isAuthenticated || user?.role !== 'admin') {
     return (

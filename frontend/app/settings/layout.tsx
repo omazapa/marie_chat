@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
+import { useInterfaceStore } from '@/stores/interfaceStore';
 import { Layout, Menu, Typography, Space, Spin } from 'antd';
 import {
   KeyOutlined,
@@ -23,6 +24,7 @@ const { Title, Text } = Typography;
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('settings');
   const { user, isAuthenticated } = useAuthStore();
+  const { loadPreferences } = useInterfaceStore();
   const router = useRouter();
   const pathname = usePathname();
   const { whiteLabel } = useSettings();
@@ -30,8 +32,11 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login');
+    } else {
+      // Load user preferences when settings section is accessed
+      loadPreferences();
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, loadPreferences]);
 
   if (!isAuthenticated) {
     return (
