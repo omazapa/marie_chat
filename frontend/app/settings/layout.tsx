@@ -23,22 +23,26 @@ const { Title, Text } = Typography;
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('settings');
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, _hasHydrated } = useAuthStore();
   const { loadPreferences } = useInterfaceStore();
   const router = useRouter();
   const pathname = usePathname();
   const { whiteLabel } = useSettings();
 
   useEffect(() => {
+    // Wait for hydration before checking auth
+    if (!_hasHydrated) return;
+
     if (!isAuthenticated) {
       router.push('/login');
     } else {
       // Load user preferences when settings section is accessed
       loadPreferences();
     }
-  }, [isAuthenticated, router, loadPreferences]);
+  }, [isAuthenticated, router, loadPreferences, _hasHydrated]);
 
-  if (!isAuthenticated) {
+  // Show loading while hydrating
+  if (!_hasHydrated || !isAuthenticated) {
     return (
       <div
         style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}

@@ -20,13 +20,16 @@ const { Header, Content, Sider } = Layout;
 const { Title, Text } = Typography;
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, _hasHydrated } = useAuthStore();
   const { loadPreferences } = useInterfaceStore();
   const router = useRouter();
   const pathname = usePathname();
   const { whiteLabel } = useSettings();
 
   useEffect(() => {
+    // Wait for hydration before checking auth
+    if (!_hasHydrated) return;
+
     if (!isAuthenticated) {
       router.push('/login');
     } else if (user?.role !== 'admin') {
@@ -35,9 +38,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       // Load user preferences when admin section is accessed
       loadPreferences();
     }
-  }, [isAuthenticated, user, router, loadPreferences]);
+  }, [isAuthenticated, user, router, loadPreferences, _hasHydrated]);
 
-  if (!isAuthenticated || user?.role !== 'admin') {
+  // Show loading while hydrating
+  if (!_hasHydrated || !isAuthenticated || user?.role !== 'admin') {
     return (
       <div
         style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}

@@ -8,6 +8,7 @@ interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   legacyHydrated: boolean;
+  _hasHydrated: boolean;
 
   // Actions
   setAuth: (data: LoginResponse) => void;
@@ -16,6 +17,7 @@ interface AuthState {
   updateTokens: (accessToken: string, refreshToken?: string) => void;
   hydrateFromLegacyStorage: () => void;
   loadUserPreferences: () => Promise<void>;
+  setHasHydrated: (state: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -26,6 +28,7 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       isAuthenticated: false,
       legacyHydrated: false,
+      _hasHydrated: false,
 
       setAuth: (data: LoginResponse) => {
         set({
@@ -120,6 +123,10 @@ export const useAuthStore = create<AuthState>()(
 
         set({ legacyHydrated: true });
       },
+
+      setHasHydrated: (state: boolean) => {
+        set({ _hasHydrated: state });
+      },
     }),
     {
       name: 'marie-auth-storage',
@@ -130,6 +137,9 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
         legacyHydrated: state.legacyHydrated,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
