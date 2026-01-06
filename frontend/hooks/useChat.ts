@@ -220,7 +220,10 @@ export function useChat(
     onTTSResult: handleTTSResult,
     onImageProgress: handleImageProgress,
     onImageError: handleImageError,
-    onError: (err: any) => setError(err?.message || 'WebSocket error'),
+    onError: (err: unknown) => {
+      const error = err as { message?: string };
+      setError(error?.message || 'WebSocket error');
+    },
   });
 
   // Stop generation

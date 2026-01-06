@@ -99,7 +99,7 @@ export default function AgentConfigModal({
         form.setFieldsValue(currentConfig);
       } else {
         // Set default values from schema
-        const defaults: Record<string, any> = {};
+        const defaults: Record<string, unknown> = {};
         fields.forEach((field) => {
           if (field.default !== undefined && field.default !== null) {
             defaults[field.key] = field.default;
@@ -122,11 +122,12 @@ export default function AgentConfigModal({
       message.success('Configuration saved successfully');
       setHasChanges(false);
       onClose();
-    } catch (error: any) {
-      if (error.errorFields) {
+    } catch (error: unknown) {
+      const err = error as { errorFields?: unknown; message?: string };
+      if (err.errorFields) {
         message.error('Please check the form for errors');
       } else {
-        message.error(error.message || 'Failed to save configuration');
+        message.error(err.message || 'Failed to save configuration');
       }
     }
   };
@@ -138,8 +139,9 @@ export default function AgentConfigModal({
       form.resetFields();
       setHasChanges(false);
       onClose();
-    } catch (error: any) {
-      message.error(error.message || 'Failed to delete configuration');
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      message.error(err.message || 'Failed to delete configuration');
     }
   };
 

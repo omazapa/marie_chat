@@ -14,7 +14,7 @@ interface ImageGenerationModalProps {
   setImagePrompt: (value: string) => void;
   selectedImageModel: string;
   setSelectedImageModel: (value: string) => void;
-  imageModels: any[];
+  imageModels: Array<{ id: string; name: string }>;
   error: string | null;
 }
 

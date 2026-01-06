@@ -135,23 +135,28 @@ export const MessageItem = memo(
               )}
               {Array.isArray(msg.metadata?.references) && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
-                  {(msg.metadata!.references as any[]).map(
-                    (ref: { id: string; type?: string; content?: string; title?: string }) => (
-                      <Tag
-                        key={ref.id}
-                        icon={<LinkOutlined />}
-                        style={{
-                          fontSize: '11px',
-                          background: '#e6f7ff',
-                          borderColor: '#91d5ff',
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => onNavigate(ref)}
-                      >
-                        {ref.type === 'message' ? 'Message: ' + ref.content : ref.title}
-                      </Tag>
-                    )
-                  )}
+                  {(
+                    msg.metadata!.references as Array<{
+                      id: string;
+                      type?: string;
+                      content?: string;
+                      title?: string;
+                    }>
+                  ).map((ref: { id: string; type?: string; content?: string; title?: string }) => (
+                    <Tag
+                      key={ref.id}
+                      icon={<LinkOutlined />}
+                      style={{
+                        fontSize: '11px',
+                        background: '#e6f7ff',
+                        borderColor: '#91d5ff',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => onNavigate(ref)}
+                    >
+                      {ref.type === 'message' ? 'Message: ' + ref.content : ref.title}
+                    </Tag>
+                  ))}
                 </div>
               )}
               <Bubble
@@ -207,7 +212,7 @@ export const MessageItem = memo(
                       </div>
                     )}
                     {msg.metadata?.type === 'image_generation' &&
-                      (msg.metadata?.image as any)?.url && (
+                      (msg.metadata?.image as { url?: string })?.url && (
                         <div
                           style={{
                             marginTop: '12px',
@@ -227,8 +232,11 @@ export const MessageItem = memo(
                             }}
                           >
                             <img
-                              src={`${API_URL}${(msg.metadata.image as any).url}`}
-                              alt={(msg.metadata.image as any).prompt || 'Generated image'}
+                              src={`${API_URL}${(msg.metadata.image as { url: string }).url}`}
+                              alt={
+                                (msg.metadata.image as { prompt?: string }).prompt ||
+                                'Generated image'
+                              }
                               style={{
                                 width: '100%',
                                 display: 'block',
@@ -237,7 +245,7 @@ export const MessageItem = memo(
                               onError={(e) => {
                                 console.error(
                                   '❌ Image load error for URL:',
-                                  `${API_URL}${(msg.metadata?.image as any)?.url}`,
+                                  `${API_URL}${(msg.metadata?.image as { url: string })?.url}`,
                                   e
                                 );
                               }}
@@ -269,7 +277,10 @@ export const MessageItem = memo(
                                       lineHeight: '1.4',
                                     }}
                                   >
-                                    {((msg.metadata as any)?.image as any)?.prompt}
+                                    {
+                                      (msg.metadata as { image?: { prompt?: string } })?.image
+                                        ?.prompt
+                                    }
                                   </div>
                                 </div>
                                 <div style={{ marginTop: '4px' }}>
@@ -288,7 +299,10 @@ export const MessageItem = memo(
                                       color="blue"
                                       style={{ fontSize: '11px', borderRadius: '4px', margin: 0 }}
                                     >
-                                      {((msg.metadata as any)?.image as any)?.model}
+                                      {
+                                        (msg.metadata as { image?: { model?: string } })?.image
+                                          ?.model
+                                      }
                                     </Tag>
                                   </div>
                                 </div>

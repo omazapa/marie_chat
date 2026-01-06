@@ -39,7 +39,7 @@ export interface Provider {
   config: {
     base_url?: string;
     api_key?: string;
-    [key: string]: any;
+    [key: string]: string | number | boolean | undefined;
   };
   status?: {
     available: boolean;
@@ -154,15 +154,15 @@ export const ProviderManager: React.FC<ProviderManagerProps> = ({
     }
   };
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: Record<string, unknown>) => {
     try {
       const providerData = {
-        name: values.name,
-        type: values.type,
-        enabled: values.enabled ?? true,
+        name: values.name as string,
+        type: values.type as 'ollama' | 'openai' | 'huggingface' | 'agent',
+        enabled: (values.enabled ?? true) as boolean,
         config: {
-          base_url: values.base_url,
-          api_key: values.api_key,
+          base_url: values.base_url as string | undefined,
+          api_key: values.api_key as string | undefined,
         },
       };
 

@@ -50,8 +50,9 @@ export function useUserPreferences() {
       setError(null);
       const { data } = await api.get('/user/preferences');
       setPreferences(data);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load preferences');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || 'Failed to load preferences');
       console.error('Failed to load user preferences:', err);
     } finally {
       setLoading(false);

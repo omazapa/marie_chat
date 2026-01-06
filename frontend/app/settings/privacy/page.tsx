@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   Button,
@@ -26,11 +26,7 @@ export default function PrivacyPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
 
-  useEffect(() => {
-    loadPrivacyPreferences();
-  }, []);
-
-  const loadPrivacyPreferences = async () => {
+  const loadPrivacyPreferences = useCallback(async () => {
     try {
       const { data } = await api.get('/user/preferences');
       const privacyPrefs = data.privacy_preferences || {};
@@ -39,18 +35,23 @@ export default function PrivacyPage() {
         auto_delete_enabled: privacyPrefs.auto_delete_enabled ?? false,
         share_usage_data: privacyPrefs.share_usage_data ?? false,
       });
-    } catch (error: any) {
+    } catch {
       message.error('Failed to load privacy preferences');
     }
-  };
+  }, [form, message]);
 
-  const handleSavePrivacyPreferences = async (values: any) => {
+  useEffect(() => {
+    loadPrivacyPreferences();
+  }, [loadPrivacyPreferences]);
+
+  const handleSavePrivacyPreferences = async (values: Record<string, unknown>) => {
     setSaveLoading(true);
     try {
       await api.put('/user/preferences/privacy', values);
       message.success('Privacy preferences saved successfully');
-    } catch (error: any) {
-      message.error(error.response?.data?.error || 'Failed to save preferences');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      message.error(err.response?.data?.error || 'Failed to save preferences');
     } finally {
       setSaveLoading(false);
     }
@@ -80,8 +81,9 @@ export default function PrivacyPage() {
               data.deleted_count !== 1 ? 's' : ''
             }`
           );
-        } catch (error: any) {
-          message.error(error.response?.data?.error || 'Failed to delete conversations');
+        } catch (error: unknown) {
+          const err = error as { response?: { data?: { error?: string } } };
+          message.error(err.response?.data?.error || 'Failed to delete conversations');
         } finally {
           setDeleteLoading(false);
         }

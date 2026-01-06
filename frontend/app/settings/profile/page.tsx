@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Form, Input, Button, Card, App } from 'antd';
 import { UserOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
 import api from '@/lib/api';
@@ -12,42 +12,45 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       const { data } = await api.get('/user/profile');
       profileForm.setFieldsValue({
         full_name: data.full_name,
         email: data.email,
       });
-    } catch (error: any) {
-      message.error(error.response?.data?.error || 'Failed to load profile');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      message.error(err.response?.data?.error || 'Failed to load profile');
     }
-  };
+  }, [profileForm, message]);
 
-  const handleProfileUpdate = async (values: any) => {
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  const handleProfileUpdate = async (values: Record<string, unknown>) => {
     setLoading(true);
     try {
       await api.put('/user/profile', values);
       message.success('Profile updated successfully');
-    } catch (error: any) {
-      message.error(error.response?.data?.error || 'Failed to update profile');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      message.error(err.response?.data?.error || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePasswordChange = async (values: any) => {
+  const handlePasswordChange = async (values: Record<string, unknown>) => {
     setPasswordLoading(true);
     try {
       await api.put('/user/password', values);
       message.success('Password changed successfully');
       passwordForm.resetFields();
-    } catch (error: any) {
-      message.error(error.response?.data?.error || 'Failed to change password');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      message.error(err.response?.data?.error || 'Failed to change password');
     } finally {
       setPasswordLoading(false);
     }

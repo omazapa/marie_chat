@@ -274,23 +274,29 @@ export default function ChatContainer() {
         .filter((msg: WebSocketMessage) => msg.role !== 'system')
         .map((msg: WebSocketMessage) => ({
           id: msg.id,
+          conversation_id: msg.conversation_id,
+          user_id: msg.user_id,
           content: msg.content,
           role: msg.role as 'user' | 'assistant',
           status: 'success' as const,
           metadata: msg.metadata,
+          created_at: msg.created_at,
         })),
       ...(isStreaming
         ? [
             {
               id: 'streaming',
+              conversation_id: currentConversation?.id || '',
+              user_id: user?.id || '',
               content: streamingMessage || '',
               role: 'assistant' as const,
               status: 'loading' as const,
+              created_at: new Date().toISOString(),
             },
           ]
         : []),
     ];
-  }, [messages, isStreaming, streamingMessage]);
+  }, [messages, isStreaming, streamingMessage, currentConversation?.id, user?.id]);
 
   const handleNewConversation = async () => {
     const conv = await createConversation('New Conversation', selectedModel, selectedProvider);
@@ -542,7 +548,8 @@ export default function ChatContainer() {
       setReferencedConvIds(msg.metadata.referenced_conv_ids as string[]);
     } else if (msg.metadata?.references) {
       // Fallback to references if referenced_conv_ids is missing
-      setReferencedConvIds((msg.metadata.references as any[]).map((r: { id: string }) => r.id));
+      const references = msg.metadata.references as Array<{ id: string }>;
+      setReferencedConvIds(references.map((r) => r.id));
     } else {
       setReferencedConvIds([]);
     }

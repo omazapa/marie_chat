@@ -6,11 +6,14 @@
 import { create } from 'zustand';
 import apiClient from '@/lib/api';
 
+// Type for config field values
+type ConfigValue = string | number | boolean | string[] | number[] | null | undefined;
+
 export interface ConfigField {
   key: string;
   label: string;
   type: 'string' | 'number' | 'integer' | 'boolean' | 'enum' | 'array';
-  default: any;
+  default: ConfigValue;
   description?: string;
   min?: number;
   max?: number;
@@ -26,7 +29,7 @@ export interface AgentConfig {
   model_id: string;
   scope: 'global' | 'conversation';
   conversation_id?: string;
-  config_values: Record<string, any>;
+  config_values: Record<string, ConfigValue>;
   created_at: string;
   updated_at: string;
 }
@@ -35,12 +38,16 @@ export interface ConfigSchema {
   provider: string;
   model_id: string;
   fields: ConfigField[];
-  raw_schema?: any;
+  raw_schema?: {
+    type: string;
+    properties: Record<string, unknown>;
+    [key: string]: unknown;
+  };
 }
 
 interface AgentConfigStore {
   // State
-  configs: Record<string, Record<string, any>>; // key: `${provider}:${model}:${conversationId?}`, value: config_values
+  configs: Record<string, Record<string, ConfigValue>>; // key: `${provider}:${model}:${conversationId?}`, value: config_values
   schemas: Record<string, ConfigSchema>; // key: `${provider}:${model}`, value: schema
   loading: boolean;
   error: string | null;
@@ -51,11 +58,11 @@ interface AgentConfigStore {
     provider: string,
     modelId: string,
     conversationId?: string
-  ) => Promise<Record<string, any>>;
+  ) => Promise<Record<string, ConfigValue>>;
   saveConfig: (
     provider: string,
     modelId: string,
-    configValues: Record<string, any>,
+    configValues: Record<string, ConfigValue>,
     scope: 'global' | 'conversation',
     conversationId?: string
   ) => Promise<void>;
@@ -66,7 +73,11 @@ interface AgentConfigStore {
     conversationId?: string
   ) => Promise<void>;
   hasConfig: (provider: string, modelId: string, conversationId?: string) => boolean;
-  getConfig: (provider: string, modelId: string, conversationId?: string) => Record<string, any>;
+  getConfig: (
+    provider: string,
+    modelId: string,
+    conversationId?: string
+  ) => Record<string, ConfigValue>;
   clearError: () => void;
   reset: () => void;
 }
@@ -112,8 +123,12 @@ export const useAgentConfig = create<AgentConfigStore>((set, get) => ({
       }));
 
       return schema;
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.error || error.message || 'Failed to fetch schema';
+    } catch (error: unknown) {
+      const errorMsg =
+        (error as { response?: { data?: { error?: string } }; message?: string }).response?.data
+          ?.error ||
+        (error as { message?: string }).message ||
+        'Failed to fetch schema';
       set({ error: errorMsg, loading: false });
       console.error('Error fetching config schema:', error);
       return null;
@@ -126,12 +141,12 @@ export const useAgentConfig = create<AgentConfigStore>((set, get) => ({
     set({ loading: true, error: null });
 
     try {
-      const params: any = {};
+      const params: Record<string, string> = {};
       if (conversationId) {
         params.conversation_id = conversationId;
       }
 
-      const response = await apiClient.get<Record<string, any>>(
+      const response = await apiClient.get<Record<string, ConfigValue>>(
         `/models/${provider}/${modelId}/config/values`,
         { params }
       );
@@ -147,8 +162,12 @@ export const useAgentConfig = create<AgentConfigStore>((set, get) => ({
       }));
 
       return configValues;
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.error || error.message || 'Failed to load config';
+    } catch (error: unknown) {
+      const errorMsg =
+        (error as { response?: { data?: { error?: string } }; message?: string }).response?.data
+          ?.error ||
+        (error as { message?: string }).message ||
+        'Failed to load config';
       set({ error: errorMsg, loading: false });
       console.error('Error loading config:', error);
       return {};
@@ -158,14 +177,14 @@ export const useAgentConfig = create<AgentConfigStore>((set, get) => ({
   saveConfig: async (
     provider: string,
     modelId: string,
-    configValues: Record<string, any>,
+    configValues: Record<string, ConfigValue>,
     scope: 'global' | 'conversation',
     conversationId?: string
   ) => {
     set({ loading: true, error: null });
 
     try {
-      const params: any = { scope };
+      const params: Record<string, string> = { scope };
       if (conversationId) {
         params.conversation_id = conversationId;
       }
@@ -185,8 +204,12 @@ export const useAgentConfig = create<AgentConfigStore>((set, get) => ({
         },
         loading: false,
       }));
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.error || error.message || 'Failed to save config';
+    } catch (error: unknown) {
+      const errorMsg =
+        (error as { response?: { data?: { error?: string } }; message?: string }).response?.data
+          ?.error ||
+        (error as { message?: string }).message ||
+        'Failed to save config';
       set({ error: errorMsg, loading: false });
       console.error('Error saving config:', error);
       throw error;
@@ -202,7 +225,7 @@ export const useAgentConfig = create<AgentConfigStore>((set, get) => ({
     set({ loading: true, error: null });
 
     try {
-      const params: any = { scope };
+      const params: Record<string, string> = { scope };
       if (conversationId) {
         params.conversation_id = conversationId;
       }
@@ -219,8 +242,12 @@ export const useAgentConfig = create<AgentConfigStore>((set, get) => ({
           loading: false,
         };
       });
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.error || error.message || 'Failed to delete config';
+    } catch (error: unknown) {
+      const errorMsg =
+        (error as { response?: { data?: { error?: string } }; message?: string }).response?.data
+          ?.error ||
+        (error as { message?: string }).message ||
+        'Failed to delete config';
       set({ error: errorMsg, loading: false });
       console.error('Error deleting config:', error);
       throw error;

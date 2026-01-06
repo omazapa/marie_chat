@@ -13,16 +13,16 @@ import {
 import { Welcome, Prompts } from '@ant-design/x';
 import { useSettings } from '@/hooks/useSettings';
 import { MessageList } from './MessageList';
-import { Conversation } from '@/types';
+import { Conversation, Message } from '@/types';
 
 interface MessageAreaProps {
   currentConversation: Conversation | null;
   loading: boolean;
-  chatMessages: any[];
+  chatMessages: Message[];
   isStreaming: boolean;
   streamingMessage: string;
   handleSend: (text: string) => void;
-  handleEdit: (msg: any) => void;
+  handleEdit: (msg: Message) => void;
   toggleMessageReference: (id: string) => void;
   referencedMsgIds: string[];
   handleNavigate: (ref: { type?: string; id: string; conversation_id?: string }) => void;

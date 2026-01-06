@@ -109,7 +109,7 @@ export interface Provider {
   config: {
     base_url?: string;
     api_key?: string;
-    [key: string]: any;
+    [key: string]: string | number | boolean | undefined;
   };
   status?: {
     available: boolean;

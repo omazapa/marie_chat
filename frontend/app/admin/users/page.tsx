@@ -91,7 +91,7 @@ export default function UserManagement() {
     });
   };
 
-  const handleCreateUser = async (values: any) => {
+  const handleCreateUser = async (values: Record<string, unknown>) => {
     setCreatingUser(true);
     try {
       const response = await apiClient.post('/admin/users', values);

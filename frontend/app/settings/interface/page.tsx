@@ -27,21 +27,25 @@ export default function InterfacePage() {
     });
   }, [interfaceStore, form]);
 
-  const handleSave = async (values: any) => {
+  const handleSave = async (values: Record<string, unknown>) => {
     setLoading(true);
     try {
       // Check if language changed
       const languageChanged = values.language !== interfaceStore.language;
 
       await interfaceStore.updateAllPreferences({
-        theme: values.theme,
-        language: values.language,
-        ttsVoice: values.tts_voice,
-        sttLanguage: values.stt_language,
-        messageDensity: values.message_density,
-        showTimestamps: values.show_timestamps,
-        enableMarkdown: values.enable_markdown,
-        enableCodeHighlighting: values.enable_code_highlighting,
+        theme: values.theme as 'light' | 'dark' | 'auto' | undefined,
+        language: values.language as 'en' | 'es' | undefined,
+        ttsVoice: values.tts_voice as string | undefined,
+        sttLanguage: values.stt_language as string | undefined,
+        messageDensity: values.message_density as
+          | 'compact'
+          | 'comfortable'
+          | 'spacious'
+          | undefined,
+        showTimestamps: values.show_timestamps as boolean | undefined,
+        enableMarkdown: values.enable_markdown as boolean | undefined,
+        enableCodeHighlighting: values.enable_code_highlighting as boolean | undefined,
       });
       message.success(t('preferencesUpdated'));
 
@@ -49,7 +53,7 @@ export default function InterfacePage() {
       if (languageChanged) {
         setTimeout(() => window.location.reload(), 500);
       }
-    } catch (error: any) {
+    } catch {
       // Error already handled in store
     } finally {
       setLoading(false);

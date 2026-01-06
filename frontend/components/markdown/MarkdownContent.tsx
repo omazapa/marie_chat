@@ -220,7 +220,9 @@ const extractText = (children: React.ReactNode): string => {
     typeof children.props === 'object' &&
     'children' in children.props
   ) {
-    return extractText((children.props as any).children as React.ReactNode);
+    return extractText(
+      (children.props as { children?: React.ReactNode }).children as React.ReactNode
+    );
   }
   return '';
 };
@@ -344,11 +346,16 @@ const MarkdownTable = memo(({ children }: { children: React.ReactNode }) => {
     ) as React.ReactElement | undefined;
 
     if (thead && tbody) {
-      const headerRow = (thead.props as any).children as React.ReactElement;
-      const headers = React.Children.toArray((headerRow.props as any).children);
+      const headerRow = (thead.props as { children?: React.ReactNode })
+        .children as React.ReactElement;
+      const headers = React.Children.toArray(
+        (headerRow.props as { children?: React.ReactNode }).children
+      );
 
       const columns: TableColumn[] = headers.map((th, i: number) => {
-        const title = React.isValidElement(th) ? extractText((th.props as any).children) : '';
+        const title = React.isValidElement(th)
+          ? extractText((th.props as { children?: React.ReactNode }).children)
+          : '';
         return {
           title: <Text strong>{title}</Text>,
           dataIndex: `col${i}`,
@@ -362,14 +369,16 @@ const MarkdownTable = memo(({ children }: { children: React.ReactNode }) => {
         };
       });
 
-      const bodyRows = React.Children.toArray((tbody.props as any).children);
+      const bodyRows = React.Children.toArray(
+        (tbody.props as { children?: React.ReactNode }).children
+      );
       const dataSource: TableRow[] = bodyRows.map((tr, i: number) => {
         if (!React.isValidElement(tr)) return { key: i };
-        const tds = React.Children.toArray((tr.props as any).children);
+        const tds = React.Children.toArray((tr.props as { children?: React.ReactNode }).children);
         const rowData: TableRow = { key: i };
         tds.forEach((td, j: number) => {
           if (React.isValidElement(td)) {
-            rowData[`col${j}`] = extractText((td.props as any).children);
+            rowData[`col${j}`] = extractText((td.props as { children?: React.ReactNode }).children);
           }
         });
         return rowData;
@@ -470,7 +479,7 @@ export const MarkdownContent = memo(function MarkdownContent({
   className,
   isStreaming,
 }: MarkdownContentProps) {
-  const { enableMarkdown, enableCodeHighlighting } = useInterfaceStore();
+  const { enableMarkdown } = useInterfaceStore();
 
   // Auto-wrap raw HTML blocks in code blocks if they are not already wrapped - MUST be before any conditional returns
   const processedContent = useMemo(() => {
@@ -568,7 +577,9 @@ export const MarkdownContent = memo(function MarkdownContent({
   const components: Components = useMemo(
     () => ({
       code({ className, children, ...props }) {
-        const inline = !(props as any).node?.position?.start?.line || (props as any).inline;
+        const inline =
+          !(props as { node?: { position?: { start?: { line?: number } } }; inline?: boolean }).node
+            ?.position?.start?.line || (props as { inline?: boolean }).inline;
         const match = /language-(\w+)/.exec(className || '');
         let language = match ? match[1] : '';
         const codeContent = String(children).replace(/\n$/, '');

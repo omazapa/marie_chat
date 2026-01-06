@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   Layout,
   Form,
@@ -15,7 +15,7 @@ import {
   Alert,
 } from 'antd';
 import { SettingOutlined, SaveOutlined, ReloadOutlined, CloseOutlined } from '@ant-design/icons';
-import { useAgentConfig } from '@/stores/agentConfigStore';
+import { useAgentConfig, type ConfigField } from '@/stores/agentConfigStore';
 
 const { Sider } = Layout;
 const { Text } = Typography;
@@ -44,7 +44,7 @@ export const AgentConfigPanel: React.FC<AgentConfigPanelProps> = ({
 
   const schemaKey = `${provider}:${modelId}`;
   const schema = schemas[schemaKey];
-  const fields = schema?.fields || [];
+  const fields = useMemo(() => schema?.fields || [], [schema]);
 
   // Load schema and config
   useEffect(() => {
@@ -66,7 +66,7 @@ export const AgentConfigPanel: React.FC<AgentConfigPanelProps> = ({
         form.setFieldsValue(currentConfig);
       } else {
         // Set default values from schema
-        const defaults: Record<string, any> = {};
+        const defaults: Record<string, unknown> = {};
         fields.forEach((field) => {
           if (field.default !== undefined && field.default !== null) {
             defaults[field.key] = field.default;
@@ -77,13 +77,13 @@ export const AgentConfigPanel: React.FC<AgentConfigPanelProps> = ({
         }
       }
     }
-  }, [visible, fields.length, provider, modelId, conversationId, configs, form]);
+  }, [visible, fields, provider, modelId, conversationId, configs, form]);
 
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
       await saveConfig(provider, modelId, values, 'conversation', conversationId);
-    } catch (error: any) {
+    } catch {
       // Validation errors are shown by form
     }
   };
@@ -98,7 +98,7 @@ export const AgentConfigPanel: React.FC<AgentConfigPanelProps> = ({
     form.setFieldsValue(defaults);
   };
 
-  const renderField = (field: any) => {
+  const renderField = (field: ConfigField) => {
     const commonProps = {
       placeholder: field.description || `Enter ${field.label}`,
       disabled: loading,

@@ -137,7 +137,7 @@ export function useWebSocket({
       handlersRef.current.onMessageResponse?.(data);
     });
 
-    socket.on('message_received', (data) => {
+    socket.on('message_received', (_data) => {
       // Message acknowledged
     });
 
@@ -173,11 +173,11 @@ export function useWebSocket({
       }
     });
 
-    socket.on('connected', (data) => {
+    socket.on('connected', (_data) => {
       handlersRef.current.onConnected?.();
     });
 
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', (_reason) => {
       setIsConnected(false);
       handlersRef.current.onDisconnected?.();
     });

@@ -1,56 +1,132 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Form, Select, Slider, Card, Button, Input, Radio, App } from 'antd';
 import api from '@/lib/api';
 
 const { TextArea } = Input;
 
+interface Provider {
+  id: string;
+  name: string;
+  type: string;
+}
+
+interface Model {
+  id: string;
+  name: string;
+}
+
+interface SchemaProperty {
+  type: string;
+  title?: string;
+  description?: string;
+  default?: unknown;
+  minimum?: number;
+  maximum?: number;
+  enum?: string[];
+}
+
+interface ModelSchema {
+  properties: Record<string, SchemaProperty>;
+  type: string;
+}
+
 export default function AgentPage() {
   const { message } = App.useApp();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [providers, setProviders] = useState<any[]>([]);
-  const [models, setModels] = useState<any[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [models, setModels] = useState<Model[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const [modelSchema, setModelSchema] = useState<any>(null);
-  const [dynamicParams, setDynamicParams] = useState<any>({});
+  const [modelSchema, setModelSchema] = useState<ModelSchema | null>(null);
   const [providersLoaded, setProvidersLoaded] = useState(false);
 
-  useEffect(() => {
-    loadProviders();
-  }, []);
-
-  useEffect(() => {
-    if (providersLoaded) {
-      loadPreferences();
-    }
-  }, [providersLoaded]);
-
-  const loadProviders = async () => {
+  const loadProviders = useCallback(async () => {
     try {
       const { data } = await api.get('/settings');
       setProviders(data.providers || []);
       setProvidersLoaded(true);
-    } catch (error) {
-      console.error('Failed to load providers', error);
+    } catch {
+      message.error('Failed to load providers');
     }
-  };
+  }, [message]);
 
-  const loadModels = async (providerId: string) => {
-    try {
-      const provider = providers.find((p) => p.id === providerId);
-      if (provider) {
-        const { data } = await api.get(`/models/${provider.type}?provider_id=${providerId}`);
-        setModels(data.models || []);
+  const loadModels = useCallback(
+    async (providerId: string) => {
+      try {
+        const provider = providers.find((p) => p.id === providerId);
+        if (provider) {
+          const { data } = await api.get(`/models/${provider.type}?provider_id=${providerId}`);
+          setModels(data.models || []);
+        }
+      } catch {
+        message.error('Failed to load models');
       }
-    } catch (error) {
-      console.error('Failed to load models', error);
-    }
-  };
+    },
+    [providers, message]
+  );
 
-  const loadPreferences = async () => {
+  const loadModelSchema = useCallback(
+    async (providerType: string, modelId: string) => {
+      // Only load schema for agent providers
+      if (providerType !== 'agent') {
+        setModelSchema(null);
+        return;
+      }
+
+      try {
+        const { data } = await api.get(`/models/${providerType}/${modelId}/config/schema`);
+        // Use raw_schema if available, otherwise null
+        const schema = data.raw_schema || null;
+        setModelSchema(schema);
+
+        // Load saved values for this model
+        try {
+          const { data: valuesData } = await api.get(
+            `/models/${providerType}/${modelId}/config/values`
+          );
+
+          if (valuesData && Object.keys(valuesData).length > 0) {
+            // Use saved values
+            // Set all fields at once to avoid multiple re-renders
+            form.setFieldsValue(valuesData);
+          } else if (schema?.properties) {
+            // No saved values, use defaults from schema
+            const defaults: Record<string, unknown> = {};
+            Object.keys(schema.properties).forEach((key) => {
+              const defaultValue = schema.properties[key].default;
+              if (defaultValue !== undefined) {
+                defaults[key] = defaultValue;
+              }
+            });
+            // Set all fields at once
+            form.setFieldsValue(defaults);
+          }
+        } catch {
+          // If loading values fails, use schema defaults
+          if (schema?.properties) {
+            const defaults: Record<string, unknown> = {};
+            Object.keys(schema.properties).forEach((key) => {
+              const defaultValue = schema.properties[key].default;
+              if (defaultValue !== undefined) {
+                defaults[key] = defaultValue;
+              }
+            });
+            // Set all fields at once
+            form.setFieldsValue(defaults);
+          }
+        }
+      } catch {
+        message.error('Failed to load model schema');
+        setModelSchema(null);
+      }
+    },
+    [form, message]
+  );
+
+  const loadPreferences = useCallback(async () => {
     try {
       const { data } = await api.get('/user/preferences');
       const agentPrefs = data.agent_preferences || {};
@@ -76,10 +152,20 @@ export default function AgentPage() {
           }
         }
       }
-    } catch (error: any) {
+    } catch {
       message.error('Failed to load preferences');
     }
-  };
+  }, [form, loadModels, loadModelSchema, providers, message]);
+
+  useEffect(() => {
+    loadProviders();
+  }, [loadProviders]);
+
+  useEffect(() => {
+    if (providersLoaded) {
+      loadPreferences();
+    }
+  }, [providersLoaded, loadPreferences]);
 
   const handleProviderChange = (providerId: string) => {
     setSelectedProvider(providerId);
@@ -99,66 +185,7 @@ export default function AgentPage() {
     }
   };
 
-  const loadModelSchema = async (providerType: string, modelId: string) => {
-    // Only load schema for agent providers
-    if (providerType !== 'agent') {
-      setModelSchema(null);
-      setDynamicParams({});
-      return;
-    }
-
-    try {
-      const { data } = await api.get(`/models/${providerType}/${modelId}/config/schema`);
-      // Use raw_schema if available, otherwise null
-      const schema = data.raw_schema || null;
-      setModelSchema(schema);
-
-      // Load saved values for this model
-      try {
-        const { data: valuesData } = await api.get(
-          `/models/${providerType}/${modelId}/config/values`
-        );
-
-        if (valuesData && Object.keys(valuesData).length > 0) {
-          // Use saved values
-          setDynamicParams(valuesData);
-          // Set all fields at once to avoid multiple re-renders
-          form.setFieldsValue(valuesData);
-        } else if (schema?.properties) {
-          // No saved values, use defaults from schema
-          const defaults: any = {};
-          Object.keys(schema.properties).forEach((key) => {
-            const defaultValue = schema.properties[key].default;
-            if (defaultValue !== undefined) {
-              defaults[key] = defaultValue;
-            }
-          });
-          setDynamicParams(defaults);
-          // Set all fields at once
-          form.setFieldsValue(defaults);
-        }
-      } catch (valuesError) {
-        // If loading values fails, use schema defaults
-        if (schema?.properties) {
-          const defaults: any = {};
-          Object.keys(schema.properties).forEach((key) => {
-            const defaultValue = schema.properties[key].default;
-            if (defaultValue !== undefined) {
-              defaults[key] = defaultValue;
-            }
-          });
-          setDynamicParams(defaults);
-          // Set all fields at once
-          form.setFieldsValue(defaults);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load model schema', error);
-      setModelSchema(null);
-    }
-  };
-
-  const handleSave = async (values: any) => {
+  const handleSave = async (values: Record<string, unknown>) => {
     setLoading(true);
     try {
       // Save agent preferences
@@ -181,7 +208,7 @@ export default function AgentPage() {
       if (selectedProvider && selectedModel && modelSchema) {
         const provider = providers.find((p) => p.id === selectedProvider);
         if (provider) {
-          const dynamicParamsPayload: any = {};
+          const dynamicParamsPayload: Record<string, unknown> = {};
           Object.keys(modelSchema.properties || {}).forEach((key) => {
             if (values[key] !== undefined) {
               dynamicParamsPayload[key] = values[key];
@@ -197,22 +224,19 @@ export default function AgentPage() {
       }
 
       message.success('Agent preferences saved successfully');
-    } catch (error: any) {
-      message.error(error.response?.data?.error || 'Failed to save preferences');
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error && 'response' in error
+          ? (error as { response?: { data?: { error?: string } } }).response?.data?.error
+          : null;
+      message.error(errorMessage || 'Failed to save preferences');
     } finally {
       setLoading(false);
     }
   };
 
-  const renderDynamicField = (key: string, property: any) => {
-    const {
-      type,
-      description,
-      default: defaultValue,
-      minimum,
-      maximum,
-      enum: enumValues,
-    } = property;
+  const renderDynamicField = (key: string, property: SchemaProperty) => {
+    const { type, description, minimum, maximum, enum: enumValues } = property;
 
     if (type === 'boolean') {
       return (
@@ -250,7 +274,7 @@ export default function AgentPage() {
           name={key}
           help={description}
         >
-          <Select options={enumValues.map((v: any) => ({ label: v, value: v }))} />
+          <Select options={enumValues.map((v: string) => ({ label: v, value: v }))} />
         </Form.Item>
       );
     }

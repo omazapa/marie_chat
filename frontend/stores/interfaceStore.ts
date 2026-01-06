@@ -89,8 +89,8 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
 
       set({ ...newPrefs, initialized: true });
       saveToLocalStorage(newPrefs);
-    } catch (error: any) {
-      console.error('Failed to load interface preferences:', error);
+    } catch (err) {
+      console.error('Failed to load interface preferences:', err);
       // Use localStorage fallback
       const localPrefs = loadFromLocalStorage();
       set({ ...localPrefs, initialized: true });
@@ -106,7 +106,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
 
     try {
       await api.put('/user/preferences/interface', { theme });
-    } catch (error: any) {
+    } catch {
       set({ theme: prevTheme });
       message.error('Failed to save theme preference');
     }
@@ -119,7 +119,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
 
     try {
       await api.put('/user/preferences/interface', { language });
-    } catch (error: any) {
+    } catch {
       set({ language: prevLanguage });
       message.error('Failed to save language preference');
     }
@@ -132,7 +132,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
 
     try {
       await api.put('/user/preferences/interface', { tts_voice: ttsVoice });
-    } catch (error: any) {
+    } catch {
       set({ ttsVoice: prevVoice });
       message.error('Failed to save TTS voice preference');
     }
@@ -145,7 +145,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
 
     try {
       await api.put('/user/preferences/interface', { stt_language: sttLanguage });
-    } catch (error: any) {
+    } catch {
       set({ sttLanguage: prevLang });
       message.error('Failed to save STT language preference');
     }
@@ -158,7 +158,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
 
     try {
       await api.put('/user/preferences/interface', { message_density: messageDensity });
-    } catch (error: any) {
+    } catch {
       set({ messageDensity: prevDensity });
       message.error('Failed to save message density preference');
     }
@@ -171,7 +171,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
 
     try {
       await api.put('/user/preferences/interface', { show_timestamps: showTimestamps });
-    } catch (error: any) {
+    } catch {
       set({ showTimestamps: prevShow });
       message.error('Failed to save timestamp preference');
     }
@@ -184,7 +184,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
 
     try {
       await api.put('/user/preferences/interface', { enable_markdown: enableMarkdown });
-    } catch (error: any) {
+    } catch {
       set({ enableMarkdown: prevEnable });
       message.error('Failed to save markdown preference');
     }
@@ -199,7 +199,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
       await api.put('/user/preferences/interface', {
         enable_code_highlighting: enableCodeHighlighting,
       });
-    } catch (error: any) {
+    } catch {
       set({ enableCodeHighlighting: prevEnable });
       message.error('Failed to save code highlighting preference');
     }
@@ -213,7 +213,7 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
 
     try {
       // Convert to snake_case for backend
-      const backendPrefs: any = {};
+      const backendPrefs: Record<string, string | boolean> = {};
       if (prefs.theme !== undefined) backendPrefs.theme = prefs.theme;
       if (prefs.language !== undefined) backendPrefs.language = prefs.language;
       if (prefs.ttsVoice !== undefined) backendPrefs.tts_voice = prefs.ttsVoice;
@@ -226,10 +226,10 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
 
       await api.put('/user/preferences/interface', backendPrefs);
       message.success('Preferences saved successfully');
-    } catch (error: any) {
+    } catch (err) {
       set(currentState);
       message.error('Failed to save preferences');
-      throw error;
+      throw err;
     }
   },
 

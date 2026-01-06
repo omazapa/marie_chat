@@ -15,7 +15,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSettings } from '@/hooks/useSettings';
 import { useSpeech } from '@/hooks/useSpeech';
 
-const { Text, Paragraph } = Typography;
+const { Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
