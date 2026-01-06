@@ -209,17 +209,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               )}
             </div>
           </Space>
-
-          <Button
-            type="text"
-            icon={<SettingOutlined />}
-            onClick={handleOpenModelSelector}
-            block
-            disabled={isSelectionMode}
-            style={{ marginTop: 8, color: whiteLabel.primary_color }}
-          >
-            Configure Model
-          </Button>
         </div>
 
         {/* Search Conversations */}

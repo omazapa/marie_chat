@@ -41,7 +41,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
   const [model, setModel] = useState<string>(selectedModel);
   const [loading, setLoading] = useState(false);
 
-  const { models, loading: loadingModels } = useModels(accessToken || '');
+  const { models, loading: loadingModels, fetchModels } = useModels(accessToken || '');
 
   // Load providers
   useEffect(() => {
@@ -74,8 +74,10 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
 
     if (open) {
       fetchProviders();
+      // Refresh models when modal opens
+      fetchModels(true);
     }
-  }, [open, currentConversation, message]);
+  }, [open, currentConversation, message, fetchModels]);
 
   // Update parent when selections change
   useEffect(() => {
@@ -166,8 +168,8 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                 loading={loadingModels}
                 optionLabelProp="label"
               >
-                {providerType && models[providerType]
-                  ? models[providerType].map((m) => (
+                {providerId && models[providerId]
+                  ? models[providerId].map((m) => (
                       <Select.Option key={m.id} value={m.id} label={m.name || m.id}>
                         <Space orientation="vertical" size={0}>
                           <Text strong>{m.name || m.id}</Text>
