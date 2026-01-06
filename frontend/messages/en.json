@@ -93,6 +93,7 @@
       "showTimestamps": "Show Timestamps",
       "enableMarkdown": "Enable Markdown Rendering",
       "enableCodeHighlighting": "Enable Code Syntax Highlighting",
+      "savePreferences": "Save Preferences",
       "preferencesUpdated": "Interface preferences saved successfully"
     },
 
