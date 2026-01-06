@@ -14,7 +14,6 @@ import {
   SettingOutlined,
   FileOutlined,
   LinkOutlined,
-  PlusOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons';
@@ -777,16 +776,6 @@ export default function ChatContainer() {
                     </div>
                   </div>
                   <Space orientation="horizontal" size="small">
-                    <Tooltip title="New Chat">
-                      <Button
-                        icon={<PlusOutlined />}
-                        onClick={handleNewConversation}
-                        size="small"
-                        type="text"
-                      >
-                        New Chat
-                      </Button>
-                    </Tooltip>
                     <Tooltip title="Change model">
                       <Button
                         icon={<SettingOutlined />}
