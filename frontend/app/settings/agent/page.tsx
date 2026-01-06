@@ -109,18 +109,48 @@ export default function AgentPage() {
 
     try {
       const { data } = await api.get(`/models/${providerType}/${modelId}/config/schema`);
-      setModelSchema(data.schema || null);
+      // Use raw_schema if available, otherwise null
+      const schema = data.raw_schema || null;
+      setModelSchema(schema);
 
       // Load saved values for this model
-      const { data: valuesData } = await api.get(
-        `/models/${providerType}/${modelId}/config/values`
-      );
-      if (valuesData.parameters) {
-        setDynamicParams(valuesData.parameters);
-        // Update form with dynamic parameters
-        Object.keys(valuesData.parameters).forEach((key) => {
-          form.setFieldValue(key, valuesData.parameters[key]);
-        });
+      try {
+        const { data: valuesData } = await api.get(
+          `/models/${providerType}/${modelId}/config/values`
+        );
+
+        if (valuesData && Object.keys(valuesData).length > 0) {
+          // Use saved values
+          setDynamicParams(valuesData);
+          // Set all fields at once to avoid multiple re-renders
+          form.setFieldsValue(valuesData);
+        } else if (schema?.properties) {
+          // No saved values, use defaults from schema
+          const defaults: any = {};
+          Object.keys(schema.properties).forEach((key) => {
+            const defaultValue = schema.properties[key].default;
+            if (defaultValue !== undefined) {
+              defaults[key] = defaultValue;
+            }
+          });
+          setDynamicParams(defaults);
+          // Set all fields at once
+          form.setFieldsValue(defaults);
+        }
+      } catch (valuesError) {
+        // If loading values fails, use schema defaults
+        if (schema?.properties) {
+          const defaults: any = {};
+          Object.keys(schema.properties).forEach((key) => {
+            const defaultValue = schema.properties[key].default;
+            if (defaultValue !== undefined) {
+              defaults[key] = defaultValue;
+            }
+          });
+          setDynamicParams(defaults);
+          // Set all fields at once
+          form.setFieldsValue(defaults);
+        }
       }
     } catch (error) {
       console.error('Failed to load model schema', error);
@@ -160,7 +190,7 @@ export default function AgentPage() {
 
           if (Object.keys(dynamicParamsPayload).length > 0) {
             await api.post(`/models/${provider.type}/${selectedModel}/config/values`, {
-              parameters: dynamicParamsPayload,
+              config_values: dynamicParamsPayload,
             });
           }
         }
@@ -188,13 +218,15 @@ export default function AgentPage() {
       return (
         <Form.Item
           key={key}
-          label={key
-            .split('_')
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(' ')}
+          label={
+            property.title ||
+            key
+              .split('_')
+              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(' ')
+          }
           name={key}
           help={description}
-          valuePropName="checked"
         >
           <Radio.Group>
             <Radio.Button value={true}>Enabled</Radio.Button>
@@ -208,10 +240,13 @@ export default function AgentPage() {
       return (
         <Form.Item
           key={key}
-          label={key
-            .split('_')
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(' ')}
+          label={
+            property.title ||
+            key
+              .split('_')
+              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(' ')
+          }
           name={key}
           help={description}
         >
@@ -228,10 +263,13 @@ export default function AgentPage() {
       return (
         <Form.Item
           key={key}
-          label={key
-            .split('_')
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(' ')}
+          label={
+            property.title ||
+            key
+              .split('_')
+              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(' ')
+          }
           name={key}
           help={description}
         >
@@ -253,10 +291,13 @@ export default function AgentPage() {
       return (
         <Form.Item
           key={key}
-          label={key
-            .split('_')
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(' ')}
+          label={
+            property.title ||
+            key
+              .split('_')
+              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(' ')
+          }
           name={key}
           help={description}
         >
@@ -332,27 +373,29 @@ export default function AgentPage() {
             </Card>
           )}
 
-        <Card title="Model Parameters" style={{ marginBottom: 24 }}>
-          <Form.Item label="Temperature" name="temperature">
-            <Slider min={0} max={2} step={0.1} marks={{ 0: '0', 1: '1', 2: '2' }} />
-          </Form.Item>
+        {!modelSchema && (
+          <Card title="Model Parameters" style={{ marginBottom: 24 }}>
+            <Form.Item label="Temperature" name="temperature">
+              <Slider min={0} max={2} step={0.1} marks={{ 0: '0', 1: '1', 2: '2' }} />
+            </Form.Item>
 
-          <Form.Item label="Max Tokens" name="max_tokens">
-            <Slider min={1} max={8192} step={1} marks={{ 1: '1', 2048: '2048', 8192: '8192' }} />
-          </Form.Item>
+            <Form.Item label="Max Tokens" name="max_tokens">
+              <Slider min={1} max={8192} step={1} marks={{ 1: '1', 2048: '2048', 8192: '8192' }} />
+            </Form.Item>
 
-          <Form.Item label="Top P" name="top_p">
-            <Slider min={0} max={1} step={0.05} marks={{ 0: '0', 0.5: '0.5', 1: '1' }} />
-          </Form.Item>
+            <Form.Item label="Top P" name="top_p">
+              <Slider min={0} max={1} step={0.05} marks={{ 0: '0', 0.5: '0.5', 1: '1' }} />
+            </Form.Item>
 
-          <Form.Item label="Frequency Penalty" name="frequency_penalty">
-            <Slider min={0} max={2} step={0.1} marks={{ 0: '0', 1: '1', 2: '2' }} />
-          </Form.Item>
+            <Form.Item label="Frequency Penalty" name="frequency_penalty">
+              <Slider min={0} max={2} step={0.1} marks={{ 0: '0', 1: '1', 2: '2' }} />
+            </Form.Item>
 
-          <Form.Item label="Presence Penalty" name="presence_penalty">
-            <Slider min={0} max={2} step={0.1} marks={{ 0: '0', 1: '1', 2: '2' }} />
-          </Form.Item>
-        </Card>
+            <Form.Item label="Presence Penalty" name="presence_penalty">
+              <Slider min={0} max={2} step={0.1} marks={{ 0: '0', 1: '1', 2: '2' }} />
+            </Form.Item>
+          </Card>
+        )}
 
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={loading} size="large">
