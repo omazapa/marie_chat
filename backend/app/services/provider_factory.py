@@ -247,17 +247,20 @@ def initialize_providers():
                 continue  # Skip disabled providers
 
             provider_type = provider_data.get("type")
+            provider_id = provider_data.get("id")
             provider_config = provider_data.get("config", {})
 
             if provider_type not in provider_classes:
                 print(f"⚠️ Unknown provider type: {provider_type}")
                 continue
 
-            # Register provider using type as key (for backward compatibility)
-            # Multiple providers of same type will overwrite (last one wins)
-            # In the future, could use unique keys like "ollama-1", "ollama-2"
+            if not provider_id:
+                print(f"⚠️ Provider missing ID: {provider_data}")
+                continue
+
+            # Register provider using ID as key (supports multiple providers of same type)
             provider_factory.register_provider(
-                provider_type,
+                provider_id,
                 provider_classes[provider_type],
                 provider_config,
             )

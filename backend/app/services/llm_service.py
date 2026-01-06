@@ -68,26 +68,29 @@ class LLMService:
             model = model or config.get("llm", {}).get("default_model", "llama3.2")
             provider = provider or config.get("llm", {}).get("default_provider", "ollama")
 
-        # Get provider name from settings
+        # Get provider ID and name from settings
+        provider_id = None
         provider_name = None
         providers_list = config.get("providers", [])
         if isinstance(providers_list, list):
             # Try to find by provider_id first (from default_provider_id)
-            provider_id = config.get("llm", {}).get("default_provider_id")
-            if provider_id:
+            default_provider_id = config.get("llm", {}).get("default_provider_id")
+            if default_provider_id:
                 matching_provider = next(
-                    (p for p in providers_list if p.get("id") == provider_id), None
+                    (p for p in providers_list if p.get("id") == default_provider_id), None
                 )
                 if matching_provider:
+                    provider_id = matching_provider.get("id")
                     provider_name = matching_provider.get("name")
 
             # Fallback: find first enabled provider matching type
-            if not provider_name:
+            if not provider_id:
                 matching_provider = next(
                     (p for p in providers_list if p.get("type") == provider and p.get("enabled")),
                     None,
                 )
                 if matching_provider:
+                    provider_id = matching_provider.get("id")
                     provider_name = matching_provider.get("name")
 
         conversation_id = str(uuid.uuid4())
@@ -99,6 +102,7 @@ class LLMService:
             "title": title,
             "model": model,
             "provider": provider,
+            "provider_id": provider_id,
             "provider_name": provider_name,
             "system_prompt": system_prompt,
             "settings": settings or {},
@@ -825,12 +829,17 @@ class LLMService:
         """Non-streaming chat completion"""
         # Get conversation to determine provider
         conversation = self.get_conversation(conversation_id, user_id)
-        provider_name = conversation.get("provider", "ollama") if conversation else "ollama"
+        # Use provider_id to get the correct provider instance
+        provider_id = conversation.get("provider_id") if conversation else None
+        if not provider_id:
+            # Fallback to default provider
+            config = self.settings_service.get_settings()
+            provider_id = config.get("llm", {}).get("default_provider_id", "ollama")
 
         # Get provider
-        provider = self.provider_factory.get_provider(provider_name)
+        provider = self.provider_factory.get_provider(provider_id)
         if not provider:
-            raise ValueError(f"Provider {provider_name} not found")
+            raise ValueError(f"Provider {provider_id} not found")
 
         # Convert messages to ChatMessage objects
         chat_messages = [ChatMessage(role=m["role"], content=m["content"]) for m in messages]
@@ -875,12 +884,12 @@ class LLMService:
 
         follow_ups = await self.generate_follow_ups(
             model=model,
-            provider_name=provider_name,
+            provider_name=provider_id,
             history=chat_messages + [ChatMessage(role="assistant", content=content)],
         )
 
         # Save assistant message
-        metadata = {"model": model, "provider": provider_name}
+        metadata = {"model": model, "provider": provider_id}
         if references_metadata:
             metadata["references"] = references_metadata
         if follow_ups:
@@ -918,13 +927,18 @@ class LLMService:
         print(f"[SERVICE] _stream_completion called for conversation {conversation_id}")
         # Get conversation to determine provider
         conversation = self.get_conversation(conversation_id, user_id)
-        provider_name = conversation.get("provider", "ollama") if conversation else "ollama"
-        print(f"[SERVICE] Using provider: {provider_name}, agent_config: {bool(agent_config)}")
+        # Use provider_id to get the correct provider instance
+        provider_id = conversation.get("provider_id") if conversation else None
+        if not provider_id:
+            # Fallback to default provider
+            config = self.settings_service.get_settings()
+            provider_id = config.get("llm", {}).get("default_provider_id", "ollama")
+        print(f"[SERVICE] Using provider_id: {provider_id}, agent_config: {bool(agent_config)}")
 
         # Get provider
-        provider = self.provider_factory.get_provider(provider_name)
+        provider = self.provider_factory.get_provider(provider_id)
         if not provider:
-            raise ValueError(f"Provider {provider_name} not found")
+            raise ValueError(f"Provider {provider_id} not found")
         print("[SERVICE] Got provider instance")
 
         # Convert messages to ChatMessage objects
@@ -986,11 +1000,11 @@ class LLMService:
                 # Generate follow-ups
                 follow_ups = await self.generate_follow_ups(
                     model=model,
-                    provider_name=provider_name,
+                    provider_name=provider_id,
                     history=chat_messages + [ChatMessage(role="assistant", content=full_content)],
                 )
 
-                metadata = {"model": model, "provider": provider_name}
+                metadata = {"model": model, "provider": provider_id}
                 if references_metadata:
                     metadata["references"] = references_metadata
                 if follow_ups:
@@ -1028,11 +1042,11 @@ class LLMService:
             # Generate follow-ups even if done flag was missing
             follow_ups = await self.generate_follow_ups(
                 model=model,
-                provider_name=provider_name,
+                provider_name=provider_id,
                 history=chat_messages + [ChatMessage(role="assistant", content=full_content)],
             )
 
-            metadata = {"model": model, "provider": provider_name}
+            metadata = {"model": model, "provider": provider_id}
             if references_metadata:
                 metadata["references"] = references_metadata
             if follow_ups:

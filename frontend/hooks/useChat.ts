@@ -80,26 +80,38 @@ export function useChat(
     [clearStreamingState]
   );
 
-  const handleStreamChunk = useCallback((chunk: StreamChunk) => {
-    if (chunk.content) {
-      // Update ref immediately (synchronous)
-      streamingContentRef.current[chunk.conversation_id] =
-        (streamingContentRef.current[chunk.conversation_id] || '') + chunk.content;
+  const handleStreamChunk = useCallback(
+    (chunk: StreamChunk) => {
+      if (chunk.content) {
+        // Update ref immediately (synchronous)
+        streamingContentRef.current[chunk.conversation_id] =
+          (streamingContentRef.current[chunk.conversation_id] || '') + chunk.content;
 
-      const currentContent = streamingContentRef.current[chunk.conversation_id];
+        const currentContent = streamingContentRef.current[chunk.conversation_id];
 
-      // Update state for smooth rendering with Ant Design X typing animation
-      setStreamingMessages((prev) => ({
-        ...prev,
-        [chunk.conversation_id]: currentContent,
-      }));
-    }
+        // Update state for smooth rendering with Ant Design X typing animation
+        setStreamingMessages((prev) => ({
+          ...prev,
+          [chunk.conversation_id]: currentContent,
+        }));
 
-    // If we get follow-ups in a chunk, we can store them
-    if (chunk.follow_ups && chunk.follow_ups.length > 0) {
-      // Follow-ups are stored in the chunk
-    }
-  }, []);
+        // Reset timeout on each chunk to prevent premature cleanup
+        if (streamingTimeoutsRef.current[chunk.conversation_id]) {
+          clearTimeout(streamingTimeoutsRef.current[chunk.conversation_id]);
+        }
+        streamingTimeoutsRef.current[chunk.conversation_id] = setTimeout(() => {
+          console.warn(`Stream timeout for conversation ${chunk.conversation_id}, forcing cleanup`);
+          clearStreamingState(chunk.conversation_id);
+        }, 60000);
+      }
+
+      // If we get follow-ups in a chunk, we can store them
+      if (chunk.follow_ups && chunk.follow_ups.length > 0) {
+        // Follow-ups are stored in the chunk
+      }
+    },
+    [clearStreamingState]
+  );
 
   const handleStreamEnd = useCallback(
     async (data: { conversation_id: string; message?: Message }) => {
