@@ -951,7 +951,7 @@ export default function ChatContainer() {
           <AgentConfigPanel
             visible={showAgentConfigPanel}
             onClose={() => setShowAgentConfigPanel(false)}
-            provider={currentConversation.provider}
+            provider={currentConversation.provider_id || currentConversation.provider}
             modelId={currentConversation.model}
             modelName={currentConversation.model}
             conversationId={currentConversation.id}

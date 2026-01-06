@@ -53,14 +53,14 @@ interface AgentConfigStore {
   error: string | null;
 
   // Actions
-  fetchSchema: (provider: string, modelId: string) => Promise<ConfigSchema | null>;
+  fetchSchema: (providerId: string, modelId: string) => Promise<ConfigSchema | null>;
   loadConfig: (
-    provider: string,
+    providerId: string,
     modelId: string,
     conversationId?: string
   ) => Promise<Record<string, ConfigValue>>;
   saveConfig: (
-    provider: string,
+    providerId: string,
     modelId: string,
     configValues: Record<string, ConfigValue>,
     scope: 'global' | 'conversation',
@@ -96,8 +96,8 @@ export const useAgentConfig = create<AgentConfigStore>((set, get) => ({
   loading: false,
   error: null,
 
-  fetchSchema: async (provider: string, modelId: string) => {
-    const schemaKey = getSchemaKey(provider, modelId);
+  fetchSchema: async (providerId: string, modelId: string) => {
+    const schemaKey = getSchemaKey(providerId, modelId);
 
     // Return cached schema if available
     const cached = get().schemas[schemaKey];
@@ -109,7 +109,7 @@ export const useAgentConfig = create<AgentConfigStore>((set, get) => ({
 
     try {
       const response = await apiClient.get<ConfigSchema>(
-        `/models/${provider}/${modelId}/config/schema`
+        `/models/${providerId}/${modelId}/config/schema`
       );
 
       const schema = response.data;
@@ -135,8 +135,8 @@ export const useAgentConfig = create<AgentConfigStore>((set, get) => ({
     }
   },
 
-  loadConfig: async (provider: string, modelId: string, conversationId?: string) => {
-    const configKey = getConfigKey(provider, modelId, conversationId);
+  loadConfig: async (providerId: string, modelId: string, conversationId?: string) => {
+    const configKey = getConfigKey(providerId, modelId, conversationId);
 
     set({ loading: true, error: null });
 
@@ -147,7 +147,7 @@ export const useAgentConfig = create<AgentConfigStore>((set, get) => ({
       }
 
       const response = await apiClient.get<Record<string, ConfigValue>>(
-        `/models/${provider}/${modelId}/config/values`,
+        `/models/${providerId}/${modelId}/config/values`,
         { params }
       );
 
@@ -175,7 +175,7 @@ export const useAgentConfig = create<AgentConfigStore>((set, get) => ({
   },
 
   saveConfig: async (
-    provider: string,
+    providerId: string,
     modelId: string,
     configValues: Record<string, ConfigValue>,
     scope: 'global' | 'conversation',
@@ -190,12 +190,12 @@ export const useAgentConfig = create<AgentConfigStore>((set, get) => ({
       }
 
       await apiClient.post(
-        `/models/${provider}/${modelId}/config/values`,
+        `/models/${providerId}/${modelId}/config/values`,
         { config_values: configValues },
         { params }
       );
 
-      const configKey = getConfigKey(provider, modelId, conversationId);
+      const configKey = getConfigKey(providerId, modelId, conversationId);
 
       set((state) => ({
         configs: {
