@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Form, Select, Slider, Card, Button, Input, Radio, App } from 'antd';
+import { Form, Select, Slider, Card, Button, Input, Radio, App, Collapse } from 'antd';
 import api from '@/lib/api';
+import { useModels } from '@/hooks/useModels';
+import { useAuthStore } from '@/stores/authStore';
 
 const { TextArea } = Input;
 
@@ -10,6 +12,7 @@ interface Provider {
   id: string;
   name: string;
   type: string;
+  enabled: boolean;
 }
 
 interface Model {
@@ -34,10 +37,12 @@ interface ModelSchema {
 
 export default function AgentPage() {
   const { message } = App.useApp();
+  const { accessToken } = useAuthStore();
+  const { models: allModels, fetchModels } = useModels(accessToken || '');
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [models, setModels] = useState<Model[]>([]);
+  const [selectedProviderType, setSelectedProviderType] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [modelSchema, setModelSchema] = useState<ModelSchema | null>(null);
@@ -53,31 +58,17 @@ export default function AgentPage() {
     }
   }, [message]);
 
-  const loadModels = useCallback(
-    async (providerId: string) => {
-      try {
-        const provider = providers.find((p) => p.id === providerId);
-        if (provider) {
-          const { data } = await api.get(`/models/${provider.type}?provider_id=${providerId}`);
-          setModels(data.models || []);
-        }
-      } catch {
-        message.error('Failed to load models');
-      }
-    },
-    [providers, message]
-  );
-
   const loadModelSchema = useCallback(
-    async (providerType: string, modelId: string) => {
+    async (providerId: string, modelId: string) => {
       // Only load schema for agent providers
-      if (providerType !== 'agent') {
+      const provider = providers.find((p) => p.id === providerId);
+      if (!provider || provider.type !== 'agent') {
         setModelSchema(null);
         return;
       }
 
       try {
-        const { data } = await api.get(`/models/${providerType}/${modelId}/config/schema`);
+        const { data } = await api.get(`/models/${providerId}/${modelId}/config/schema`);
         // Use raw_schema if available, otherwise null
         const schema = data.raw_schema || null;
         setModelSchema(schema);
@@ -85,7 +76,7 @@ export default function AgentPage() {
         // Load saved values for this model
         try {
           const { data: valuesData } = await api.get(
-            `/models/${providerType}/${modelId}/config/values`
+            `/models/${providerId}/${modelId}/config/values`
           );
 
           if (valuesData && Object.keys(valuesData).length > 0) {
@@ -123,14 +114,25 @@ export default function AgentPage() {
         setModelSchema(null);
       }
     },
-    [form, message]
+    [form, message, providers]
   );
 
   const loadPreferences = useCallback(async () => {
     try {
       const { data } = await api.get('/user/preferences');
       const agentPrefs = data.agent_preferences || {};
+
+      // Infer provider_type from provider_id if not provided
+      let providerType = agentPrefs.provider_type;
+      if (agentPrefs.default_provider_id && !providerType) {
+        const provider = providers.find((p) => p.id === agentPrefs.default_provider_id);
+        if (provider) {
+          providerType = provider.type;
+        }
+      }
+
       form.setFieldsValue({
+        provider_type: providerType,
         default_provider_id: agentPrefs.default_provider_id,
         default_model: agentPrefs.default_model,
         system_prompt: agentPrefs.system_prompt,
@@ -141,25 +143,32 @@ export default function AgentPage() {
         frequency_penalty: agentPrefs.parameters?.frequency_penalty ?? 0.0,
         presence_penalty: agentPrefs.parameters?.presence_penalty ?? 0.0,
       });
+
+      if (providerType) {
+        setSelectedProviderType(providerType);
+      }
       if (agentPrefs.default_provider_id) {
         setSelectedProvider(agentPrefs.default_provider_id);
-        loadModels(agentPrefs.default_provider_id);
         if (agentPrefs.default_model) {
           setSelectedModel(agentPrefs.default_model);
-          const provider = providers.find((p) => p.id === agentPrefs.default_provider_id);
-          if (provider) {
-            loadModelSchema(provider.type, agentPrefs.default_model);
-          }
+          loadModelSchema(agentPrefs.default_provider_id, agentPrefs.default_model);
         }
       }
     } catch {
       message.error('Failed to load preferences');
     }
-  }, [form, loadModels, loadModelSchema, providers, message]);
+  }, [form, loadModelSchema, providers, message]);
 
   useEffect(() => {
     loadProviders();
   }, [loadProviders]);
+
+  useEffect(() => {
+    // Refresh models when page loads
+    if (accessToken) {
+      fetchModels(true);
+    }
+  }, [accessToken, fetchModels]);
 
   useEffect(() => {
     if (providersLoaded) {
@@ -167,21 +176,26 @@ export default function AgentPage() {
     }
   }, [providersLoaded, loadPreferences]);
 
+  const handleProviderTypeChange = (providerType: string) => {
+    setSelectedProviderType(providerType);
+    setSelectedProvider(null);
+    setSelectedModel(null);
+    setModelSchema(null);
+    form.setFieldValue('default_provider_id', null);
+    form.setFieldValue('default_model', null);
+  };
+
   const handleProviderChange = (providerId: string) => {
     setSelectedProvider(providerId);
     setSelectedModel(null);
     setModelSchema(null);
     form.setFieldValue('default_model', null);
-    loadModels(providerId);
   };
 
   const handleModelChange = async (modelId: string) => {
     setSelectedModel(modelId);
     if (selectedProvider) {
-      const provider = providers.find((p) => p.id === selectedProvider);
-      if (provider) {
-        await loadModelSchema(provider.type, modelId);
-      }
+      await loadModelSchema(selectedProvider, modelId);
     }
   };
 
@@ -190,6 +204,7 @@ export default function AgentPage() {
     try {
       // Save agent preferences
       const payload = {
+        provider_type: values.provider_type,
         default_provider_id: values.default_provider_id,
         default_model: values.default_model,
         system_prompt: values.system_prompt,
@@ -206,20 +221,17 @@ export default function AgentPage() {
 
       // Save dynamic model parameters if we have a schema
       if (selectedProvider && selectedModel && modelSchema) {
-        const provider = providers.find((p) => p.id === selectedProvider);
-        if (provider) {
-          const dynamicParamsPayload: Record<string, unknown> = {};
-          Object.keys(modelSchema.properties || {}).forEach((key) => {
-            if (values[key] !== undefined) {
-              dynamicParamsPayload[key] = values[key];
-            }
-          });
-
-          if (Object.keys(dynamicParamsPayload).length > 0) {
-            await api.post(`/models/${provider.type}/${selectedModel}/config/values`, {
-              config_values: dynamicParamsPayload,
-            });
+        const dynamicParamsPayload: Record<string, unknown> = {};
+        Object.keys(modelSchema.properties || {}).forEach((key) => {
+          if (values[key] !== undefined) {
+            dynamicParamsPayload[key] = values[key];
           }
+        });
+
+        if (Object.keys(dynamicParamsPayload).length > 0) {
+          await api.post(`/models/${selectedProvider}/${selectedModel}/config/values`, {
+            config_values: dynamicParamsPayload,
+          });
         }
       }
 
@@ -339,22 +351,50 @@ export default function AgentPage() {
 
       <Form form={form} layout="vertical" onFinish={handleSave} autoComplete="off">
         <Card title="Model Selection" style={{ marginBottom: 24 }}>
-          <Form.Item label="Default Provider" name="default_provider_id">
+          <Form.Item label="Provider Type" name="provider_type">
             <Select
-              placeholder="Select a provider"
+              placeholder="Select provider type"
               size="large"
-              onChange={handleProviderChange}
-              options={providers.map((p) => ({ label: p.name, value: p.id }))}
+              onChange={handleProviderTypeChange}
+              options={['ollama', 'openai', 'huggingface', 'agent']
+                .filter((type) => providers.some((p) => p.type === type && p.enabled))
+                .map((type) => ({
+                  label:
+                    type === 'ollama'
+                      ? 'Ollama (Local)'
+                      : type === 'openai'
+                        ? 'OpenAI / Compatible'
+                        : type === 'huggingface'
+                          ? 'HuggingFace'
+                          : 'External Agent',
+                  value: type,
+                }))}
             />
           </Form.Item>
 
-          <Form.Item label="Default Model" name="default_model">
+          <Form.Item label="Account/Instance" name="default_provider_id">
+            <Select
+              placeholder="Select instance"
+              size="large"
+              disabled={!selectedProviderType}
+              onChange={handleProviderChange}
+              options={providers
+                .filter((p) => p.enabled && p.type === selectedProviderType)
+                .map((p) => ({ label: p.name, value: p.id }))}
+            />
+          </Form.Item>
+
+          <Form.Item label="Model" name="default_model">
             <Select
               placeholder="Select a model"
               size="large"
               disabled={!selectedProvider}
               onChange={handleModelChange}
-              options={models.map((m) => ({ label: m.id, value: m.id }))}
+              options={
+                selectedProvider && allModels[selectedProvider]
+                  ? allModels[selectedProvider].map((m) => ({ label: m.name || m.id, value: m.id }))
+                  : []
+              }
             />
           </Form.Item>
 
@@ -368,58 +408,52 @@ export default function AgentPage() {
           </Form.Item>
         </Card>
 
-        <Card title="System Prompt" style={{ marginBottom: 24 }}>
-          <Form.Item
-            label="Custom System Prompt"
-            name="system_prompt"
-            help="Override the default system prompt for the AI agent"
-          >
-            <TextArea
-              rows={6}
-              placeholder="You are a helpful assistant..."
-              maxLength={5000}
-              showCount
-            />
-          </Form.Item>
-        </Card>
-
         {modelSchema &&
           modelSchema.properties &&
           Object.keys(modelSchema.properties).length > 0 && (
-            <Card
-              title={`${selectedModel} - Dynamic Parameters`}
+            <Collapse
               style={{ marginBottom: 24 }}
-              extra={<span style={{ fontSize: 12, color: '#999' }}>Model-specific settings</span>}
-            >
-              {Object.keys(modelSchema.properties).map((key) =>
-                renderDynamicField(key, modelSchema.properties[key])
-              )}
-            </Card>
+              items={[
+                {
+                  key: 'dynamic_params',
+                  label: `${selectedModel} - Dynamic Parameters`,
+                  extra: (
+                    <span style={{ fontSize: 12, color: '#999' }}>Model-specific settings</span>
+                  ),
+                  children: (
+                    <div>
+                      {Object.keys(modelSchema.properties).map((key) =>
+                        renderDynamicField(key, modelSchema.properties[key])
+                      )}
+                    </div>
+                  ),
+                },
+              ]}
+            />
           )}
 
-        {!modelSchema && (
-          <Card title="Model Parameters" style={{ marginBottom: 24 }}>
-            <Form.Item label="Temperature" name="temperature">
-              <Slider min={0} max={2} step={0.1} marks={{ 0: '0', 1: '1', 2: '2' }} />
-            </Form.Item>
-
-            <Form.Item label="Max Tokens" name="max_tokens">
-              <Slider min={1} max={8192} step={1} marks={{ 1: '1', 2048: '2048', 8192: '8192' }} />
-            </Form.Item>
-
-            <Form.Item label="Top P" name="top_p">
-              <Slider min={0} max={1} step={0.05} marks={{ 0: '0', 0.5: '0.5', 1: '1' }} />
-            </Form.Item>
-
-            <Form.Item label="Frequency Penalty" name="frequency_penalty">
-              <Slider min={0} max={2} step={0.1} marks={{ 0: '0', 1: '1', 2: '2' }} />
-            </Form.Item>
-
-            <Form.Item label="Presence Penalty" name="presence_penalty">
-              <Slider min={0} max={2} step={0.1} marks={{ 0: '0', 1: '1', 2: '2' }} />
-            </Form.Item>
-          </Card>
-        )}
+        <Collapse
+          style={{ marginBottom: 24 }}
+          items={[
+            {
+              key: 'system_prompt',
+              label: 'System Prompt (Advanced)',
+              children: (
+                <Form.Item
+                  name="system_prompt"
+                  help="Override the default system prompt for the AI agent"
+                >
+                  <TextArea
+                    rows={6}
+                    placeholder="You are a helpful assistant..."
+                    maxLength={5000}
+                    showCount
+                  />
+                </Form.Item>
+              ),
+            },
+          ]}
+        />
 
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={loading} size="large">
