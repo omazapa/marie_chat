@@ -77,7 +77,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   ];
 
   return (
-    <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
+    <Layout style={{ minHeight: '100vh' }}>
       <Sider
         width={260}
         theme="light"
@@ -119,12 +119,11 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       <Layout style={{ marginLeft: 260 }}>
         <Header
           style={{
-            background: '#fff',
             padding: '0 24px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: '1px solid #e8e8e8',
+            borderBottom: '1px solid var(--ant-color-border-secondary, #e8e8e8)',
             height: '64px',
           }}
         >

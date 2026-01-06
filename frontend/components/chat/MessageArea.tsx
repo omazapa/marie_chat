@@ -91,7 +91,6 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
           justifyContent: 'center',
           alignItems: 'center',
           padding: '40px',
-          background: '#ffffff',
         }}
       >
         <Welcome
@@ -166,7 +165,6 @@ export const MessageArea: React.FC<MessageAreaProps> = ({
         style={{
           flex: 1,
           padding: '24px',
-          background: '#ffffff',
           minHeight: 0,
         }}
       >

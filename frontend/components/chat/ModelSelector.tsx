@@ -221,7 +221,7 @@ export default function ModelSelector({
         <Card
           size="small"
           style={{
-            background: '#f0f5ff',
+            background: 'var(--ant-color-primary-bg-hover, #f0f5ff)',
             border: '1px solid #adc6ff',
             borderRadius: '8px',
           }}

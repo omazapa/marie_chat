@@ -148,7 +148,7 @@ export const MessageItem = memo(
                       icon={<LinkOutlined />}
                       style={{
                         fontSize: '11px',
-                        background: '#e6f7ff',
+                        background: 'var(--ant-color-primary-bg, #e6f7ff)',
                         borderColor: '#91d5ff',
                         cursor: 'pointer',
                       }}
@@ -184,8 +184,14 @@ export const MessageItem = memo(
                     }
                     size={currentDensity.avatarSize}
                     style={{
-                      backgroundColor: msg.role === 'user' ? whiteLabel.primary_color : '#ffffff',
-                      border: msg.role === 'assistant' ? '1px solid #f0f0f0' : 'none',
+                      backgroundColor:
+                        msg.role === 'user'
+                          ? whiteLabel.primary_color
+                          : 'var(--ant-color-bg-container, #ffffff)',
+                      border:
+                        msg.role === 'assistant'
+                          ? '1px solid var(--ant-color-border, #f0f0f0)'
+                          : 'none',
                       padding: msg.role === 'assistant' ? '6px' : 0,
                       boxShadow: msg.role === 'assistant' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
                     }}
@@ -315,8 +321,12 @@ export const MessageItem = memo(
                 }
                 styles={{
                   content: {
-                    backgroundColor: msg.role === 'user' ? '#f0f5ff' : '#ffffff',
-                    border: msg.role === 'user' ? 'none' : '1px solid #f0f0f0',
+                    backgroundColor:
+                      msg.role === 'user'
+                        ? 'var(--ant-color-primary-bg, #f0f5ff)'
+                        : 'var(--ant-color-bg-container, #ffffff)',
+                    border:
+                      msg.role === 'user' ? 'none' : '1px solid var(--ant-color-border, #f0f0f0)',
                     borderRadius: '12px',
                     padding: '12px 16px',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.04)',

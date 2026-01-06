@@ -111,7 +111,7 @@ export const HTMLArtifact = memo(function HTMLArtifact({
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
               line-height: 1.5;
               color: #262626;
-              background-color: #ffffff;
+              background-color: var(--ant-color-bg-container);
               overflow-x: hidden;
             }
             * { box-sizing: border-box; }
@@ -129,7 +129,7 @@ export const HTMLArtifact = memo(function HTMLArtifact({
               height: 8px;
             }
             ::-webkit-scrollbar-track {
-              background: #f1f1f1;
+              background: var(--ant-color-fill-secondary);
             }
             ::-webkit-scrollbar-thumb {
               background: #ccc;
@@ -162,12 +162,16 @@ export const HTMLArtifact = memo(function HTMLArtifact({
         boxShadow: isStreaming ? '0 0 15px rgba(27, 75, 115, 0.1)' : '0 2px 8px rgba(0,0,0,0.05)',
       }}
       styles={{
-        header: { background: '#fafafa', padding: '8px 12px', borderBottom: '1px solid #f0f0f0' },
+        header: {
+          background: 'var(--ant-color-fill-quaternary, #fafafa)',
+          padding: '8px 12px',
+          borderBottom: '1px solid var(--ant-color-border, #f0f0f0)',
+        },
         body: {
           padding: 0,
           height: isExpanded ? '80vh' : '450px',
           position: 'relative',
-          background: '#fff',
+          background: 'var(--ant-color-bg-container)',
         },
       }}
       title={
@@ -263,7 +267,7 @@ export const HTMLArtifact = memo(function HTMLArtifact({
               width: '100%',
               height: '100%',
               border: 'none',
-              background: '#ffffff',
+              background: 'var(--ant-color-bg-container, #ffffff)',
               pointerEvents: isStreaming ? 'none' : 'auto',
             }}
             sandbox="allow-scripts allow-forms allow-popups allow-modals"

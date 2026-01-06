@@ -293,7 +293,10 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({
                 </Button>
               </div>
             }
-            style={{ background: '#f9f9f9', border: '1px solid #e6e6e6' }}
+            style={{
+              background: 'var(--ant-color-fill-quaternary, #f9f9f9)',
+              border: '1px solid var(--ant-color-border, #e6e6e6)',
+            }}
           >
             <TextArea
               rows={6}

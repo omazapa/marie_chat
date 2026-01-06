@@ -68,8 +68,12 @@ export const LatexArtifact = memo(function LatexArtifact({
         boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
       }}
       styles={{
-        header: { background: '#f8f9fa', padding: '8px 16px', borderBottom: '1px solid #f0f0f0' },
-        body: { padding: '24px', minHeight: '100px', background: '#ffffff' },
+        header: {
+          background: 'var(--ant-color-fill-quaternary, #f8f9fa)',
+          padding: '8px 16px',
+          borderBottom: '1px solid var(--ant-color-border, #f0f0f0)',
+        },
+        body: { padding: '24px', minHeight: '100px' },
       }}
       title={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -125,7 +129,7 @@ export const LatexArtifact = memo(function LatexArtifact({
           style={{
             margin: 0,
             padding: '12px',
-            background: '#fafafa',
+            background: 'var(--ant-color-fill-quaternary, #fafafa)',
             borderRadius: '4px',
             fontSize: '13px',
             overflowX: 'auto',

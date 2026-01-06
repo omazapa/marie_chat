@@ -308,7 +308,7 @@ export default function APIKeysPage() {
 
         <div
           style={{
-            background: '#f5f5f5',
+            background: 'var(--ant-color-fill-quaternary, #f5f5f5)',
             padding: '16px',
             borderRadius: '8px',
             display: 'flex',

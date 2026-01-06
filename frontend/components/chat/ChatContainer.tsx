@@ -573,7 +573,7 @@ export default function ChatContainer() {
           // Add a temporary highlight effect
           const originalBg = element.style.backgroundColor;
           element.style.transition = 'background-color 0.5s';
-          element.style.backgroundColor = '#e6f7ff';
+          element.style.backgroundColor = 'var(--ant-color-primary-bg, #e6f7ff)';
           setTimeout(() => {
             element.style.backgroundColor = originalBg || 'transparent';
           }, 2000);
@@ -642,7 +642,6 @@ export default function ChatContainer() {
           style={{
             display: 'flex',
             flexDirection: 'column',
-            background: '#ffffff',
             minWidth: 0,
             height: '100%',
           }}
@@ -677,7 +676,6 @@ export default function ChatContainer() {
                   style={{
                     padding: '16px 24px',
                     borderBottom: '1px solid #E2E8F0',
-                    background: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
                   }}
@@ -709,7 +707,6 @@ export default function ChatContainer() {
                   style={{
                     padding: '16px 24px',
                     borderBottom: '1px solid #E2E8F0',
-                    background: '#ffffff',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -845,7 +842,6 @@ export default function ChatContainer() {
             <div
               style={{
                 borderTop: '1px solid #E2E8F0',
-                background: '#ffffff',
                 padding: '16px 24px',
                 width: '100%',
                 boxSizing: 'border-box',

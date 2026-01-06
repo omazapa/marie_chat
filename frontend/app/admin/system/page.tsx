@@ -141,7 +141,13 @@ export default function SystemStats() {
                     </Col>
                   </Row>
                   {index < arr.length - 1 && (
-                    <div style={{ height: '1px', background: '#f0f0f0', marginTop: '24px' }} />
+                    <div
+                      style={{
+                        height: '1px',
+                        background: 'var(--ant-color-border, #f0f0f0)',
+                        marginTop: '24px',
+                      }}
+                    />
                   )}
                 </div>
               ))}
@@ -162,15 +168,15 @@ export default function SystemStats() {
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
                 <Text strong>Backend Framework:</Text> <Text>Flask 3.x</Text>
               </div>
-              <div style={{ height: '1px', background: '#f0f0f0' }} />
+              <div style={{ height: '1px', background: 'var(--ant-color-border, #f0f0f0)' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
                 <Text strong>Database:</Text> <Text>OpenSearch 2.11</Text>
               </div>
-              <div style={{ height: '1px', background: '#f0f0f0' }} />
+              <div style={{ height: '1px', background: 'var(--ant-color-border, #f0f0f0)' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
                 <Text strong>Frontend:</Text> <Text>Next.js 16.1 (React 19)</Text>
               </div>
-              <div style={{ height: '1px', background: '#f0f0f0' }} />
+              <div style={{ height: '1px', background: 'var(--ant-color-border, #f0f0f0)' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
                 <Text strong>Deployment:</Text> <Text>Docker Compose</Text>
               </div>

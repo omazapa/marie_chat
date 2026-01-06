@@ -183,7 +183,10 @@ export default function SystemSettings() {
 
     if (!selectedModel) {
       return (
-        <Card style={{ marginTop: 16, background: '#fff8e6' }} size="small">
+        <Card
+          style={{ marginTop: 16, background: 'var(--ant-color-warning-bg, #fff8e6)' }}
+          size="small"
+        >
           <Text type="secondary">Select an agent model to configure default parameters</Text>
         </Card>
       );
@@ -204,7 +207,10 @@ export default function SystemSettings() {
 
     if (agentConfigFields.length === 0) {
       return (
-        <Card style={{ marginTop: 16, background: '#f0f0f0' }} size="small">
+        <Card
+          style={{ marginTop: 16, background: 'var(--ant-color-fill-tertiary, #f0f0f0)' }}
+          size="small"
+        >
           <Text type="secondary">
             This agent does not expose any configurable parameters, or the schema could not be
             loaded.
@@ -214,7 +220,10 @@ export default function SystemSettings() {
     }
 
     return (
-      <Card style={{ marginTop: 16, background: '#fafafa' }} size="small">
+      <Card
+        style={{ marginTop: 16, background: 'var(--ant-color-fill-quaternary, #fafafa)' }}
+        size="small"
+      >
         <Title level={5}>Agent Default Parameters</Title>
         <Paragraph type="secondary" style={{ fontSize: '12px' }}>
           These parameters will be applied by default to all users. Users can override them in their

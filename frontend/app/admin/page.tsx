@@ -201,7 +201,9 @@ export default function AdminDashboard() {
                     </Tag>
                   </div>
                   {index < arr.length - 1 && (
-                    <div style={{ height: '1px', background: '#f0f0f0' }} />
+                    <div
+                      style={{ height: '1px', background: 'var(--ant-color-border, #f0f0f0)' }}
+                    />
                   )}
                 </React.Fragment>
               ))}
@@ -233,7 +235,7 @@ export default function AdminDashboard() {
                   <Space>
                     <div
                       style={{
-                        background: '#e6f7ff',
+                        background: 'var(--ant-color-primary-bg, #e6f7ff)',
                         padding: '8px',
                         borderRadius: '8px',
                         color: '#1890ff',
@@ -262,7 +264,7 @@ export default function AdminDashboard() {
                   <Space>
                     <div
                       style={{
-                        background: '#f6ffed',
+                        background: 'var(--ant-color-success-bg, #f6ffed)',
                         padding: '8px',
                         borderRadius: '8px',
                         color: '#52c41a',
@@ -291,7 +293,7 @@ export default function AdminDashboard() {
                   <Space>
                     <div
                       style={{
-                        background: '#fff7e6',
+                        background: 'var(--ant-color-warning-bg, #fff7e6)',
                         padding: '8px',
                         borderRadius: '8px',
                         color: '#faad14',

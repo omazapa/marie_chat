@@ -620,7 +620,10 @@ export const MarkdownContent = memo(function MarkdownContent({
               <Think
                 title="Reasoning Process"
                 defaultExpanded={false}
-                style={{ background: '#f8f9fa', border: '1px solid #e9ecef' }}
+                style={{
+                  background: 'var(--ant-color-fill-quaternary, #f8f9fa)',
+                  border: '1px solid var(--ant-color-border-secondary, #e9ecef)',
+                }}
               >
                 <div style={{ fontSize: '13px', color: '#495057', lineHeight: '1.6' }}>
                   <MarkdownContent content={codeContent} isStreaming={isStreaming} />

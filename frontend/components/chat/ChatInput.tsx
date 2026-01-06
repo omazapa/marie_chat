@@ -67,7 +67,6 @@ export const ChatInput = memo(
               top: '-40px',
               left: 0,
               right: 0,
-              background: '#fffbe6',
               padding: '8px 16px',
               border: '1px solid #ffe58f',
               borderRadius: '8px 8px 0 0',
@@ -75,6 +74,7 @@ export const ChatInput = memo(
               justifyContent: 'space-between',
               alignItems: 'center',
               zIndex: 5,
+              backgroundColor: 'var(--ant-color-warning-bg, #fffbe6)',
             }}
           >
             <span style={{ fontSize: '13px', color: '#856404' }}>Editing message...</span>

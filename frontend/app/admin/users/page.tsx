@@ -117,7 +117,7 @@ export default function UserManagement() {
               width: '32px',
               height: '32px',
               borderRadius: '50%',
-              background: '#f0f2f5',
+              background: 'var(--ant-color-fill-quaternary, #f0f2f5)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

@@ -236,7 +236,6 @@ export const ProviderManager: React.FC<ProviderManagerProps> = ({
                       key={provider.id}
                       size="small"
                       style={{
-                        background: '#fafafa',
                         borderLeft: `3px solid ${getProviderColor(provider.type)}`,
                       }}
                     >

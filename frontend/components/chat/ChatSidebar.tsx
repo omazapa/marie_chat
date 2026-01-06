@@ -363,8 +363,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         <div
           style={{
             padding: '16px 20px',
-            borderTop: '1px solid #f0f0f0',
-            background: '#fafafa',
+            borderTop: '1px solid var(--ant-color-border-secondary, #f0f0f0)',
+            background: 'var(--ant-color-bg-container, #fafafa)',
           }}
         >
           <div
@@ -397,11 +397,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 icon={<SafetyCertificateOutlined />}
                 block
                 size="small"
+                type="primary"
+                ghost
                 style={{
                   fontSize: '12px',
-                  background: '#f0f5ff',
-                  color: '#1d39c4',
-                  borderColor: '#adc6ff',
                 }}
               >
                 System Administration

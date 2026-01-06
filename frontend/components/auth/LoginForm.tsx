@@ -8,7 +8,6 @@ import axios from 'axios';
 import apiClient, { getErrorMessage } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useSettings } from '@/hooks/useSettings';
-import { useInterfaceStore } from '@/stores/interfaceStore';
 import type { LoginResponse } from '@/types';
 
 const { Title, Text, Link } = Typography;
@@ -20,14 +19,6 @@ export function LoginForm() {
   const { setAuth } = useAuthStore();
   const { message, notification } = useApp();
   const { whiteLabel } = useSettings();
-  const { theme } = useInterfaceStore();
-
-  // Determinar si estamos en dark mode
-  const isDark =
-    theme === 'dark' ||
-    (theme === 'auto' &&
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   // Prefetch chat page to improve perceived performance
   useState(() => {
@@ -74,10 +65,8 @@ export function LoginForm() {
         alignItems: 'center',
         minHeight: '100vh',
         width: '100%',
-        background: isDark ? '#141414' : '#f5f7f9',
-        backgroundImage: isDark
-          ? `radial-gradient(${whiteLabel.primary_color}40 0.5px, transparent 0.5px)`
-          : `radial-gradient(${whiteLabel.primary_color} 0.5px, transparent 0.5px)`,
+        background: '#f5f7f9',
+        backgroundImage: `radial-gradient(${whiteLabel.primary_color} 0.5px, transparent 0.5px)`,
         backgroundSize: '20px 20px',
         overflow: 'hidden',
       }}

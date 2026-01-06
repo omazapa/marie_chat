@@ -77,7 +77,9 @@ export const ReferenceModal: React.FC<ReferenceModalProps> = ({
                       padding: '12px',
                       borderRadius: '8px',
                       border: `1px solid ${referencedMsgIds.includes(msg.id) ? '#13c2c2' : '#f0f0f0'}`,
-                      background: referencedMsgIds.includes(msg.id) ? '#e6fffb' : '#ffffff',
+                      background: referencedMsgIds.includes(msg.id)
+                        ? 'var(--ant-color-success-bg, #e6fffb)'
+                        : 'var(--ant-color-bg-container, #ffffff)',
                       cursor: 'pointer',
                       transition: 'all 0.2s',
                     }}
@@ -138,7 +140,9 @@ export const ReferenceModal: React.FC<ReferenceModalProps> = ({
                     padding: '12px',
                     borderRadius: '8px',
                     border: `1px solid ${referencedConvIds.includes(conv.id) ? '#1890ff' : '#f0f0f0'}`,
-                    background: referencedConvIds.includes(conv.id) ? '#e6f7ff' : '#ffffff',
+                    background: referencedConvIds.includes(conv.id)
+                      ? 'var(--ant-color-primary-bg, #e6f7ff)'
+                      : 'var(--ant-color-bg-container, #ffffff)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
