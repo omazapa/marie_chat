@@ -7,11 +7,14 @@ export const marieTheme: ThemeConfig = {
     colorInfo: '#2D6A9F', // Azul primario light
     colorWarning: '#F39C12', // Naranja/Dorado para highlights
     colorError: '#E74C3C', // Rojo para alertas
+    colorPrimaryBg: '#d6eaff', // Fondo azul más claro para mensajes de usuario
     fontFamily: 'var(--font-inter)',
     fontSize: 16,
     borderRadius: 8,
     colorBgContainer: '#ffffff',
     colorBgLayout: '#f5f7f9',
+    colorText: '#1f1f1f', // Texto principal oscuro
+    colorTextSecondary: '#4a4a4a', // Texto secundario
   },
   components: {
     Button: {

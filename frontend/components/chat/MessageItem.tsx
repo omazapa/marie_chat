@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo } from 'react';
-import { Typography, Tag, Tooltip, Button, Space, Avatar } from 'antd';
+import { Typography, Tag, Tooltip, Button, Space, Avatar, theme } from 'antd';
 import {
   LinkOutlined,
   RobotOutlined,
@@ -23,6 +23,7 @@ import { useInterfaceStore } from '@/stores/interfaceStore';
 import { Message, Attachment } from '@/types';
 
 const { Text } = Typography;
+const { useToken } = theme;
 
 interface MessageItemProps {
   msg: Message & { status?: 'loading' | 'success' | 'error' };
@@ -51,6 +52,7 @@ export const MessageItem = memo(
     const { whiteLabel } = useSettings();
     const { messageDensity, showTimestamps } = useInterfaceStore();
     const [copied, setCopied] = React.useState(false);
+    const { token } = useToken();
 
     // Density styles
     const densityStyles = {
@@ -321,12 +323,8 @@ export const MessageItem = memo(
                 }
                 styles={{
                   content: {
-                    backgroundColor:
-                      msg.role === 'user'
-                        ? 'var(--ant-color-primary-bg, #f0f5ff)'
-                        : 'var(--ant-color-bg-container, #ffffff)',
-                    border:
-                      msg.role === 'user' ? 'none' : '1px solid var(--ant-color-border, #f0f0f0)',
+                    backgroundColor: msg.role === 'user' ? '#d6eaff' : token.colorBgContainer,
+                    border: msg.role === 'user' ? 'none' : `1px solid ${token.colorBorder}`,
                     borderRadius: '12px',
                     padding: '12px 16px',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
