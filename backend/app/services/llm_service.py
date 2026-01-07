@@ -113,7 +113,7 @@ class LLMService:
         }
 
         self.client.index(
-            index="marie_conversations", id=conversation_id, body=conversation, refresh=True
+            index="marie_chat_conversations", id=conversation_id, body=conversation, refresh=True
         )
 
         return conversation
@@ -121,7 +121,7 @@ class LLMService:
     def get_conversation(self, conversation_id: str, user_id: str) -> dict[str, Any] | None:
         """Get a conversation by ID"""
         try:
-            result: Any = self.client.get(index="marie_conversations", id=conversation_id)
+            result: Any = self.client.get(index="marie_chat_conversations", id=conversation_id)
 
             conversation = result["_source"]
 
@@ -146,7 +146,7 @@ class LLMService:
                 "size": limit,
             }
 
-            result: Any = self.client.search(index="marie_conversations", body=query)
+            result: Any = self.client.search(index="marie_chat_conversations", body=query)
 
             conversations = [hit["_source"] for hit in result["hits"]["hits"]]
             return conversations
@@ -184,7 +184,9 @@ class LLMService:
                 "size": limit,
             }
 
-            title_result: Any = self.client.search(index="marie_conversations", body=title_query)
+            title_result: Any = self.client.search(
+                index="marie_chat_conversations", body=title_query
+            )
 
             conversation_hits = {}
             for hit in title_result["hits"]["hits"]:
@@ -231,7 +233,9 @@ class LLMService:
                 },
             }
 
-            message_result: Any = self.client.search(index="marie_messages", body=message_query)
+            message_result: Any = self.client.search(
+                index="marie_chat_messages", body=message_query
+            )
 
             conv_ids_from_messages = []
             message_highlights = {}
@@ -261,7 +265,7 @@ class LLMService:
             if missing_conv_ids:
                 missing_query = {"query": {"ids": {"values": missing_conv_ids}}}
                 missing_result: Any = self.client.search(
-                    index="marie_conversations", body=missing_query
+                    index="marie_chat_conversations", body=missing_query
                 )
                 for hit in missing_result["hits"]["hits"]:
                     conv = hit["_source"]
@@ -330,7 +334,7 @@ class LLMService:
             # Add k-NN search
             query["knn"] = {"content_vector": {"vector": query_vector, "k": limit}}
 
-            result: Any = self.client.search(index="marie_messages", body=query)
+            result: Any = self.client.search(index="marie_chat_messages", body=query)
 
             # Process results to include conversation title if possible
             hits = []
@@ -360,7 +364,10 @@ class LLMService:
             updates["updated_at"] = datetime.utcnow().isoformat()
 
             self.client.update(
-                index="marie_conversations", id=conversation_id, body={"doc": updates}, refresh=True
+                index="marie_chat_conversations",
+                id=conversation_id,
+                body={"doc": updates},
+                refresh=True,
             )
 
             return True
@@ -378,13 +385,13 @@ class LLMService:
 
             # Delete all messages in the conversation
             self.client.delete_by_query(
-                index="marie_messages",
+                index="marie_chat_messages",
                 body={"query": {"term": {"conversation_id": conversation_id}}},
                 refresh=True,
             )
 
             # Delete the conversation
-            self.client.delete(index="marie_conversations", id=conversation_id, refresh=True)
+            self.client.delete(index="marie_chat_conversations", id=conversation_id, refresh=True)
 
             return True
         except Exception as e:
@@ -396,7 +403,7 @@ class LLMService:
         try:
             # Delete all messages in these conversations
             self.client.delete_by_query(
-                index="marie_messages",
+                index="marie_chat_messages",
                 body={
                     "query": {
                         "bool": {
@@ -412,7 +419,7 @@ class LLMService:
 
             # Delete the conversations
             self.client.delete_by_query(
-                index="marie_conversations",
+                index="marie_chat_conversations",
                 body={
                     "query": {
                         "bool": {
@@ -468,7 +475,7 @@ class LLMService:
         if content_vector:
             message["content_vector"] = content_vector
 
-        self.client.index(index="marie_messages", id=message_id, body=message, refresh=True)
+        self.client.index(index="marie_chat_messages", id=message_id, body=message, refresh=True)
 
         # Update conversation metadata
         self._update_conversation_metadata(conversation_id)
@@ -493,7 +500,7 @@ class LLMService:
                 "size": limit,
             }
 
-            result: Any = self.client.search(index="marie_messages", body=query)
+            result: Any = self.client.search(index="marie_chat_messages", body=query)
 
             messages = [hit["_source"] for hit in result["hits"]["hits"]]
             messages.reverse()
@@ -525,7 +532,7 @@ class LLMService:
                 }
             }
 
-            self.client.delete_by_query(index="marie_messages", body=query, refresh=True)
+            self.client.delete_by_query(index="marie_chat_messages", body=query, refresh=True)
 
             # Update conversation metadata
             self._update_conversation_metadata(conversation_id)
@@ -539,7 +546,7 @@ class LLMService:
         try:
             # Count messages
             count_result: Any = self.client.count(
-                index="marie_messages",
+                index="marie_chat_messages",
                 body={"query": {"term": {"conversation_id": conversation_id}}},
             )
 
@@ -547,7 +554,7 @@ class LLMService:
             now = datetime.utcnow().isoformat()
 
             self.client.update(
-                index="marie_conversations",
+                index="marie_chat_conversations",
                 id=conversation_id,
                 body={
                     "doc": {
@@ -683,7 +690,7 @@ class LLMService:
             for msg in reversed(messages):
                 if msg["role"] == "assistant" and not assistant_deleted:
                     try:
-                        self.client.delete(index="marie_messages", id=msg["id"], refresh=True)
+                        self.client.delete(index="marie_chat_messages", id=msg["id"], refresh=True)
                         print(f"[SERVICE] Deleted assistant message {msg['id']}")
                         assistant_deleted = True
                     except Exception as e:
@@ -1187,7 +1194,7 @@ class LLMService:
             if title:
                 # Update conversation title
                 self.client.update(
-                    index="marie_conversations",
+                    index="marie_chat_conversations",
                     id=conversation_id,
                     body={"doc": {"title": title, "updated_at": datetime.utcnow().isoformat()}},
                     refresh=True,

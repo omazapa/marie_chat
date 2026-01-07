@@ -4,7 +4,7 @@ from app.db import opensearch_client
 
 # Index mappings
 INDICES = {
-    "marie_users": {
+    "marie_chat_users": {
         "mappings": {
             "properties": {
                 "id": {"type": "keyword"},
@@ -24,7 +24,7 @@ INDICES = {
         },
         "settings": {"number_of_shards": 1, "number_of_replicas": 1},
     },
-    "marie_conversations": {
+    "marie_chat_conversations": {
         "mappings": {
             "properties": {
                 "id": {"type": "keyword"},
@@ -46,7 +46,7 @@ INDICES = {
         },
         "settings": {"number_of_shards": 2, "number_of_replicas": 1},
     },
-    "marie_messages": {
+    "marie_chat_messages": {
         "mappings": {
             "properties": {
                 "id": {"type": "keyword"},
@@ -75,7 +75,7 @@ INDICES = {
         },
         "settings": {"number_of_shards": 3, "number_of_replicas": 1, "index.knn": True},
     },
-    "marie_api_keys": {
+    "marie_chat_api_keys": {
         "mappings": {
             "properties": {
                 "id": {"type": "keyword"},
@@ -92,7 +92,7 @@ INDICES = {
         },
         "settings": {"number_of_shards": 1, "number_of_replicas": 1},
     },
-    "marie_memory": {
+    "marie_chat_memory": {
         "mappings": {
             "properties": {
                 "id": {"type": "keyword"},
@@ -117,7 +117,7 @@ INDICES = {
         },
         "settings": {"number_of_shards": 1, "number_of_replicas": 1, "index.knn": True},
     },
-    "marie_agent_configs": {
+    "marie_chat_agent_configs": {
         "mappings": {
             "properties": {
                 "id": {"type": "keyword"},
@@ -133,7 +133,7 @@ INDICES = {
         },
         "settings": {"number_of_shards": 1, "number_of_replicas": 1},
     },
-    "marie_user_preferences": {
+    "marie_chat_user_preferences": {
         "mappings": {
             "properties": {
                 "user_id": {"type": "keyword"},

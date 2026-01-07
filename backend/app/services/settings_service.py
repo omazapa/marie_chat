@@ -10,7 +10,7 @@ class SettingsService:
     def __init__(self):
         self.opensearch = OpenSearchService()
         self.client = self.opensearch.client
-        self.index_name = "marie_settings"
+        self.index_name = "marie_chat_settings"
         self._ensure_index()
 
     def _ensure_index(self):

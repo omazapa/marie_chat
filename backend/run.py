@@ -6,6 +6,7 @@ Marie Backend Server
 import os
 
 from app import create_app, socketio
+from app.services.admin_init import init_admin_user
 from app.services.opensearch_init import init_opensearch_indices
 
 # Create Flask app
@@ -22,6 +23,12 @@ def init_app():
     except Exception as e:
         print(f"⚠️  Warning: Could not initialize OpenSearch indices: {e}")
         print("   Make sure OpenSearch is running and accessible")
+
+    # Initialize admin user if needed
+    try:
+        init_admin_user()
+    except Exception as e:
+        print(f"⚠️  Warning: Could not initialize admin user: {e}")
 
     print("✅ Initialization complete")
 

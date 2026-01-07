@@ -20,7 +20,7 @@ class UserSettingsService:
     def get_user_profile(self, user_id: str) -> dict[str, Any] | None:
         """Get user profile by ID."""
         try:
-            result = self.client.get(index="marie_users", id=user_id)
+            result = self.client.get(index="marie_chat_users", id=user_id)
             user = result["_source"]
             user["id"] = user_id
             # Remove sensitive data
@@ -44,7 +44,7 @@ class UserSettingsService:
             if email is not None:
                 # Check if email is already taken by another user
                 existing = self.client.search(
-                    index="marie_users",
+                    index="marie_chat_users",
                     body={"query": {"term": {"email.keyword": email}}},
                     size=1,
                 )
@@ -56,7 +56,7 @@ class UserSettingsService:
                 update_doc["email"] = email
 
             self.client.update(
-                index="marie_users",
+                index="marie_chat_users",
                 id=user_id,
                 body={"doc": update_doc},
                 retry_on_conflict=3,
@@ -71,7 +71,7 @@ class UserSettingsService:
         """Change user password after verifying current password."""
         try:
             # Get user
-            result = self.client.get(index="marie_users", id=user_id)
+            result = self.client.get(index="marie_chat_users", id=user_id)
             user = result["_source"]
             password_hash = user.get("password_hash")
 
@@ -87,7 +87,7 @@ class UserSettingsService:
 
             # Update password
             self.client.update(
-                index="marie_users",
+                index="marie_chat_users",
                 id=user_id,
                 body={
                     "doc": {
@@ -108,7 +108,7 @@ class UserSettingsService:
     def get_user_preferences(self, user_id: str) -> dict[str, Any]:
         """Get all user preferences."""
         try:
-            result = self.client.get(index="marie_user_preferences", id=user_id)
+            result = self.client.get(index="marie_chat_user_preferences", id=user_id)
             preferences = result["_source"]
             preferences["user_id"] = user_id
             return preferences
@@ -160,7 +160,7 @@ class UserSettingsService:
             current_prefs["updated_at"] = datetime.utcnow().isoformat()
 
             # Upsert to OpenSearch
-            self.client.index(index="marie_user_preferences", id=user_id, body=current_prefs)
+            self.client.index(index="marie_chat_user_preferences", id=user_id, body=current_prefs)
 
             return current_prefs
         except Exception as e:
@@ -176,7 +176,7 @@ class UserSettingsService:
             current_prefs["interface_preferences"].update(preferences)
             current_prefs["updated_at"] = datetime.utcnow().isoformat()
 
-            self.client.index(index="marie_user_preferences", id=user_id, body=current_prefs)
+            self.client.index(index="marie_chat_user_preferences", id=user_id, body=current_prefs)
 
             return current_prefs
         except Exception as e:
@@ -192,7 +192,7 @@ class UserSettingsService:
             current_prefs["privacy_preferences"].update(preferences)
             current_prefs["updated_at"] = datetime.utcnow().isoformat()
 
-            self.client.index(index="marie_user_preferences", id=user_id, body=current_prefs)
+            self.client.index(index="marie_chat_user_preferences", id=user_id, body=current_prefs)
 
             return current_prefs
         except Exception as e:
@@ -206,7 +206,7 @@ class UserSettingsService:
         try:
             # Delete conversations
             result = self.client.delete_by_query(
-                index="marie_conversations",
+                index="marie_chat_conversations",
                 body={"query": {"term": {"user_id": user_id}}},
             )
 
@@ -214,7 +214,7 @@ class UserSettingsService:
 
             # Also delete messages
             self.client.delete_by_query(
-                index="marie_messages", body={"query": {"term": {"user_id": user_id}}}
+                index="marie_chat_messages", body={"query": {"term": {"user_id": user_id}}}
             )
 
             return deleted_count

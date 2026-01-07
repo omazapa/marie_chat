@@ -20,7 +20,7 @@ class MemoryService:
 
     def __init__(self):
         self.client: OpenSearch = opensearch_client.client
-        self.index = "marie_memory"
+        self.index = "marie_chat_memory"
         self._embedding_model = None
         self.model_name = settings.EMBEDDING_MODEL
 

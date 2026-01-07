@@ -27,7 +27,7 @@ def create_admin(email, password, full_name):
 
             # Update existing user to admin
             service.client.update(
-                index="marie_users",
+                index="marie_chat_users",
                 id=user["id"],
                 body={
                     "doc": {

@@ -19,7 +19,7 @@ class APIKeyService:
 
     def __init__(self):
         self.client: OpenSearch = opensearch_client.client
-        self.index = "marie_api_keys"
+        self.index = "marie_chat_api_keys"
 
     def _hash_key(self, api_key: str) -> str:
         """Hash the API key for secure storage"""

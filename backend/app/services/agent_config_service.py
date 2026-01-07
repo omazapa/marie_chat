@@ -21,7 +21,7 @@ class AgentConfigService:
     Uses OpenSearch following MARIE's data persistence patterns.
     """
 
-    INDEX_NAME = "marie_agent_configs"
+    INDEX_NAME = "marie_chat_agent_configs"
 
     def __init__(self):
         self.client: OpenSearch = opensearch_client.client
@@ -167,7 +167,7 @@ class AgentConfigService:
         """
         try:
             response = self.client.get(
-                index="marie_settings",
+                index="marie_chat_settings",
                 id="system_config",
             )
             settings = response["_source"]

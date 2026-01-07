@@ -32,7 +32,12 @@ class AdminService:
         """Get system-wide statistics from OpenSearch"""
         try:
             # Get indices stats
-            indices = ["marie_users", "marie_conversations", "marie_messages", "marie_memory"]
+            indices = [
+                "marie_chat_users",
+                "marie_chat_conversations",
+                "marie_chat_messages",
+                "marie_chat_memory",
+            ]
             stats = {}
 
             for index in indices:
@@ -69,7 +74,7 @@ class AdminService:
                 "from": offset,
                 "sort": [{"created_at": {"order": "desc"}}],
             }
-            res = self.client.search(index="marie_users", body=query)
+            res = self.client.search(index="marie_chat_users", body=query)
             users = []
             for hit in res["hits"]["hits"]:
                 user = hit["_source"]
@@ -86,7 +91,7 @@ class AdminService:
         """Enable or disable a user account"""
         try:
             self.client.update(
-                index="marie_users",
+                index="marie_chat_users",
                 id=user_id,
                 body={"doc": {"is_active": is_active, "updated_at": datetime.utcnow().isoformat()}},
                 refresh=True,
@@ -103,7 +108,7 @@ class AdminService:
             permissions = self._get_default_permissions(role)
 
             self.client.update(
-                index="marie_users",
+                index="marie_chat_users",
                 id=user_id,
                 body={
                     "doc": {
@@ -126,7 +131,7 @@ class AdminService:
         try:
             # Check if user already exists
             existing = self.client.search(
-                index="marie_users", body={"query": {"term": {"email.keyword": email}}}, size=1
+                index="marie_chat_users", body={"query": {"term": {"email.keyword": email}}}, size=1
             )
             if existing["hits"]["total"]["value"] > 0:
                 return None
@@ -154,7 +159,7 @@ class AdminService:
                 "updated_at": now,
             }
 
-            self.client.index(index="marie_users", id=user_id, body=user_doc, refresh=True)
+            self.client.index(index="marie_chat_users", id=user_id, body=user_doc, refresh=True)
 
             # Return user without password
             return {
@@ -175,28 +180,34 @@ class AdminService:
         try:
             # 1. Delete user's messages
             self.client.delete_by_query(
-                index="marie_messages", body={"query": {"term": {"user_id": user_id}}}, refresh=True
+                index="marie_chat_messages",
+                body={"query": {"term": {"user_id": user_id}}},
+                refresh=True,
             )
 
             # 2. Delete user's conversations
             self.client.delete_by_query(
-                index="marie_conversations",
+                index="marie_chat_conversations",
                 body={"query": {"term": {"user_id": user_id}}},
                 refresh=True,
             )
 
             # 3. Delete user's API keys
             self.client.delete_by_query(
-                index="marie_api_keys", body={"query": {"term": {"user_id": user_id}}}, refresh=True
+                index="marie_chat_api_keys",
+                body={"query": {"term": {"user_id": user_id}}},
+                refresh=True,
             )
 
             # 4. Delete user's memory
             self.client.delete_by_query(
-                index="marie_memory", body={"query": {"term": {"user_id": user_id}}}, refresh=True
+                index="marie_chat_memory",
+                body={"query": {"term": {"user_id": user_id}}},
+                refresh=True,
             )
 
             # 5. Delete the user document
-            self.client.delete(index="marie_users", id=user_id, refresh=True)
+            self.client.delete(index="marie_chat_users", id=user_id, refresh=True)
 
             return True
         except Exception as e:

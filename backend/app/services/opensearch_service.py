@@ -41,7 +41,7 @@ class OpenSearchService:
             "updated_at": datetime.utcnow().isoformat(),
         }
 
-        self.client.index(index="marie_users", id=user_id, body=doc, refresh=True)
+        self.client.index(index="marie_chat_users", id=user_id, body=doc, refresh=True)
 
         # Remove password_hash from returned doc
         doc.pop("password_hash", None)
@@ -67,7 +67,7 @@ class OpenSearchService:
         """Get user by email"""
         query = {"query": {"term": {"email": email}}}
 
-        result = self.client.search(index="marie_users", body=query)
+        result = self.client.search(index="marie_chat_users", body=query)
         hits = result["hits"]["hits"]
 
         if hits:
@@ -79,7 +79,7 @@ class OpenSearchService:
     def get_user_by_id(self, user_id: str) -> dict | None:
         """Get user by ID"""
         try:
-            result = self.client.get(index="marie_users", id=user_id)
+            result = self.client.get(index="marie_chat_users", id=user_id)
             user = result["_source"]
             user["id"] = user_id  # Add document ID
             return user
@@ -94,7 +94,7 @@ class OpenSearchService:
         """Update user's last login timestamp"""
         try:
             self.client.update(
-                index="marie_users",
+                index="marie_chat_users",
                 id=user_id,
                 body={"doc": {"last_login_at": datetime.utcnow().isoformat()}},
                 retry_on_conflict=3,
@@ -130,7 +130,7 @@ class OpenSearchService:
             "updated_at": datetime.utcnow().isoformat(),
         }
 
-        self.client.index(index="marie_conversations", id=conv_id, body=doc, refresh=True)
+        self.client.index(index="marie_chat_conversations", id=conv_id, body=doc, refresh=True)
         return doc
 
     def get_user_conversations(self, user_id: str, limit: int = 50) -> list[dict]:
@@ -141,13 +141,13 @@ class OpenSearchService:
             "size": limit,
         }
 
-        result = self.client.search(index="marie_conversations", body=query)
+        result = self.client.search(index="marie_chat_conversations", body=query)
         return [hit["_source"] for hit in result["hits"]["hits"]]
 
     def get_conversation(self, conversation_id: str) -> dict | None:
         """Get conversation by ID"""
         try:
-            result = self.client.get(index="marie_conversations", id=conversation_id)
+            result = self.client.get(index="marie_chat_conversations", id=conversation_id)
             return result["_source"]
         except Exception:
             return None
@@ -156,16 +156,18 @@ class OpenSearchService:
         """Update conversation"""
         updates["updated_at"] = datetime.utcnow().isoformat()
 
-        self.client.update(index="marie_conversations", id=conversation_id, body={"doc": updates})
+        self.client.update(
+            index="marie_chat_conversations", id=conversation_id, body={"doc": updates}
+        )
 
     def delete_conversation(self, conversation_id: str):
         """Delete conversation"""
-        self.client.delete(index="marie_conversations", id=conversation_id)
+        self.client.delete(index="marie_chat_conversations", id=conversation_id)
 
         # Also delete all messages in this conversation
         query = {"query": {"term": {"conversation_id": conversation_id}}}
 
-        self.client.delete_by_query(index="marie_messages", body=query)
+        self.client.delete_by_query(index="marie_chat_messages", body=query)
 
     # ==================== MESSAGES ====================
 
@@ -196,11 +198,11 @@ class OpenSearchService:
         if content_vector:
             doc["content_vector"] = content_vector
 
-        self.client.index(index="marie_messages", id=msg_id, body=doc, refresh=True)
+        self.client.index(index="marie_chat_messages", id=msg_id, body=doc, refresh=True)
 
         # Update conversation message count and last_message_at
         self.client.update(
-            index="marie_conversations",
+            index="marie_chat_conversations",
             id=conversation_id,
             body={
                 "script": {
@@ -220,7 +222,7 @@ class OpenSearchService:
             "size": limit,
         }
 
-        result = self.client.search(index="marie_messages", body=query)
+        result = self.client.search(index="marie_chat_messages", body=query)
         messages = [hit["_source"] for hit in result["hits"]["hits"]]
         print(f"[OPENSEARCH] Found {len(messages)} messages for conversation {conversation_id}")
         messages.reverse()
@@ -229,7 +231,7 @@ class OpenSearchService:
     def get_message(self, message_id: str) -> dict | None:
         """Get message by ID"""
         try:
-            result = self.client.get(index="marie_messages", id=message_id)
+            result = self.client.get(index="marie_chat_messages", id=message_id)
             return result["_source"]
         except Exception:
             return None
