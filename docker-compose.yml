@@ -29,13 +29,13 @@ services:
       - hf_cache:/root/.cache/huggingface
     environment:
       - FLASK_ENV=development
-      - OPENSEARCH_HOSTS=http://opensearch:9200
-      - OPENSEARCH_USER=admin
-      - OPENSEARCH_PASSWORD=Marie_Chat_2024!
-      - OPENSEARCH_USE_SSL=false
-      - OPENSEARCH_VERIFY_CERTS=false
+      - OPENSEARCH_HOSTS=${OPENSEARCH_HOSTS:-http://localhost:9200}
+      - OPENSEARCH_USER=${OPENSEARCH_USER:-admin}
+      - OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD:-}
+      - OPENSEARCH_USE_SSL=${OPENSEARCH_USE_SSL:-false}
+      - OPENSEARCH_VERIFY_CERTS=${OPENSEARCH_VERIFY_CERTS:-false}
       - JWT_SECRET_KEY=dev-secret-key-change-in-production
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://localhost:11434}
       - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY:-}
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
@@ -47,84 +47,13 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    depends_on:
-      opensearch:
-        condition: service_healthy
-      ollama:
-        condition: service_started
+    depends_on: []
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       - marie-network
 
-  opensearch:
-    image: opensearchproject/opensearch:2.11.1
-    container_name: marie-opensearch
-    environment:
-      - cluster.name=marie-cluster
-      - node.name=marie-node-1
-      - discovery.type=single-node
-      - bootstrap.memory_lock=true
-      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
-      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=Marie_Chat_2024!
-      - plugins.security.disabled=true
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    volumes:
-      - opensearch_data:/usr/share/opensearch/data
-    ports:
-      - "9200:9200"
-      - "9600:9600"
-    networks:
-      - marie-network
-    healthcheck:
-      test: ["CMD-SHELL", "curl http://localhost:9200/_cluster/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-
-  opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:2.11.1
-    container_name: marie-dashboards
-    ports:
-      - "5601:5601"
-    environment:
-      - OPENSEARCH_HOSTS=["http://opensearch:9200"]
-      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
-    depends_on:
-      opensearch:
-        condition: service_healthy
-    networks:
-      - marie-network
-
-  ollama:
-    image: ollama/ollama:latest
-    container_name: marie-ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - marie-network
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-
 volumes:
-  opensearch_data:
-    driver: local
-  ollama_data:
-    driver: local
   hf_cache:
     driver: local
 
